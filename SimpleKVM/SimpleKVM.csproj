@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+	<Nullable>enable</Nullable>
+	<ApplicationIcon>iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Displays\win\MonitorController.original.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ext\controlmymonitor\ControlMyMonitor.chm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ext\controlmymonitor\ControlMyMonitor.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ext\controlmymonitor\readme.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ext\win\controlmymonitor\ControlMyMonitor.chm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ext\win\controlmymonitor\ControlMyMonitor.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ext\win\controlmymonitor\readme.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Displays\linux\" />
+    <Folder Include="Displays\mac\" />
+    <Folder Include="USB\linux\" />
+    <Folder Include="USB\mac\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="System.Management" Version="4.7.0" />
+  </ItemGroup>
+
+</Project>
