@@ -1,6 +1,8 @@
 # SimpleKVM
 Use multiple computers using one monitor, mouse and keyboard.
 
+Full KVMs are expensive, particularly for high-resolution / high-framerate KVMs. Using this program and a cheap USB switch (see below), you can achieve the same without spending hundreds of dollars.
+
 # Where to download
 Releases can be found over in the [releases](https://github.com/fiddyschmitt/SimpleKVM/releases) section.
 (Currenly only for Windows, but Linux and Mac in future)
