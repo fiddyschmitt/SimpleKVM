@@ -3,6 +3,7 @@ Use multiple computers using one monitor, mouse and keyboard.
 
 # Where to download
 Releases can be found over in the [releases](https://github.com/fiddyschmitt/SimpleKVM/releases) section.
+(Currenly only for Windows, but Linux and Mac in future)
 
 # What you need
 All you need is a USB switch, which you can find on eBay/AliExpress etc.
