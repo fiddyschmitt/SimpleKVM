@@ -10,11 +10,16 @@ All you need is a USB switch, which you can find on eBay/AliExpress etc.
 
 I've tried two types and they both work well (no affiliation):
 
-[2 ports for $8 (USD)](https://www.ebay.com.au/itm/USB-Sharing-Share-Switch-Box-Hub-2-Ports-PC-Computer-Scanner-Printer-Manual/122620877900)
+[2 ports for $8 (USD)](https://www.ebay.com.au/itm/USB-Sharing-Share-Switch-Box-Hub-2-Ports-PC-Computer-Scanner-Printer-Manual/122620877900):
 
-[4 ports for $11 (USD)](https://www.ebay.com.au/itm/4-Ports-USB2-0-Sharing-Device-Switch-Switcher-Adapter-Box-for-PC-Scanner-P-N1S8/293680413168)
+<img src="https://i.imgur.com/L0RJSy9.jpg" width="200">
 
-SimpleKVM can detect when the mouse and keyboard connect, and switch the monitor's input to the correct computer.
+
+
+[4 ports for $11 (USD)](https://www.ebay.com.au/itm/4-Ports-USB2-0-Sharing-Device-Switch-Switcher-Adapter-Box-for-PC-Scanner-P-N1S8/293680413168):
+
+<img src="https://i.imgur.com/QTaozVBl.jpg" width="200">
+
 If you have two computers, you only need to run SimpleKVM on one of them. For example:
 
 ![alt text](https://i.imgur.com/2mLcZX9.png)
