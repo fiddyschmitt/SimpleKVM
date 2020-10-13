@@ -12,13 +12,13 @@ All you need is a USB switch, which you can find on eBay/AliExpress etc.
 
 I've tried two types and they both work well (no affiliation):
 
-[2 ports for $8 (USD)](https://www.ebay.com.au/itm/USB-Sharing-Share-Switch-Box-Hub-2-Ports-PC-Computer-Scanner-Printer-Manual/122620877900):
+[2 ports for $8 (USD)](https://www.ebay.com.au/itm/USB-Sharing-Share-Switch-Box-Hub-2-Ports-PC-Computer-Scanner-Printer-Manual/122620877900). Ideal for two computers:
 
 <img src="https://i.imgur.com/Wj8rLt8l.jpg" width="400">
 
 
 
-[4 ports for $11 (USD)](https://www.ebay.com.au/itm/4-Ports-USB2-0-Sharing-Device-Switch-Switcher-Adapter-Box-for-PC-Scanner-P-N1S8/293680413168):
+[4 ports for $11 (USD)](https://www.ebay.com.au/itm/4-Ports-USB2-0-Sharing-Device-Switch-Switcher-Adapter-Box-for-PC-Scanner-P-N1S8/293680413168). Ideal for four computers:
 
 <img src="https://i.imgur.com/xAsG3hLl.jpg" width="400">
 
