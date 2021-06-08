@@ -23,7 +23,7 @@ namespace SimpleKVM
         readonly USBSystem? usbSystem;
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
-        const string Version = "1.0";
+        const string Version = "1.01";
         public static readonly List<Rule> Rules = new List<Rule>();
 
         public Form1()
@@ -93,6 +93,45 @@ namespace SimpleKVM
                                     .Select(lvi => lvi.Tag as Rule);
 
             ruleListview.ContextMenuStrip = new ContextMenuStrip();
+
+            ruleListview.ContextMenuStrip.Items.Add("Enable", null, (sender, obj) =>
+            {
+                var toDelete = selectedRules
+                                    .ToList();
+
+                toDelete
+                    .ToList()
+                    .ForEach(rule =>
+                    {
+                        if (rule != null)
+                        {
+                            rule.Enable();
+                        }
+                    });
+
+                SaveRules();
+            });
+
+            ruleListview.ContextMenuStrip.Items.Add("Disable", null, (sender, obj) =>
+            {
+                var toDelete = selectedRules
+                                    .ToList();
+
+                toDelete
+                    .ToList()
+                    .ForEach(rule =>
+                    {
+                        if (rule != null)
+                        {
+                            rule.Disable();
+                        }
+                    });
+
+                SaveRules();
+            });
+
+            ruleListview.ContextMenuStrip.Items.Add("-");
+
             ruleListview.ContextMenuStrip.Items.Add("Delete", null, (sender, obj) =>
             {
                 var toDelete = selectedRules
