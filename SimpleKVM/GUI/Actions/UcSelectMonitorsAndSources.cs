@@ -45,7 +45,7 @@ namespace SimpleKVM.GUI.Actions
                                         int sourceIdToSelect;
                                         if (ruleToEdit == null)
                                         {
-                                            sourceIdToSelect = monitor.Monitor.CurrentSource;
+                                            sourceIdToSelect = monitor.Monitor.GetCurrentSource();
                                         }
                                         else
                                         {

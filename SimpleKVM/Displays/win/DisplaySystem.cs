@@ -30,8 +30,6 @@ namespace SimpleKVM.Displays.win
                     physicalMonitors
                                 .ForEach(physicalMonitor =>
                                 {
-                                    physicalMonitor.GetVCPRegister(0x60, out uint currentSourceId);
-
                                     var caps = physicalMonitor.GetVCPCapabilities();
                                     if (caps != null)
                                     {
@@ -43,7 +41,6 @@ namespace SimpleKVM.Displays.win
                                         {
                                             MonitorUniqueId = $"{++monitorId}",
                                             Model = model,
-                                            CurrentSource = (int)currentSourceId,
                                             ValidSources = sources.Cast<int>().ToList()
                                         };
 

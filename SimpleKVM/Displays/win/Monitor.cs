@@ -9,6 +9,19 @@ namespace SimpleKVM.Displays.win
 {
     public class Monitor : Displays.Monitor
     {
+        public override int GetCurrentSource()
+        {
+            uint currentSource = 0;
+            var monitorToSet = int.Parse(MonitorUniqueId) - 1;
+            MonitorController.GetDevices(physicalMonitors =>
+            {
+                var physicalMonitor = physicalMonitors[monitorToSet];
+                physicalMonitor.GetVCPRegister(0x60, out currentSource);
+            });
+
+            return (int)currentSource;
+        }
+
         //public static string ControlMyMonitorExe => Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? "", @"ext\win\controlmymonitor\ControlMyMonitor.exe");
 
         public override bool SetSource(int newSourceId)

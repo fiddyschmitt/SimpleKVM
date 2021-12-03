@@ -12,8 +12,7 @@ namespace SimpleKVM.Displays
         [JsonIgnoreAttribute]
         public string Model = "";
 
-        [JsonIgnoreAttribute]
-        public int CurrentSource;
+        public abstract int GetCurrentSource();
 
         [JsonIgnoreAttribute]
         public List<int> ValidSources = new List<int>();

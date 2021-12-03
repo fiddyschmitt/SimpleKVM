@@ -11,6 +11,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -23,8 +24,8 @@ namespace SimpleKVM
         readonly USBSystem? usbSystem;
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
-        const string Version = "1.01";
-        public static readonly List<Rule> Rules = new List<Rule>();
+        const string Version = "1.02";
+        public static List<Rule> Rules = new List<Rule>();
 
         public Form1()
         {
@@ -35,6 +36,8 @@ namespace SimpleKVM
 
             InitializeComponent();
             Text = $"{ProgramName} {Version}";
+
+            InitialiseSystemTray();
 
             DisplaySystem.GetMonitors();    //for the monitors to be cached
             InitializeRuleListView();
@@ -57,6 +60,20 @@ namespace SimpleKVM
             usbSystem = USBSystem.INSTANCE;
         }
 
+        private void InitialiseSystemTray()
+        {
+            notifyIcon1.Icon = Icon;
+            notifyIcon1.Text = Text;
+            notifyIcon1.Visible = true;
+
+            notifyIcon1.ContextMenuStrip = new ContextMenuStrip();
+            var exitButton = notifyIcon1.ContextMenuStrip.Items.Add("Exit");
+            exitButton.Click += (sender, obj) =>
+            {
+                Close();
+            };
+        }
+
         private void InitializeRuleListView()
         {
             var columnMapping = new List<(string ColumnName, Func<Rule, object> ValueLookup, Func<Rule, string> DisplayStringLookup)>()
@@ -75,7 +92,7 @@ namespace SimpleKVM
                 View = View.Details
             };
 
-            ruleListview.DoubleClick += (sender, e) =>
+            var editAction = new EventHandler((sender, e) =>
             {
                 var selectedObject = ruleListview
                                         .GetSelectedItems()
@@ -85,7 +102,9 @@ namespace SimpleKVM
                 {
                     EditRule(null, null, selectedObject);
                 }
-            };
+            });
+
+            ruleListview.DoubleClick += editAction;
 
             var selectedRules = ruleListview
                                     .SelectedItems
@@ -131,6 +150,11 @@ namespace SimpleKVM
             });
 
             ruleListview.ContextMenuStrip.Items.Add("-");
+
+            ruleListview.ContextMenuStrip.Items.Add("Edit", null, (sender, obj) =>
+            {
+                editAction.Invoke(sender, obj);
+            });
 
             ruleListview.ContextMenuStrip.Items.Add("Delete", null, (sender, obj) =>
             {
@@ -231,6 +255,7 @@ namespace SimpleKVM
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add("Hotkey rule", null, (sender, obj) => { EditRule(EnumTriggerType.Hotkey, EnumActionType.SelectMonitorSource, null); });
             contextMenu.Items.Add("USB rule", null, (sender, obj) => { EditRule(EnumTriggerType.Usb, EnumActionType.SelectMonitorSource, null); });
+            contextMenu.Items.Add("No Longer Idle rule", null, (sender, obj) => { EditRule(EnumTriggerType.NoLongerIdle, EnumActionType.SelectMonitorSource, null); });
             contextMenu.Show(btnNewRule, new Point(btnNewRule.Width, (int)(btnNewRule.Height / 2d)));
         }
 
@@ -274,6 +299,40 @@ namespace SimpleKVM
         private void Panel1_Paint(object sender, PaintEventArgs e)
         {
 
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (ruleListview == null) return;
+
+            //preserver the order
+            Rules = ruleListview.GetItems();
+
+            SaveRules();
+        }
+
+        private void Form1_Resize(object sender, EventArgs e)
+        {
+            if (WindowState == FormWindowState.Minimized)
+            {
+                ShowInTaskbar = false;
+            }
+        }
+
+        private void notifyIcon1_DoubleClick(object sender, EventArgs e)
+        {
+            WindowState = FormWindowState.Normal;
+            ShowInTaskbar = true;
+            //notifyIcon1.Visible = false;
+        }
+
+        private void notifyIcon1_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
+                mi.Invoke(notifyIcon1, null);
+            }
         }
     }
 }

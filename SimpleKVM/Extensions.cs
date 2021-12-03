@@ -21,6 +21,8 @@ namespace SimpleKVM
             psi.WindowStyle = ProcessWindowStyle.Hidden;
 
             var process = Process.Start(psi);
+
+            if (process == null) return string.Empty;
             var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
 

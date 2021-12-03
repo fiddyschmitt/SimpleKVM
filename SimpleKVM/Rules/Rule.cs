@@ -116,7 +116,8 @@ namespace SimpleKVM.Rules
     public enum EnumTriggerType
     {
         Usb,
-        Hotkey
+        Hotkey,
+        NoLongerIdle
     }
 
     public enum EnumActionType

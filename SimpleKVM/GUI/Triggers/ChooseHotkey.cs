@@ -24,6 +24,8 @@ namespace SimpleKVM.GUI.Triggers
             RuleBeingEdited = ruleBeingEdited;
         }
 
+        bool winPressed = false;
+
         private void textBox1_KeyDown(object sender, KeyEventArgs e)
         {
             e.Handled = true;
@@ -33,14 +35,43 @@ namespace SimpleKVM.GUI.Triggers
             if (e.KeyCode == Keys.Menu) return;
             if (e.KeyCode == Keys.ShiftKey) return;
 
+            if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.Right)
+            {
+                winPressed = true;
+                return;
+            }
+
             Keys pressedKey = e.KeyData ^ e.Modifiers; //remove modifier keys
 
-            if (e.Modifiers != Keys.None && pressedKey != Keys.None)
+            var modifierIsPressed = (e.Modifiers != Keys.None || winPressed);
+
+            if (modifierIsPressed && pressedKey != Keys.None)
             {
                 var converter = new KeysConverter();
+
                 textBox1.Text = converter.ConvertToString(e.KeyData);
+
+                if (winPressed)
+                {
+                    textBox1.Text = $"Win+{textBox1.Text}";
+                }
+
                 CheckIfHotkeyIsAvailable();
             };
+        }
+
+        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+
+        }
+
+        private void textBox1_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.Right)
+            {
+                winPressed = false;
+                return;
+            }
         }
 
         void CheckIfHotkeyIsAvailable()
@@ -59,9 +90,7 @@ namespace SimpleKVM.GUI.Triggers
             try
             {
                 //check if the hotkey is in use
-                var converter = new KeysConverter();
-                var keys = (Keys)converter.ConvertFromString(textBox1.Text);
-                var hotkey = new Hotkey(keys, null);
+                var hotkey = new Hotkey(textBox1.Text, null);
                 hotkey.UnregisterHotkey();
 
                 //check if another rule already uses this hotkey
@@ -95,16 +124,6 @@ namespace SimpleKVM.GUI.Triggers
                 button1.Enabled = false;
                 return;
             }
-        }
-
-        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
-        {
-
-        }
-
-        private void textBox1_KeyUp(object sender, KeyEventArgs e)
-        {
-
         }
 
         private void button1_Click(object sender, EventArgs e)

@@ -22,10 +22,7 @@ namespace SimpleKVM.Rules.Triggers
 
         public override void StartMonitoring()
         {
-            var converter = new KeysConverter();
-            var keys = (Keys)converter.ConvertFromString(HotkeyAsString);
-
-            hotkey = new Hotkey(keys, () =>
+            hotkey = new Hotkey(HotkeyAsString, () =>
             {
                 RaiseTriggered();
             });

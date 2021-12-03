@@ -96,7 +96,6 @@ namespace SimpleKVM.Displays.win
                                     //MonitorName = dict["Monitor Name"],
                                     //SerialNumber = dict["Serial Number"],
 
-                                    CurrentSource = currentSource,
                                     ValidSources = validSources
                                 };
                             })

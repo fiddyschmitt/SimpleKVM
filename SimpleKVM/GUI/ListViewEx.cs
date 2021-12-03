@@ -24,7 +24,11 @@ namespace SimpleKVM.GUI
                 });
 
             //Add the sorter
-            lvwColumnSorter = new ListViewColumnSorter<T>(columnInfo);
+            lvwColumnSorter = new ListViewColumnSorter<T>(columnInfo)
+            {
+                SortOrder = SortOrder.None
+            };
+
             ListViewItemSorter = lvwColumnSorter;
             ColumnClick += ListViewEx_ColumnClick;
         }
@@ -52,6 +56,7 @@ namespace SimpleKVM.GUI
         public void Remove(T item)
         {
             if (item == null) return;
+            if (Items == null) return;
 
             var lvi = Items
                         .Cast<ListViewItem>()
@@ -71,6 +76,16 @@ namespace SimpleKVM.GUI
         public List<T> GetSelectedItems()
         {
             var result = SelectedItems
+                            .OfType<ListViewItem>()
+                            .Select(lvi => (T)lvi.Tag)
+                            .ToList();
+
+            return result;
+        }
+
+        public List<T> GetItems()
+        {
+            var result = Items
                             .OfType<ListViewItem>()
                             .Select(lvi => (T)lvi.Tag)
                             .ToList();

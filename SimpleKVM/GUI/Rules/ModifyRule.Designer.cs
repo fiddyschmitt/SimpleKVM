@@ -39,9 +39,10 @@
             // btnSave
             // 
             this.btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.btnSave.Location = new System.Drawing.Point(12, 264);
+            this.btnSave.Location = new System.Drawing.Point(8, 158);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(112, 34);
+            this.btnSave.Size = new System.Drawing.Size(75, 23);
             this.btnSave.TabIndex = 0;
             this.btnSave.Text = "Save";
             this.btnSave.UseVisualStyleBackColor = true;
@@ -54,9 +55,10 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 16);
+            this.label1.Location = new System.Drawing.Point(8, 10);
+            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(98, 25);
+            this.label1.Size = new System.Drawing.Size(65, 15);
             this.label1.TabIndex = 1;
             this.label1.Text = "Rule Name";
             // 
@@ -65,20 +67,22 @@
             this.txtRuleName.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtRuleName.Location = new System.Drawing.Point(116, 13);
+            this.txtRuleName.Location = new System.Drawing.Point(81, 8);
+            this.txtRuleName.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.txtRuleName.Name = "txtRuleName";
-            this.txtRuleName.Size = new System.Drawing.Size(303, 31);
+            this.txtRuleName.Size = new System.Drawing.Size(213, 23);
             this.txtRuleName.TabIndex = 2;
             this.txtRuleName.Text = "Switch to work laptop";
             // 
             // ModifyRule
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(449, 310);
+            this.ClientSize = new System.Drawing.Size(314, 186);
             this.Controls.Add(this.txtRuleName);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.btnSave);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "ModifyRule";
             this.Text = "ModifyRule";
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).EndInit();

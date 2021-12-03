@@ -31,6 +31,7 @@ namespace SimpleKVM.GUI.Rules
             EnumTriggerType? triggerType = null;
             if (ruleToEdit.Trigger is USBTrigger) triggerType = EnumTriggerType.Usb;
             if (ruleToEdit.Trigger is HotkeyTrigger) triggerType = EnumTriggerType.Hotkey;
+            if (ruleToEdit.Trigger is NoLongerIdle) triggerType = EnumTriggerType.NoLongerIdle;
 
             EnumActionType? actionType = null;
             if (ruleToEdit.Actions.All(action => action is SetMonitorSourceAction)) actionType = EnumActionType.SelectMonitorSource;
@@ -58,6 +59,7 @@ namespace SimpleKVM.GUI.Rules
             {
                 EnumTriggerType.Usb => new UcConfigureUsbTrigger(usbSystem, this, ruleToEdit),
                 EnumTriggerType.Hotkey => new UcConfigureHotkeyTrigger(this, ruleToEdit),
+                EnumTriggerType.NoLongerIdle => new UcConfigureNoLongerIdleTrigger(),
                 _ => null
             };
 
@@ -88,7 +90,7 @@ namespace SimpleKVM.GUI.Rules
                     Controls.Add(actionCreatorUc);
                 }
 
-                btnSave.Top = actionCreatorUc.Bottom + 8;
+                //btnSave.Top = actionCreatorUc.Bottom + 8;
 
                 actionCreator = actionCreatorUc;
             }

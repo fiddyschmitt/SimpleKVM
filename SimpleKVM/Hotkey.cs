@@ -29,6 +29,26 @@ namespace SimpleKVM
             RegisterHotKey();
         }
 
+        public Hotkey(string keysAsString, Action? action)
+        {
+            bool hasWinPress = keysAsString.Contains("Win+");
+            keysAsString = keysAsString.Replace("Win+", "");
+
+            var converter = new KeysConverter();
+            var keys = (Keys)converter.ConvertFromString(keysAsString);
+
+            (Modifier, Keys) = Split(keys);
+
+            if (hasWinPress)
+            {
+                Modifier |= ModifierKeys.Win;
+            }
+
+            Action = action;
+
+            RegisterHotKey();
+        }
+
         public Hotkey(Keys keys, Action? action)
         {
             (Modifier, Keys) = Split(keys);
