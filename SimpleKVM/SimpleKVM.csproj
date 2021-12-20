@@ -17,24 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="ext\controlmymonitor\ControlMyMonitor.chm">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ext\controlmymonitor\ControlMyMonitor.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ext\controlmymonitor\readme.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ext\win\controlmymonitor\ControlMyMonitor.chm">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Update="ext\win\controlmymonitor\readme.txt">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Displays\linux\" />
     <Folder Include="Displays\mac\" />
     <Folder Include="USB\linux\" />
