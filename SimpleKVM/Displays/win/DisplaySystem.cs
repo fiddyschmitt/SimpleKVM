@@ -31,10 +31,16 @@ namespace SimpleKVM.Displays.win
                                 .ForEach(physicalMonitor =>
                                 {
                                     var caps = physicalMonitor.GetVCPCapabilities();
+
                                     if (caps != null)
                                     {
                                         var model = modelRegex.Match(caps).Groups[1].Value;
-                                        var sources = sourcesRegex.Match(caps).Groups[1].Value.Split(' ').Select(x => Convert.ToUInt32(x, 16)).ToArray();
+
+                                        var sources = sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
+                                                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                                                        .Select(x => Convert.ToUInt32(x, 16))
+                                                        .ToArray();
+
                                         physicalMonitor.GetVCPRegister(0x60, out uint currentSource);
 
                                         var newMonitor = new Monitor()
