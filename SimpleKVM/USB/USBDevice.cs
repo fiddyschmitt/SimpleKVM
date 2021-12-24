@@ -8,10 +8,12 @@ namespace SimpleKVM.USB
     public class USBDevice
     {
         public string DeviceID;
+        public string DeviceClass;
 
-        public USBDevice(string deviceID)
+        public USBDevice(string deviceID, string deviceClass)
         {
             DeviceID = deviceID;
+            DeviceClass = deviceClass;
         }
     }
 }
