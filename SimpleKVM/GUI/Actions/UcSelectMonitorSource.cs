@@ -67,6 +67,9 @@ namespace SimpleKVM.GUI
 
         public static string SourceIdToName(int sourceId)
         {
+            //https://en.wikipedia.org/wiki/Monitor_Control_Command_Set
+            //https://milek7.pl/ddcbacklight/mccs.pdf
+
             string sourceName = sourceId switch
             {
                 -1 => "Leave unchanged",
