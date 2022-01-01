@@ -3,11 +3,11 @@ Share your monitor with multiple computers.
 
 It is quite expensive to buy a full KVM, particularly one which supports high resolution / high framerate. Using this program and a cheap USB switch (see below), you can achieve the same without spending hundreds of dollars.
 
-# Where to download
+## Where to download
 Releases can be found over in the [releases](https://github.com/fiddyschmitt/SimpleKVM/releases) section.
 (Currenly only for Windows, but Linux and Mac in future)
 
-# What you need
+## What you need
 All you need is a USB switch, which you can find on eBay/AliExpress etc.
 
 I've tried three types and they all work well (no affiliation):
@@ -30,12 +30,12 @@ If you have two computers, you only need to run SimpleKVM on one of them. For ex
 
 ![alt text](https://i.imgur.com/2mLcZX9.png)
 
-# How does it work?
+## How does it work?
 The program detects when USB devices connect or disconnect, or when hotkeys are pressed. It then tells the monitor to change its input source using a DDC/CI command, which many monitors support.
 
-# Todo
+## Todo
 As the program uses .NET Core, it can be run on Windows, Linux and Mac.
 However it only works on Windows at the moment. Contributions welcome :)
 
-# Thanks to
+## Thanks to
 This program was inspired by [haimgel's display-switch program](https://github.com/haimgel/display-switch).
