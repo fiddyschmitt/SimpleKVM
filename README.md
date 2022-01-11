@@ -10,7 +10,7 @@ Releases can be found over in the [releases](https://github.com/fiddyschmitt/Sim
 ## What you need
 All you need is a USB switch, which you can find on eBay/AliExpress etc.
 
-I've tried three types and they all work well (no affiliation):
+I've tried the following and they all work well (no affiliation):
 
 [Unnlink 4 Port USB Switch for $21 (USD)](https://www.aliexpress.com/item/32980548420.html). I recommend this one, because it lets you switch between computers using a single hotkey (Windows Key + Numpad 1 through 4)
 
@@ -20,15 +20,6 @@ I've tried three types and they all work well (no affiliation):
 
 <img src="https://i.imgur.com/Wj8rLt8l.jpg" width="400">
 
-
-
-[4 ports for $11 (USD)](https://www.ebay.com.au/itm/4-Ports-USB2-0-Sharing-Device-Switch-Switcher-Adapter-Box-for-PC-Scanner-P-N1S8/293680413168). Ideal for four computers:
-
-<img src="https://i.imgur.com/xAsG3hLl.jpg" width="400">
-
-If you have two computers, you only need to run SimpleKVM on one of them. For example:
-
-![alt text](https://i.imgur.com/2mLcZX9.png)
 
 ## How does it work?
 The program detects when USB devices connect or disconnect, or when hotkeys are pressed. It then tells the monitor to change its input source using a DDC/CI command, which many monitors support.
