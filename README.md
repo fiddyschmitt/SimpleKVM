@@ -25,7 +25,7 @@ I've tried the following and they all work well (no affiliation):
 The program detects when USB devices connect or disconnect, or when hotkeys are pressed. It then tells the monitor to change its input source using a DDC/CI command, which many monitors support.
 
 ## Todo
-As the program uses .NET Core, it can be run on Windows, Linux and Mac.
+As the program uses .NET 5, it can be run on Windows, Linux and Mac.
 However it only works on Windows at the moment. Contributions welcome :)
 
 ## Thanks to
