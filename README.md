@@ -3,14 +3,14 @@ Share your monitor with multiple computers.
 
 It is quite expensive to buy a full KVM, particularly one which supports high resolution / high framerate. Using this program and a cheap USB switch (see below), you can achieve the same without spending hundreds of dollars.
 
-# Where to download
+## Where to download
 Releases can be found over in the [releases](https://github.com/fiddyschmitt/SimpleKVM/releases) section.
 (Currenly only for Windows, but Linux and Mac in future)
 
-# What you need
+## What you need
 All you need is a USB switch, which you can find on eBay/AliExpress etc.
 
-I've tried three types and they all work well (no affiliation):
+I've tried the following and they all work well (no affiliation):
 
 [Unnlink 4 Port USB Switch for $21 (USD)](https://www.aliexpress.com/item/32980548420.html). I recommend this one, because it lets you switch between computers using a single hotkey (Windows Key + Numpad 1 through 4)
 
@@ -21,21 +21,34 @@ I've tried three types and they all work well (no affiliation):
 <img src="https://i.imgur.com/Wj8rLt8l.jpg" width="400">
 
 
-
-[4 ports for $11 (USD)](https://www.ebay.com.au/itm/4-Ports-USB2-0-Sharing-Device-Switch-Switcher-Adapter-Box-for-PC-Scanner-P-N1S8/293680413168). Ideal for four computers:
-
-<img src="https://i.imgur.com/xAsG3hLl.jpg" width="400">
-
-If you have two computers, you only need to run SimpleKVM on one of them. For example:
-
-![alt text](https://i.imgur.com/2mLcZX9.png)
-
-# How does it work?
+## How does it work?
 The program detects when USB devices connect or disconnect, or when hotkeys are pressed. It then tells the monitor to change its input source using a DDC/CI command, which many monitors support.
 
-# Todo
-As the program uses .NET Core, it can be run on Windows, Linux and Mac.
+## Todo
+As the program uses .NET 5, it can be run on Windows, Linux and Mac.
 However it only works on Windows at the moment. Contributions welcome :)
 
-# Thanks to
+## License
+
+```
+A work by Fidel Perez-Smith.
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+```
+
+## Thanks to
 This program was inspired by [haimgel's display-switch program](https://github.com/haimgel/display-switch).
