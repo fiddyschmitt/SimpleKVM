@@ -35,7 +35,7 @@ namespace SimpleKVM.GUI.Triggers
             if (e.KeyCode == Keys.Menu) return;
             if (e.KeyCode == Keys.ShiftKey) return;
 
-            if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.Right)
+            if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.RWin)
             {
                 winPressed = true;
                 return;
@@ -67,7 +67,7 @@ namespace SimpleKVM.GUI.Triggers
 
         private void textBox1_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.Right)
+            if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.RWin)
             {
                 winPressed = false;
                 return;
