@@ -24,7 +24,7 @@ namespace SimpleKVM
         readonly USBSystem? usbSystem;
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
-        const string Version = "1.06";
+        const string Version = "1.07";
         public static List<Rule> Rules = new List<Rule>();
 
         public Form1()
@@ -122,10 +122,7 @@ namespace SimpleKVM
                     .ToList()
                     .ForEach(rule =>
                     {
-                        if (rule != null)
-                        {
-                            rule.Enable();
-                        }
+                        rule?.Enable();
                     });
 
                 SaveRules();
@@ -140,10 +137,7 @@ namespace SimpleKVM
                     .ToList()
                     .ForEach(rule =>
                     {
-                        if (rule != null)
-                        {
-                            rule.Disable();
-                        }
+                        rule?.Disable();
                     });
 
                 SaveRules();
@@ -259,14 +253,14 @@ namespace SimpleKVM
             contextMenu.Show(btnNewRule, new Point(btnNewRule.Width, (int)(btnNewRule.Height / 2d)));
         }
 
-        private void LoadRules()
+        private static void LoadRules()
         {
             var rulesJson = Extensions.ReadTextFile("", "rules.json");
             var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? new List<Rule>();
             Rules.AddRange(loadedRules);
         }
 
-        private void SaveRules()
+        private static void SaveRules()
         {
             var rulesJson = Rules.SerializeToJson();
             if (rulesJson != null)
