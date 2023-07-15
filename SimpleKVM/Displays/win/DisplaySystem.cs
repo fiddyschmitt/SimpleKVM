@@ -13,8 +13,8 @@ namespace SimpleKVM.Displays.win
 {
     public static class DisplaySystem
     {
-        static readonly Regex modelRegex = new Regex(@"model\((.*?)\)");
-        static readonly Regex sourcesRegex = new Regex(@"(?<=\s)60\((.*?)\)");
+        static readonly Regex modelRegex = new(@"model\((.*?)\)");
+        static readonly Regex sourcesRegex = new(@"(?<=\s)60\((.*?)\)");
 
         static List<Monitor>? cachedMonitorList;
         public static IList<Monitor> GetMonitors()

@@ -11,6 +11,9 @@ using System.Windows.Forms;
 using System.Linq;
 using SimpleKVM.Rules.Triggers;
 using SimpleKVM.Rules.Actions;
+using SimpleKVM.Displays;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace SimpleKVM.GUI.Rules
 {
@@ -71,6 +74,8 @@ namespace SimpleKVM.GUI.Rules
                 Controls.Add(triggerCreatorUc);
 
                 triggerCreator = (ITriggerCreator)triggerCreatorUc;
+
+                triggerCreatorUc.TabIndex = txtRuleName.TabIndex;
             }
 
             var actionCreatorUc = actionType switch
@@ -86,17 +91,16 @@ namespace SimpleKVM.GUI.Rules
                 if (triggerCreatorUc != null)
                 {
                     actionCreatorUc.Top = triggerCreatorUc.Bottom;
+                    actionCreatorUc.TabIndex = triggerCreatorUc.TabIndex;
 
                     Controls.Add(actionCreatorUc);
                 }
-
-                //btnSave.Top = actionCreatorUc.Bottom + 8;
 
                 actionCreator = actionCreatorUc;
             }
 
 
-            Width = Controls.Cast<Control>().Max(c => c.Width + c.Left * 2 + 64);
+            Width = Controls.Cast<Control>().Max(c => c.Width + 64);
             Height = Controls.Cast<Control>().Max(c => c.Bottom) + 96;
 
             if (triggerCreatorUc != null) triggerCreatorUc.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
@@ -109,7 +113,7 @@ namespace SimpleKVM.GUI.Rules
         {
             var validationResults = ValidateData();
 
-            if (validationResults.Count() == 0)
+            if (validationResults.Count == 0)
             {
                 DialogResult = DialogResult.OK;
             }
@@ -172,6 +176,35 @@ namespace SimpleKVM.GUI.Rules
         {
             //We have been told by a sub control that they've changed. Let's validate again
             ValidateData();
+        }
+
+        private void BtnTest_Click(object sender, EventArgs e)
+        {
+            var rule = GetRule();
+
+            if (rule != null)
+            {
+                Task.Factory.StartNew(() =>
+                {
+                    var originalSources = DisplaySystem
+                                            .GetMonitors()
+                                            .Select(monitor => new
+                                            {
+                                                Monitor = monitor,
+                                                OriginalSource = monitor.GetCurrentSource()
+                                            })
+                                            .ToList();
+
+                    rule.Run();
+                    Thread.Sleep(TimeSpan.FromSeconds(10));
+
+                    originalSources
+                        .ForEach(originalSources =>
+                        {
+                            originalSources.Monitor.SetSource(originalSources.OriginalSource);
+                        });
+                });
+            }
         }
     }
 }

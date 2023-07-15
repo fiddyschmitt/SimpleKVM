@@ -24,8 +24,8 @@ namespace SimpleKVM
         readonly USBSystem? usbSystem;
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
-        const string Version = "1.07";
-        public static List<Rule> Rules = new List<Rule>();
+        const string Version = "1.08";
+        public static List<Rule> Rules { get; protected set; } = new();
 
         public Form1()
         {
@@ -170,6 +170,19 @@ namespace SimpleKVM
                 SaveRules();
             });
 
+            ruleListview.ContextMenuStrip.Items.Add("-");
+
+            ruleListview.ContextMenuStrip.Items.Add("Run now", null, (sender, obj) =>
+            {
+                var selectedRule = ruleListview
+                                    .SelectedItems
+                                    .Cast<ListViewItem>()
+                                    .Select(lvi => lvi.Tag as Rule)
+                                    .FirstOrDefault();
+
+                selectedRule?.Run();
+            });
+
             panel1.Controls.Add(ruleListview);
 
             statsTimer.Start();
@@ -189,9 +202,9 @@ namespace SimpleKVM
                             })
                             .ToList();
 
-            bool creatingNewRule = (rule == null);
+            var creatingNewRule = (rule == null);
 
-            string title = creatingNewRule ? "Create new rule" : "Edit rule";
+            var title = creatingNewRule ? "Create new rule" : "Edit rule";
 
             ModifyRule editRuleForm;
             if (rule == null)
@@ -206,7 +219,8 @@ namespace SimpleKVM
                 editRuleForm = new ModifyRule(usbSystem, title, rule);
             }
 
-            var diagResult = editRuleForm.ShowDialog();
+            editRuleForm.StartPosition = FormStartPosition.CenterParent;
+            var diagResult = editRuleForm.ShowDialog(this);
 
             if (diagResult == DialogResult.OK)
             {
@@ -245,7 +259,6 @@ namespace SimpleKVM
 
         private void BtnNewRule_Click(object sender, EventArgs e)
         {
-            //EditRule(null);
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add("Hotkey rule", null, (sender, obj) => { EditRule(EnumTriggerType.Hotkey, EnumActionType.SelectMonitorSource, null); });
             contextMenu.Items.Add("USB rule", null, (sender, obj) => { EditRule(EnumTriggerType.Usb, EnumActionType.SelectMonitorSource, null); });
@@ -299,7 +312,7 @@ namespace SimpleKVM
         {
             if (ruleListview == null) return;
 
-            //preserver the order
+            //preserve the order
             Rules = ruleListview.GetItems();
 
             SaveRules();
@@ -313,19 +326,19 @@ namespace SimpleKVM
             }
         }
 
-        private void notifyIcon1_DoubleClick(object sender, EventArgs e)
+        private void NotifyIcon1_DoubleClick(object sender, EventArgs e)
         {
             WindowState = FormWindowState.Normal;
             ShowInTaskbar = true;
             //notifyIcon1.Visible = false;
         }
 
-        private void notifyIcon1_MouseUp(object sender, MouseEventArgs e)
+        private void NotifyIcon1_MouseUp(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
-                MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
-                mi.Invoke(notifyIcon1, null);
+                var mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
+                mi?.Invoke(notifyIcon1, null);
             }
         }
     }

@@ -65,7 +65,7 @@ namespace SimpleKVM.GUI
                             ListViewItem = lvi,
                             Obj = (T)lvi.Tag
                         })
-                        .FirstOrDefault(lvi => item.Equals(lvi.Obj))
+                        .First(lvi => item.Equals(lvi.Obj))
                         .ListViewItem;
 
             Items.Remove(lvi);
@@ -140,7 +140,7 @@ namespace SimpleKVM.GUI
             //AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
         }
 
-        private void ListViewEx_ColumnClick(object sender, ColumnClickEventArgs e)
+        private void ListViewEx_ColumnClick(object? sender, ColumnClickEventArgs e)
         {
             if (e.Column == lvwColumnSorter.ColumnToSort)
             {
