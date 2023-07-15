@@ -12,7 +12,7 @@ namespace SimpleKVM.Rules
     {
         public Trigger Trigger;
 
-        public List<IAction> Actions = new List<IAction>();
+        public List<IAction> Actions = new();
         public int RunCount { get; set; }
         public DateTime? LastRun { get; set; }
         public EnumRuleStatus Status { get; set; } = EnumRuleStatus.Stopped;
@@ -36,11 +36,12 @@ namespace SimpleKVM.Rules
                 Trigger.StartMonitoring();
 
                 Status = EnumRuleStatus.Running;
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Console.WriteLine(ex);
                 Status = EnumRuleStatus.Error;
-            }            
+            }
         }
 
         public override void StopMonitoring()
@@ -53,6 +54,11 @@ namespace SimpleKVM.Rules
         {
             if (Status != EnumRuleStatus.Running) return;
 
+            Run();
+        }
+
+        public void Run()
+        {
             bool wasRun = false;
             Actions
                 .ForEach(action =>
@@ -61,7 +67,7 @@ namespace SimpleKVM.Rules
                     {
                         wasRun = true;
                     }
-                    
+
                 });
 
             if (wasRun)
@@ -71,7 +77,7 @@ namespace SimpleKVM.Rules
             }
 
             RaiseTriggered();
-        }        
+        }
 
         public void Enable()
         {
