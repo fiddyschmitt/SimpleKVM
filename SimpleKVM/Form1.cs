@@ -25,7 +25,7 @@ namespace SimpleKVM
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
         const string Version = "1.07";
-        public static List<Rule> Rules = new List<Rule>();
+        static List<Rule> Rules = new();
 
         public Form1()
         {
@@ -299,7 +299,7 @@ namespace SimpleKVM
         {
             if (ruleListview == null) return;
 
-            //preserver the order
+            //preserve the order
             Rules = ruleListview.GetItems();
 
             SaveRules();
@@ -313,19 +313,19 @@ namespace SimpleKVM
             }
         }
 
-        private void notifyIcon1_DoubleClick(object sender, EventArgs e)
+        private void NotifyIcon1_DoubleClick(object sender, EventArgs e)
         {
             WindowState = FormWindowState.Normal;
             ShowInTaskbar = true;
             //notifyIcon1.Visible = false;
         }
 
-        private void notifyIcon1_MouseUp(object sender, MouseEventArgs e)
+        private void NotifyIcon1_MouseUp(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
-                MethodInfo mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
-                mi.Invoke(notifyIcon1, null);
+                var mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
+                mi?.Invoke(notifyIcon1, null);
             }
         }
     }
