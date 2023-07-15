@@ -189,9 +189,9 @@ namespace SimpleKVM
                             })
                             .ToList();
 
-            bool creatingNewRule = (rule == null);
+            var creatingNewRule = (rule == null);
 
-            string title = creatingNewRule ? "Create new rule" : "Edit rule";
+            var title = creatingNewRule ? "Create new rule" : "Edit rule";
 
             ModifyRule editRuleForm;
             if (rule == null)
@@ -206,7 +206,8 @@ namespace SimpleKVM
                 editRuleForm = new ModifyRule(usbSystem, title, rule);
             }
 
-            var diagResult = editRuleForm.ShowDialog();
+            editRuleForm.StartPosition = FormStartPosition.CenterParent;
+            var diagResult = editRuleForm.ShowDialog(this);
 
             if (diagResult == DialogResult.OK)
             {
@@ -245,7 +246,6 @@ namespace SimpleKVM
 
         private void BtnNewRule_Click(object sender, EventArgs e)
         {
-            //EditRule(null);
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add("Hotkey rule", null, (sender, obj) => { EditRule(EnumTriggerType.Hotkey, EnumActionType.SelectMonitorSource, null); });
             contextMenu.Items.Add("USB rule", null, (sender, obj) => { EditRule(EnumTriggerType.Usb, EnumActionType.SelectMonitorSource, null); });
