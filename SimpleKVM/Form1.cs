@@ -145,19 +145,6 @@ namespace SimpleKVM
 
             ruleListview.ContextMenuStrip.Items.Add("-");
 
-            ruleListview.ContextMenuStrip.Items.Add("Run now", null, (sender, obj) =>
-            {
-                var selectedRule = ruleListview
-                                    .SelectedItems
-                                    .Cast<ListViewItem>()
-                                    .Select(lvi => lvi.Tag as Rule)
-                                    .FirstOrDefault();
-
-                selectedRule?.Run();
-            });
-
-            ruleListview.ContextMenuStrip.Items.Add("-");
-
             ruleListview.ContextMenuStrip.Items.Add("Edit", null, (sender, obj) =>
             {
                 editAction.Invoke(sender, obj);
@@ -181,6 +168,19 @@ namespace SimpleKVM
                     });
 
                 SaveRules();
+            });
+
+            ruleListview.ContextMenuStrip.Items.Add("-");
+
+            ruleListview.ContextMenuStrip.Items.Add("Run now", null, (sender, obj) =>
+            {
+                var selectedRule = ruleListview
+                                    .SelectedItems
+                                    .Cast<ListViewItem>()
+                                    .Select(lvi => lvi.Tag as Rule)
+                                    .FirstOrDefault();
+
+                selectedRule?.Run();
             });
 
             panel1.Controls.Add(ruleListview);

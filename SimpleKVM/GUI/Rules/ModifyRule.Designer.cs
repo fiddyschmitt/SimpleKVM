@@ -28,67 +28,90 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
-            this.btnSave = new System.Windows.Forms.Button();
-            this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
-            this.label1 = new System.Windows.Forms.Label();
-            this.txtRuleName = new System.Windows.Forms.TextBox();
-            ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).BeginInit();
-            this.SuspendLayout();
+            components = new System.ComponentModel.Container();
+            btnSave = new System.Windows.Forms.Button();
+            errorProvider1 = new System.Windows.Forms.ErrorProvider(components);
+            label1 = new System.Windows.Forms.Label();
+            txtRuleName = new System.Windows.Forms.TextBox();
+            btnTest = new System.Windows.Forms.Button();
+            label2 = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)errorProvider1).BeginInit();
+            SuspendLayout();
             // 
             // btnSave
             // 
-            this.btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.btnSave.Location = new System.Drawing.Point(8, 158);
-            this.btnSave.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(75, 23);
-            this.btnSave.TabIndex = 0;
-            this.btnSave.Text = "Save";
-            this.btnSave.UseVisualStyleBackColor = true;
-            this.btnSave.Click += new System.EventHandler(this.BtnSave_Click);
+            btnSave.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            btnSave.Location = new System.Drawing.Point(8, 158);
+            btnSave.Margin = new System.Windows.Forms.Padding(2);
+            btnSave.Name = "btnSave";
+            btnSave.Size = new System.Drawing.Size(75, 23);
+            btnSave.TabIndex = 3;
+            btnSave.Text = "Save";
+            btnSave.UseVisualStyleBackColor = true;
+            btnSave.Click += BtnSave_Click;
             // 
             // errorProvider1
             // 
-            this.errorProvider1.ContainerControl = this;
+            errorProvider1.ContainerControl = this;
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(8, 10);
-            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(65, 15);
-            this.label1.TabIndex = 1;
-            this.label1.Text = "Rule Name";
+            label1.AutoSize = true;
+            label1.Location = new System.Drawing.Point(8, 10);
+            label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            label1.Name = "label1";
+            label1.Size = new System.Drawing.Size(65, 15);
+            label1.TabIndex = 0;
+            label1.Text = "Rule Name";
             // 
             // txtRuleName
             // 
-            this.txtRuleName.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtRuleName.Location = new System.Drawing.Point(81, 8);
-            this.txtRuleName.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.txtRuleName.Name = "txtRuleName";
-            this.txtRuleName.Size = new System.Drawing.Size(213, 23);
-            this.txtRuleName.TabIndex = 2;
-            this.txtRuleName.Text = "Switch to work laptop";
+            txtRuleName.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            txtRuleName.Location = new System.Drawing.Point(81, 8);
+            txtRuleName.Margin = new System.Windows.Forms.Padding(2);
+            txtRuleName.Name = "txtRuleName";
+            txtRuleName.Size = new System.Drawing.Size(323, 23);
+            txtRuleName.TabIndex = 0;
+            txtRuleName.Text = "Switch to work laptop";
+            // 
+            // btnTest
+            // 
+            btnTest.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            btnTest.Location = new System.Drawing.Point(142, 158);
+            btnTest.Margin = new System.Windows.Forms.Padding(2);
+            btnTest.Name = "btnTest";
+            btnTest.Size = new System.Drawing.Size(75, 23);
+            btnTest.TabIndex = 4;
+            btnTest.Text = "Test";
+            btnTest.UseVisualStyleBackColor = true;
+            btnTest.Click += BtnTest_Click;
+            // 
+            // label2
+            // 
+            label2.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            label2.AutoSize = true;
+            label2.Location = new System.Drawing.Point(218, 162);
+            label2.Name = "label2";
+            label2.Size = new System.Drawing.Size(182, 15);
+            label2.TabIndex = 4;
+            label2.Text = "(will revert back after 10 seconds)";
             // 
             // ModifyRule
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(314, 186);
-            this.Controls.Add(this.txtRuleName);
-            this.Controls.Add(this.label1);
-            this.Controls.Add(this.btnSave);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.Name = "ModifyRule";
-            this.Text = "ModifyRule";
-            ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).EndInit();
-            this.ResumeLayout(false);
-            this.PerformLayout();
-
+            AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            ClientSize = new System.Drawing.Size(424, 186);
+            Controls.Add(label2);
+            Controls.Add(btnTest);
+            Controls.Add(txtRuleName);
+            Controls.Add(label1);
+            Controls.Add(btnSave);
+            Margin = new System.Windows.Forms.Padding(2);
+            Name = "ModifyRule";
+            Text = "ModifyRule";
+            ((System.ComponentModel.ISupportInitialize)errorProvider1).EndInit();
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
@@ -97,5 +120,7 @@
         private System.Windows.Forms.ErrorProvider errorProvider1;
         private System.Windows.Forms.TextBox txtRuleName;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Button btnTest;
+        private System.Windows.Forms.Label label2;
     }
 }
