@@ -35,10 +35,6 @@ The program detects when USB devices connect or disconnect, or when hotkeys are 
 3. Paste a shortcut to `SimpleKVM.exe` into that folder
 4. Open the properties for the shortcut, and select Run: Minimized
 
-## Todo
-As the program uses .NET 5, it can be run on Windows, Linux and Mac.
-However it only works on Windows at the moment. Contributions welcome :)
-
 ## License
 
 ```
