@@ -26,7 +26,7 @@ namespace SimpleKVM.GUI.Triggers
 
         bool winPressed = false;
 
-        private void textBox1_KeyDown(object sender, KeyEventArgs e)
+        private void TextBox1_KeyDown(object sender, KeyEventArgs e)
         {
             e.Handled = true;
             e.SuppressKeyPress = true;
@@ -60,12 +60,12 @@ namespace SimpleKVM.GUI.Triggers
             };
         }
 
-        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        private void TextBox1_KeyPress(object sender, KeyPressEventArgs e)
         {
 
         }
 
-        private void textBox1_KeyUp(object sender, KeyEventArgs e)
+        private void TextBox1_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.RWin)
             {
@@ -126,7 +126,7 @@ namespace SimpleKVM.GUI.Triggers
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void Button1_Click(object sender, EventArgs e)
         {
             HotkeyStringChosenByUser = textBox1.Text;
             DialogResult = DialogResult.OK;

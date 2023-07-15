@@ -13,8 +13,8 @@ namespace SimpleKVM
         [DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
-        public static Window FakeWindow = new Window();
-        readonly int HotkeyId = FakeWindow.GenerateUniqueHotkeyId();
+        public static Window FakeWindow { get; } = new();
+        readonly int HotkeyId = Window.GenerateUniqueHotkeyId();
 
         public ModifierKeys Modifier { get; }
         public Keys Keys { get; }
@@ -35,9 +35,11 @@ namespace SimpleKVM
             keysAsString = keysAsString.Replace("Win+", "");
 
             var converter = new KeysConverter();
-            var keys = (Keys)converter.ConvertFromString(keysAsString);
+            var keys = converter.ConvertFromString(keysAsString) as Keys?;
 
-            (Modifier, Keys) = Split(keys);
+            if (keys == null) return;
+
+            (Modifier, Keys) = Split(keys.Value);
 
             if (hasWinPress)
             {
@@ -93,10 +95,10 @@ namespace SimpleKVM
 
         public class Window : NativeWindow, IDisposable
         {
-            private static int WM_HOTKEY = 0x0312;
+            private static readonly int WM_HOTKEY = 0x0312;
             private static int hotkeyId = 0;
 
-            public int GenerateUniqueHotkeyId()
+            public static int GenerateUniqueHotkeyId()
             {
                 return hotkeyId++;
             }
@@ -128,11 +130,12 @@ namespace SimpleKVM
                 }
             }
 
-            public readonly Dictionary<(ModifierKeys, Keys), Action> HotkeyActions = new Dictionary<(ModifierKeys, Keys), Action>();
+            public readonly Dictionary<(ModifierKeys, Keys), Action> HotkeyActions = new();
 
             public void Dispose()
             {
-                this.DestroyHandle();
+                GC.SuppressFinalize(this);
+                DestroyHandle();
             }
         }
     }
