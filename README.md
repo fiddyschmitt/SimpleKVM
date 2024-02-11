@@ -5,7 +5,7 @@ Full KVMs are quite expensive, particularly ones which supports high resolution 
 
 Using this program and a cheap USB switch (see below), you can achieve the same without spending hundreds of dollars.
 
-<img width="800" alt="SimpleKVM" src="https://user-images.githubusercontent.com/15338956/210045381-d75bd9ca-f3f6-46a2-8c02-a11ee0977785.PNG">
+<img width="800" alt="SimpleKVM" src="https://github.com/fiddyschmitt/SimpleKVM/assets/15338956/fb0a0817-f6f5-415e-b027-0fc5b0d19b92">
 
 ## Where to download
 Releases can be found over in the [releases](https://github.com/fiddyschmitt/SimpleKVM/releases) section.
