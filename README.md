@@ -15,7 +15,7 @@ All you need is a USB switch such as the following (no affiliation).
 <br />
 <br />
 
-This one supports 4 computers. [SABRENT 4 Port USB Switch for $27 USD](https://www.amazon.com/Sabrent-Computers-Peripherals-Indicators-USB-USS4/dp/B07RC8F2L3).
+This one supports 4 computers. [SABRENT 4 Port USB Switch for $27 USD](https://www.amazon.com/Sabrent-Computers-Peripherals-Indicators-USB-USS4/dp/B07RC8F2L3)
 
 <img src="https://github.com/fiddyschmitt/SimpleKVM/assets/15338956/e18b938e-7b8c-4515-9d63-78c858ba2fad" width="400">
 
@@ -24,10 +24,12 @@ This one supports 4 computers. [SABRENT 4 Port USB Switch for $27 USD](https://w
 <br />
 <br />
 
-This one supports 2 computers, but only has one input USB. [2 ports for $8 USD](https://www.ebay.com.au/itm/USB-Sharing-Share-Switch-Box-Hub-2-Ports-PC-Computer-Scanner-Printer-Manual/122620877900).
+This one supports 2 computers. [2 port USB switch for $24 USD](https://www.amazon.com/UGREEN-Selector-Computers-Peripheral-One-Button/dp/B01MXXQKGM)
 
-<img src="https://i.imgur.com/Wj8rLt8l.jpg" width="400">
+<img src="https://github.com/fiddyschmitt/SimpleKVM/assets/15338956/3dd14d24-c00a-48b0-b812-7e4647d4d25b" width="400">
 
+<br />
+<br />
 <br />
 <br />
 
