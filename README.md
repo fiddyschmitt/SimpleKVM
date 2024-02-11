@@ -1,7 +1,9 @@
 # Simple KVM
 Share your monitor with multiple computers.
 
-Full KVMs are quite expensive, particularly ones which supports high resolution / high framerate. Using this program and a cheap USB switch (see below), you can achieve the same without spending hundreds of dollars.
+Full KVMs are quite expensive, particularly ones which supports high resolution / high framerate.
+
+Using this program and a cheap USB switch (see below), you can achieve the same without spending hundreds of dollars.
 
 <img width="800" alt="SimpleKVM" src="https://user-images.githubusercontent.com/15338956/210045381-d75bd9ca-f3f6-46a2-8c02-a11ee0977785.PNG">
 
