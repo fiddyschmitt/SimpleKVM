@@ -24,7 +24,7 @@ namespace SimpleKVM
         readonly USBSystem? usbSystem;
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
-        const string Version = "1.08";
+        const string Version = "2.0.0";
         public static List<Rule> Rules { get; protected set; } = new();
 
         public Form1()

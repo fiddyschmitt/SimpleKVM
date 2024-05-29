@@ -21,41 +21,35 @@ namespace SimpleKVM.Displays.win
         {
             if (cachedMonitorList == null)
             {
+                cachedMonitorList = new();
 
-                cachedMonitorList = new List<Monitor>();
-
-                int monitorId = 0;
-                MonitorController.GetDevices(physicalMonitors =>
+                MonitorController.EnumMonitors(mon =>
                 {
-                    physicalMonitors
-                                .ForEach(physicalMonitor =>
-                                {
-                                    var caps = physicalMonitor.GetVCPCapabilities();
+                    var caps = mon.PhysicalMonitor.GetVCPCapabilities();
 
-                                    var model = "Unknown";
-                                    var sources = Array.Empty<uint>();
+                    var model = "Unknown";
+                    var sources = Array.Empty<uint>();
 
-                                    if (caps != null)
-                                    {
-                                        model = modelRegex.Match(caps).Groups[1].Value;
+                    if (caps != null)
+                    {
+                        model = modelRegex.Match(caps).Groups[1].Value;
 
-                                        sources = sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
-                                                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                                                        .Select(x => Convert.ToUInt32(x, 16))
-                                                        .ToArray();
-                                    }
+                        sources = sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
+                                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                                        .Select(x => Convert.ToUInt32(x, 16))
+                                        .ToArray();
+                    }
 
-                                    physicalMonitor.GetVCPRegister(0x60, out uint currentSource);
+                    mon.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
 
-                                    var newMonitor = new Monitor()
-                                    {
-                                        MonitorUniqueId = $"{++monitorId}",
-                                        Model = model,
-                                        ValidSources = sources.Cast<int>().ToList()
-                                    };
+                    var newMonitor = new Monitor()
+                    {
+                        MonitorUniqueId = mon.UniqueId,
+                        Model = model,
+                        ValidSources = sources.Cast<int>().ToList()
+                    };
 
-                                    cachedMonitorList.Add(newMonitor);
-                                });
+                    cachedMonitorList.Add(newMonitor);
                 });
             }
 

@@ -3,10 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SimpleKVM.Displays.win
 {
@@ -45,15 +45,16 @@ namespace SimpleKVM.Displays.win
 
         static bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData)
         {
-            MONITORINFOEX mi = new MONITORINFOEX();
+            var mi = new MONITORINFOEX();
             mi.Size = Marshal.SizeOf(typeof(MONITORINFOEX));
             if (GetMonitorInfo(hMonitor, ref mi))
-                Debug.WriteLine(mi.DeviceName);
+            {
+                var miStr = mi.SerializeToJson();
+                Debug.WriteLine(miStr);
+            }
 
             Debug.WriteLine("");
             return true;
-
-            
         }
 
         public const int ERROR_SUCCESS = 0;
@@ -330,14 +331,15 @@ namespace SimpleKVM.Displays.win
             if (error != ERROR_SUCCESS)
                 throw new Win32Exception(error);
 
+            Debug.WriteLine("------------------ QueryDisplayConfig (\"------------------");
             for (int i = 0; i < ModeCount; i++)
             {
                 if (DisplayModes[i].infoType == DISPLAYCONFIG_MODE_INFO_TYPE.DISPLAYCONFIG_MODE_INFO_TYPE_TARGET)
                 {
                     Debug.WriteLine(MonitorFriendlyName(DisplayModes[i].adapterId, DisplayModes[i].id));
+                    Debug.WriteLine("");
                 }
             }
-            
 
 
 
@@ -345,12 +347,13 @@ namespace SimpleKVM.Displays.win
 
 
 
-            Debug.WriteLine("------------------");
+
+            Debug.WriteLine("------------------ EnumDisplayMonitors (\"------------------");
             EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, MonitorEnumProc, IntPtr.Zero);
 
 
 
-            Debug.WriteLine("------------------");
+            Debug.WriteLine("------------------ WmiMonitorBasicDisplayParams ------------------");
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("root\\WMI", "SELECT * FROM WmiMonitorBasicDisplayParams");
             foreach (ManagementObject queryObj in searcher.Get())
             {
@@ -358,27 +361,12 @@ namespace SimpleKVM.Displays.win
                 {
                     Debug.WriteLine($"{property.Name}: {property.Value}");
                 }
+
+                Debug.WriteLine("");
             }
-            /*
-            Active: True
-            DisplayTransferCharacteristic: 120
-            InstanceName: DISPLAY\VSC5B34\5&1068e3a9&0&UID4353_0
-            MaxHorizontalImageSize: 94
-            MaxVerticalImageSize: 53
-            SupportedDisplayFeatures: System.Management.ManagementBaseObject
-            VideoInputType: 1
-
-            Active: True
-            DisplayTransferCharacteristic: 120
-            InstanceName: DISPLAY\VSC5B34\5&1068e3a9&0&UID4356_0
-            MaxHorizontalImageSize: 94
-            MaxVerticalImageSize: 53
-            SupportedDisplayFeatures: System.Management.ManagementBaseObject
-            VideoInputType: 1        
-            */
 
 
-            Debug.WriteLine("------------------");
+            Debug.WriteLine("------------------ Win32_DesktopMonitor ------------------");
             searcher = new ManagementObjectSearcher("root\\CIMV2", "SELECT * FROM Win32_DesktopMonitor");
             foreach (ManagementObject queryObj in searcher.Get())
             {
@@ -389,39 +377,9 @@ namespace SimpleKVM.Displays.win
 
                 Debug.WriteLine("");
             }
-            /*
-            Availability: 8
-            Bandwidth: 
-            Caption: Generic PnP Monitor
-            ConfigManagerErrorCode: 0
-            ConfigManagerUserConfig: False
-            CreationClassName: Win32_DesktopMonitor
-            Description: Generic PnP Monitor
-            DeviceID: DesktopMonitor1
-            DisplayType: 
-            ErrorCleared: 
-            ErrorDescription: 
-            InstallDate: 
-            IsLocked: 
-            LastErrorCode: 
-            MonitorManufacturer: (Standard monitor types)
-            MonitorType: Generic PnP Monitor
-            Name: Generic PnP Monitor
-            PixelsPerXLogicalInch: 288
-            PixelsPerYLogicalInch: 288
-            PNPDeviceID: DISPLAY\VSC5B34\5&1068E3A9&0&UID4353
-            PowerManagementCapabilities: 
-            PowerManagementSupported: 
-            ScreenHeight: 
-            ScreenWidth: 
-            Status: OK
-            StatusInfo: 
-            SystemCreationClassName: Win32_ComputerSystem
-            SystemName: MAXIMUS
-                         */
 
 
-            Debug.WriteLine("------------------");
+            Debug.WriteLine("------------------ WmiMonitorID ------------------");
             searcher = new ManagementObjectSearcher("root\\WMI", "SELECT * FROM WmiMonitorID");
 
             foreach (ManagementObject queryObj in searcher.Get())
@@ -442,30 +400,13 @@ namespace SimpleKVM.Displays.win
                         Debug.WriteLine($"{property.Name}: {property.Value}");
                     }
                 }
+
+                Debug.WriteLine("");
             }
-            /*
-Active: True
-InstanceName: DISPLAY\VSC5B34\5&1068e3a9&0&UID4353_0
-ManufacturerName: VSC
-ProductCodeID: 5B34
-SerialNumberID: 16843009
-UserFriendlyName: VX4380 SERIES
-UserFriendlyNameLength: 13
-WeekOfManufacture: 14
-YearOfManufacture: 2017
 
-Active: True
-InstanceName: DISPLAY\VSC5B34\5&1068e3a9&0&UID4356_0
-ManufacturerName: VSC
-ProductCodeID: 5B34
-SerialNumberID: 16843009
-UserFriendlyName: VX4380 SERIES
-UserFriendlyNameLength: 13
-WeekOfManufacture: 14
-YearOfManufacture: 2017
-            */
 
-            Debug.WriteLine("------------------");
+
+            Debug.WriteLine("------------------ WmiMonitorConnectionParams ------------------");
             searcher = new ManagementObjectSearcher("root\\WMI", "SELECT * FROM WmiMonitorConnectionParams");
 
             foreach (ManagementObject queryObj in searcher.Get())
@@ -489,129 +430,163 @@ YearOfManufacture: 2017
                 Debug.WriteLine("");
             }
 
-            /*
-Active: True
-InstanceName: DISPLAY\VSC5B34\5&1068e3a9&0&UID4353_0
-VideoOutputTechnology: 5
-
-Active: True
-InstanceName: DISPLAY\VSC5B34\5&1068e3a9&0&UID4356_0
-VideoOutputTechnology: 10
-            */
 
 
-                        var displayInfo = new List<DISPLAY_DEVICE>();
-                        DISPLAY_DEVICE d = new DISPLAY_DEVICE();
-                        d.cb = Marshal.SizeOf(d);
-
-                        var result = new List<Monitor>();
-                        Debug.WriteLine("------------------");
-
-                        var screens = System.Windows.Forms.Screen.AllScreens.ToList();
-                        screens
-                            .ForEach(screen =>
-                            {
-                                for (uint id = 0; EnumDisplayDevices(screen.DeviceName, id, ref d, 0x00000001); id++)
-                                {
-                                    /*
-            0
-            \\.\DISPLAY1\Monitor0
-            Generic PnP Monitor
-            AttachedToDesktop, MultiDriver
-            MONITOR\VSC5B34\{4d36e96e-e325-11ce-bfc1-08002be10318}\0004
-            \Registry\Machine\System\CurrentControlSet\Control\Class\{4d36e96e-e325-11ce-bfc1-08002be10318}\0004
-
-            0
-            \\.\DISPLAY2\Monitor0
-            Generic PnP Monitor
-            AttachedToDesktop, MultiDriver
-            MONITOR\VSC5B34\{4d36e96e-e325-11ce-bfc1-08002be10318}\0000
-            \Registry\Machine\System\CurrentControlSet\Control\Class\{4d36e96e-e325-11ce-bfc1-08002be10318}\0000
-                                    */
-
-            Debug.WriteLine(id);
-                        Debug.WriteLine(d.DeviceName);
-                        Debug.WriteLine(d.DeviceString);
-                        Debug.WriteLine(d.StateFlags);
-
-                        Debug.WriteLine(d.DeviceID);
-                                    //When dwFlags = 0
-                                    //  MONITOR\VSC5B34\{4d36e96e-e325-11ce-bfc1-08002be10318}\0004
-
-                                    //When dwFlags = 0x00000001
-                                    //  \\?\DISPLAY#VSC5B34#5&1068e3a9&0&UID4353#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}         //marry this up with WmiMonitorID.InstanceName. That way we can use DeviceName for cmm.exe, and WmiMonitorID.UserFriendlyName for displaying. Or just use physicalMonitor.model and assume it'll always be in the same order
+            var displayInfo = new List<DISPLAY_DEVICE>();
 
 
-                                    //Second time
-                                    //\\?\DISPLAY#VSC5B34#5&1068e3a9&0&UID4356#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}
+            var result = new List<Monitor>();
+            Debug.WriteLine("------------------ Screen.AllScreens ------------------");
 
-                                    Debug.WriteLine(d.DeviceKey);
+            var screens = System.Windows.Forms.Screen.AllScreens.ToList();
+            screens
+                .ForEach(screen =>
+                {
+                    var screenJson = screen.SerializeToJson();
+                    Debug.WriteLine(screenJson);
 
-                        d.cb = Marshal.SizeOf(d);
+                    var d = new DISPLAY_DEVICE();
+                    d.cb = Marshal.SizeOf(d);
+
+                    for (uint id = 0; EnumDisplayDevices(screen.DeviceName, id, ref d, 0x00000001); id++)
+                    {
+                        Debug.WriteLine("\t------------------ EnumDisplayDevices ------------------");
+                        Debug.WriteLine("\tDeviceName: " + d.DeviceName);
+                        Debug.WriteLine("\tDeviceString: " + d.DeviceString);
+                        Debug.WriteLine("\tStateFlags: " + d.StateFlags);
+                        Debug.WriteLine("\tDeviceID: " + d.DeviceID);
+                        Debug.WriteLine("\tDeviceKey: " + d.DeviceKey);
+                        //When dwFlags = 0
+                        //  MONITOR\VSC5B34\{4d36e96e-e325-11ce-bfc1-08002be10318}\0004
+
+                        //When dwFlags = 0x00000001
+                        //  \\?\DISPLAY#VSC5B34#5&1068e3a9&0&UID4353#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}         //marry this up with WmiMonitorID.InstanceName. That way we can use DeviceName for cmm.exe, and WmiMonitorID.UserFriendlyName for displaying. Or just use physicalMonitor.model and assume it'll always be in the same order
+
+
+                        //Second time
+                        //\\?\DISPLAY#VSC5B34#5&1068e3a9&0&UID4356#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}
+
                         displayInfo.Add(d);
                     }
+
+                    Debug.WriteLine("");
                 });
 
-            Debug.WriteLine("------------------");
-            MonitorController.GetDevices(physicalMonitors =>
+            Debug.WriteLine("------------------ physicalMonitors ------------------");
+            MonitorController.EnumMonitors(mon =>
             {
-                physicalMonitors
-                    .ForEach(physicalMonitor =>
-                    {
-                        Debug.WriteLine(physicalMonitor.hPhysicalMonitor);
-                        Debug.WriteLine(physicalMonitor.szPhysicalMonitorDescription);
-                        Debug.WriteLine(physicalMonitor.GetVCPCapabilities());
+                Debug.WriteLine(mon.PhysicalMonitor.hPhysicalMonitor);
+                Debug.WriteLine(mon.PhysicalMonitor.szPhysicalMonitorDescription);
+                Debug.WriteLine(mon.PhysicalMonitor.GetVCPCapabilities());
 
-                        physicalMonitor.GetVCPRegister(0x60, out uint currentSource);
-                        Debug.WriteLine(currentSource);
-                    });
-
-                /*
-                    2
-                    Generic PnP Monitor
-                    (
-                        prot(monitor)
-                        type(LCD)
-                        model(VX4380)
-                        cmds(01 02 03 07 0C E3 F3)
-                        vcp(02 04 05 08 0B 0C 10 12 14(01 08 06 05 04 0B) 16 18 1A 52 60(0F 10 11 12) 62 87 8D(01 02) A5 AC AE B2 B6 C6 C8 CA CC(01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 12 14 16 17 1A 1E 24) D6(01 04 05) DC(00 01 02 03 05 08 1F) DF E0(00 01 02 03 14) EC(01 02 03) F6 F7(42 FF) FA(00 01 02) FB FC FD FE(00 01 02 04) FF)
-                        mswhql(1)
-                        asset_eep(40)
-                        mccs_ver(2.2)
-                    )
-                    18
-
-                    3
-                    Generic PnP Monitor
-                    (
-                        prot(monitor)
-                        type(LCD)
-                        model(VX4380)
-                        cmds(01 02 03 07 0C E3 F3)
-                        vcp(02 04 05 08 0B 0C 10 12 14(01 08 06 05 04 0B) 16 18 1A 52 60(0F 10 11 12) 62 87 8D(01 02) A5 AC AE B2 B6 C6 C8 CA CC(01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 12 14 16 17 1A 1E 24) D6(01 04 05) DC(00 01 02 03 05 08 1F) DF E0(00 01 02 03 14) EC(01 02 03) F6 F7(42 FF) FA(00 01 02) FB FC FD FE(00 01 02 04) FF)
-                        mswhql(1)
-                        asset_eep(40)
-                        mccs_ver(2.2)
-                    )
-                    18
-                */
-
+                mon.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
+                Debug.WriteLine(currentSource);
             });
 
-            /*
-             * var adapters = GetAdapers();
-            var monitors = adapters
-                            .SelectMany(adapter =>
-                            {
 
-                            })
-                            .ToList();
-            */
+
+            Debug.WriteLine("------------------ QueryDisplayDevices() ------------------");
+            QueryDisplayDevices();
+
+            Debug.WriteLine("------------------ InfoCombined() ------------------");
+            InfoCombined();
 
             return new List<Monitor>();
         }
 
-        public static IList<DISPLAY_DEVICE> GetAdapers()
+        private static void InfoCombined()
+        {
+            var screens = System.Windows.Forms.Screen.AllScreens
+                            .Select(screen =>
+                            {
+                                var scr = new Screen
+                                {
+                                    ScreenName = screen.DeviceName,
+                                    Bounds = screen.Bounds
+                                };
+
+                                var d = new DISPLAY_DEVICE();
+                                d.cb = Marshal.SizeOf(d);
+
+                                for (uint id = 0; EnumDisplayDevices(screen.DeviceName, id, ref d, 0x00000001); id++)
+                                {
+                                    var dd = new DisplayDevice()
+                                    {
+                                        DisplayDeviceName = d.DeviceName
+                                    };
+                                    scr.DisplayDevices.Add(dd);
+                                }
+
+                                return scr;
+                            })
+            .ToList();
+
+            bool monDel(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData)
+            {
+                var mi = new MONITORINFOEX
+                {
+                    Size = Marshal.SizeOf(typeof(MONITORINFOEX))
+                };
+                if (GetMonitorInfo(hMonitor, ref mi))
+                {
+                    var screen = screens
+                                    .FirstOrDefault(screen => screen.ScreenName == mi.DeviceName);
+                }
+
+                Debug.WriteLine("");
+                return true;
+            }
+
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, monDel, IntPtr.Zero);
+        }
+
+        public class Screen
+        {
+            public string ScreenName { get; set; }
+            public Rectangle Bounds { get; set; }
+            public List<DisplayDevice> DisplayDevices = new();
+
+            public override string ToString()
+            {
+                return ScreenName;
+            }
+        }
+
+        public class DisplayDevice
+        {
+            public string DisplayDeviceName { get; set; }
+
+            public override string ToString()
+            {
+                return DisplayDeviceName;
+            }
+        }
+
+        private static void QueryDisplayDevices()
+        {
+            DISPLAY_DEVICE device = new DISPLAY_DEVICE();
+            device.cb = Marshal.SizeOf(device);
+            uint DispNum = 0;
+            while (EnumDisplayDevices(null, DispNum, ref device, 0))
+            {
+                DISPLAY_DEVICE dev = new DISPLAY_DEVICE();
+                dev.cb = Marshal.SizeOf(dev);
+                if (EnumDisplayDevices(device.DeviceName, 0, ref dev, 0))
+                {
+                    Debug.WriteLine("\tDeviceName: " + dev.DeviceName);
+                    Debug.WriteLine("\tDeviceString: " + dev.DeviceString);
+                    Debug.WriteLine("\tStateFlags: " + dev.StateFlags);
+                    Debug.WriteLine("\tDeviceID: " + dev.DeviceID);
+                    Debug.WriteLine("\tDeviceKey: " + dev.DeviceKey);
+
+                    Debug.WriteLine("");
+                }
+                DispNum++;
+                dev.cb = Marshal.SizeOf(dev);
+            }
+        }
+
+        public static IList<DISPLAY_DEVICE> GetAdapters()
         {
             var result = new List<DISPLAY_DEVICE>();
             DISPLAY_DEVICE d = new DISPLAY_DEVICE();

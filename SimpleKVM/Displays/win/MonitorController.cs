@@ -108,10 +108,8 @@ namespace DDCKVMService
             }
         }
 
-        public static void GetDevices(Action<List<PHYSICAL_MONITOR>> handleCallback)
+        public static void EnumMonitors(Action<(IntPtr hMonitor, PHYSICAL_MONITOR PhysicalMonitor, string UniqueId)> action)
         {
-            var handles = new List<PHYSICAL_MONITOR>();
-
             // Iterate monitors and retrieve their physical monitor instances
             EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
                 (IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr dwData) =>
@@ -129,16 +127,46 @@ namespace DDCKVMService
                         return true;
                     }
 
-                    handles.AddRange(arr);
+                    foreach (var mon in arr)
+                    {
+                        var mi = new MONITORINFOEX
+                        {
+                            Size = Marshal.SizeOf(typeof(MONITORINFOEX))
+                        };
+
+                        if (GetMonitorInfo(hMonitor, ref mi))
+                        {
+                            action.Invoke((hMonitor, mon, mi.DeviceName));
+                        }
+                    }
+
+                    DestroyPhysicalMonitors((uint)arr.Length, arr);
 
                     return true;
                 }, IntPtr.Zero);
-
-            // Callback
-            handleCallback(handles);
-
-            // Cleanup
-            DestroyPhysicalMonitors((uint)handles.Count, handles.ToArray());
         }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        struct MONITORINFOEX
+        {
+            public int Size;
+            public RECT Monitor;
+            public RECT WorkArea;
+            public uint Flags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string DeviceName;
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
     }
 }

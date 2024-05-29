@@ -28,7 +28,7 @@ namespace SimpleKVM.GUI.Actions
                                                 //var autogenName = monitor.MonitorName.Trim();
                                                 //if (string.IsNullOrEmpty(autogenName)) autogenName = monitor.MonitorDeviceName;
                                                 //autogenName = $"Monitor {index + 1}: {autogenName}";
-                                                var autogenName = $"Monitor {monitor.MonitorUniqueId}";
+                                                var autogenName = $"{monitor.MonitorUniqueId}";
                                                 if (!string.IsNullOrEmpty(monitor.Model)) autogenName += $" ({monitor.Model})";
 
                                                 return new

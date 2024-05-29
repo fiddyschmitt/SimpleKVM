@@ -12,11 +12,12 @@ namespace SimpleKVM.Displays.win
         public override int GetCurrentSource()
         {
             uint currentSource = 0;
-            var monitorToSet = int.Parse(MonitorUniqueId) - 1;
-            MonitorController.GetDevices(physicalMonitors =>
+            MonitorController.EnumMonitors(physicalMonitor =>
             {
-                var physicalMonitor = physicalMonitors[monitorToSet];
-                physicalMonitor.GetVCPRegister(0x60, out currentSource);
+                if (physicalMonitor.UniqueId == MonitorUniqueId)
+                {
+                    physicalMonitor.PhysicalMonitor.GetVCPRegister(0x60, out currentSource);
+                }
             });
 
             return (int)currentSource;
@@ -36,18 +37,18 @@ namespace SimpleKVM.Displays.win
             monitorListCommand.StartAndReadStdout();
             */
 
-            var monitorToSet = int.Parse(MonitorUniqueId) - 1;
-
             bool result = false;
-            MonitorController.GetDevices(physicalMonitors =>
+            MonitorController.EnumMonitors(physicalMonitor =>
             {
-                var physicalMonitor = physicalMonitors[monitorToSet];
-                physicalMonitor.GetVCPRegister(0x60, out uint currentSource);
-
-                if (newSourceId != currentSource)
+                if (physicalMonitor.UniqueId == MonitorUniqueId)
                 {
-                    physicalMonitor.SetVCPRegister(0x60, (uint)newSourceId);
-                    result = true;
+                    physicalMonitor.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
+
+                    if (newSourceId != currentSource)
+                    {
+                        physicalMonitor.PhysicalMonitor.SetVCPRegister(0x60, (uint)newSourceId);
+                        result = true;
+                    }
                 }
             });
 
