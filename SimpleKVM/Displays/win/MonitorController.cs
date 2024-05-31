@@ -76,19 +76,19 @@ namespace DDCKVMService
             public IntPtr hPhysicalMonitor;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string szPhysicalMonitorDescription;
 
-            public bool SetVCPRegister(byte register, uint value)
+            public readonly bool SetVCPRegister(byte register, uint value)
             {
                 var result = SetVCPFeature(hPhysicalMonitor, register, value);
                 return result;
             }
 
-            public bool GetVCPRegister(byte register, out uint value)
+            public readonly bool GetVCPRegister(byte register, out uint value)
             {
-                var supported = GetVCPFeatureAndVCPFeatureReply(hPhysicalMonitor, register, IntPtr.Zero, out value, out uint maxValue);
+                var supported = GetVCPFeatureAndVCPFeatureReply(hPhysicalMonitor, register, IntPtr.Zero, out value, out _);
                 return supported;
             }
 
-            public string? GetVCPCapabilities()
+            public readonly string? GetVCPCapabilities()
             {
                 uint length = 0;
                 var supported = GetCapabilitiesStringLength(hPhysicalMonitor, ref length);

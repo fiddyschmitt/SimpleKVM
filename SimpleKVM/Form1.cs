@@ -26,7 +26,7 @@ namespace SimpleKVM
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
         const string Version = "2.0.0";
-        public static List<Rule> Rules { get; protected set; } = new();
+        public static List<Rule> Rules { get; protected set; } = [];
 
         public Form1()
         {
@@ -270,7 +270,7 @@ namespace SimpleKVM
         private static void LoadRules()
         {
             var rulesJson = Extensions.ReadTextFile("", "rules.json");
-            var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? new List<Rule>();
+            var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? [];
             Rules.AddRange(loadedRules);
         }
 

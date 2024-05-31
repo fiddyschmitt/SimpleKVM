@@ -45,8 +45,10 @@ namespace SimpleKVM.Displays.win
 
         static bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData)
         {
-            var mi = new MONITORINFOEX();
-            mi.Size = Marshal.SizeOf(typeof(MONITORINFOEX));
+            var mi = new MONITORINFOEX
+            {
+                Size = Marshal.SizeOf(typeof(MONITORINFOEX))
+            };
             if (GetMonitorInfo(hMonitor, ref mi))
             {
                 var miStr = mi.SerializeToJson();
@@ -168,11 +170,11 @@ namespace SimpleKVM.Displays.win
             public LUID adapterId;
             public uint id;
             public uint modeInfoIdx;
-            DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY outputTechnology;
-            DISPLAYCONFIG_ROTATION rotation;
-            DISPLAYCONFIG_SCALING scaling;
+            readonly DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY outputTechnology;
+            readonly DISPLAYCONFIG_ROTATION rotation;
+            readonly DISPLAYCONFIG_SCALING scaling;
             DISPLAYCONFIG_RATIONAL refreshRate;
-            DISPLAYCONFIG_SCANLINE_ORDERING scanLineOrdering;
+            readonly DISPLAYCONFIG_SCANLINE_ORDERING scanLineOrdering;
             public bool targetAvailable;
             public uint statusFlags;
         }
@@ -218,10 +220,10 @@ namespace SimpleKVM.Displays.win
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct POINTL
+        public readonly struct POINTL
         {
-            int x;
-            int y;
+            readonly int x;
+            readonly int y;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -305,7 +307,7 @@ namespace SimpleKVM.Displays.win
 
         public static string MonitorFriendlyName(LUID adapterId, uint targetId)
         {
-            DISPLAYCONFIG_TARGET_DEVICE_NAME deviceName = new DISPLAYCONFIG_TARGET_DEVICE_NAME();
+            var deviceName = new DISPLAYCONFIG_TARGET_DEVICE_NAME();
             deviceName.header.size = (uint)Marshal.SizeOf(typeof(DISPLAYCONFIG_TARGET_DEVICE_NAME));
             deviceName.header.adapterId = adapterId;
             deviceName.header.id = targetId;
@@ -318,9 +320,8 @@ namespace SimpleKVM.Displays.win
 
         public static IList<Monitor> GetMonitors()
         {
-            uint PathCount, ModeCount;
             int error = GetDisplayConfigBufferSizes(QUERY_DEVICE_CONFIG_FLAGS.QDC_ONLY_ACTIVE_PATHS,
-                out PathCount, out ModeCount);
+                out uint PathCount, out uint ModeCount);
             if (error != ERROR_SUCCESS)
                 throw new Win32Exception(error);
 
@@ -354,7 +355,7 @@ namespace SimpleKVM.Displays.win
 
 
             Debug.WriteLine("------------------ WmiMonitorBasicDisplayParams ------------------");
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher("root\\WMI", "SELECT * FROM WmiMonitorBasicDisplayParams");
+            var searcher = new ManagementObjectSearcher("root\\WMI", "SELECT * FROM WmiMonitorBasicDisplayParams");
             foreach (ManagementObject queryObj in searcher.Get())
             {
                 foreach (var property in queryObj.Properties)
@@ -544,7 +545,7 @@ namespace SimpleKVM.Displays.win
         {
             public string ScreenName { get; set; }
             public Rectangle Bounds { get; set; }
-            public List<DisplayDevice> DisplayDevices = new();
+            public List<DisplayDevice> DisplayDevices = [];
 
             public override string ToString()
             {
@@ -564,12 +565,12 @@ namespace SimpleKVM.Displays.win
 
         private static void QueryDisplayDevices()
         {
-            DISPLAY_DEVICE device = new DISPLAY_DEVICE();
+            var device = new DISPLAY_DEVICE();
             device.cb = Marshal.SizeOf(device);
             uint DispNum = 0;
             while (EnumDisplayDevices(null, DispNum, ref device, 0))
             {
-                DISPLAY_DEVICE dev = new DISPLAY_DEVICE();
+                var dev = new DISPLAY_DEVICE();
                 dev.cb = Marshal.SizeOf(dev);
                 if (EnumDisplayDevices(device.DeviceName, 0, ref dev, 0))
                 {
