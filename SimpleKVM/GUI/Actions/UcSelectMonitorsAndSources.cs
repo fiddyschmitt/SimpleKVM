@@ -28,26 +28,23 @@ namespace SimpleKVM.GUI.Actions
                                                 Mon = mon,
                                                 Screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == mon.MonitorUniqueId)
                                             })
-                                            .OrderBy(mon => mon.Screen?.Bounds.Left ?? 0)
-                                            .ThenBy(mon => mon.Screen?.Bounds.Top ?? 0)
-                                            .ThenBy(mon => mon.Mon.MonitorUniqueId)
-                                            .Select(mon => mon.Mon)
-                                            .Select((monitor, index) =>
+                                            .OrderBy(mon => mon.Screen?.ScreenIndex())
+                                            .Select(mon =>
                                             {
-                                                var autogenName = $"Monitor {index + 1}";
-                                                var model = monitor.Model.Trim();
-                                                if (!string.IsNullOrEmpty(monitor.Model)) autogenName += $" ({monitor.Model})";
+                                                var autogenName = $"Monitor {mon.Screen?.ScreenIndex()}";
+                                                var model = mon.Mon.Model.Trim();
+                                                if (!string.IsNullOrEmpty(model)) autogenName += $" ({mon.Mon.Model})";
 
                                                 return new
                                                 {
                                                     AutogenName = autogenName,
-                                                    Monitor = monitor
+                                                    Monitor = mon.Mon
                                                 };
                                             })
                                             .ToList();
 
             var monitorControls = monitorsWithAutogenName
-                                    .Select((monitor, index) =>
+                                    .Select(monitor =>
                                     {
                                         int sourceIdToSelect;
                                         if (ruleToEdit == null)

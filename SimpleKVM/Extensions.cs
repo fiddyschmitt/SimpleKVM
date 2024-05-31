@@ -73,6 +73,27 @@ namespace SimpleKVM
             return result;
         }
 
+        public static int ScreenIndex(this Screen screen)
+        {
+            var result = Screen
+                            .AllScreens
+                            .OrderBy(scr => scr.Bounds.Left)
+                            .ThenBy(scr => scr.Bounds.Top)
+                            .ThenBy(scr => scr.DeviceName)
+                            .Select((scr, index) => new
+                            {
+                                Screen = scr,
+                                Index = index
+                            })
+                            .Where(scr => scr.Screen.DeviceName.Equals(screen.DeviceName))
+                            .Select(scr => scr.Index)
+                            .First();
+
+            result++;
+
+            return result;
+        }
+
         public static T Next<T>(this T src) where T : struct
         {
             if (!typeof(T).IsEnum) throw new ArgumentException(String.Format("Argument {0} is not an Enum", typeof(T).FullName));
@@ -157,9 +178,9 @@ namespace SimpleKVM
                     File.WriteAllText(fullFilename, content);
                     break;
                 }
-                catch 
-                { 
-                
+                catch
+                {
+
                 }
             }
         }

@@ -5,17 +5,17 @@ using System.Text;
 
 namespace SimpleKVM.Displays
 {
-    public abstract class Monitor
+    public abstract class Monitor(string uniqueId, string model, List<int> validSources)
     {
-        public string MonitorUniqueId = "";
+        public string MonitorUniqueId = uniqueId;
 
         [JsonIgnoreAttribute]
-        public string Model = "";
+        public string Model = model;
 
         public abstract int GetCurrentSource();
 
         [JsonIgnoreAttribute]
-        public List<int> ValidSources = new();
+        public readonly List<int> ValidSources = validSources;
 
         public abstract bool SetSource(int newSourceId);
     }

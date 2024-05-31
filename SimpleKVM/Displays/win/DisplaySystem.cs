@@ -31,7 +31,7 @@ namespace SimpleKVM.Displays.win
                     var caps = mon.PhysicalMonitor.GetVCPCapabilities();
 
                     var model = "Unknown";
-                    var sources = Array.Empty<uint>();
+                    var sources = new List<int>();
 
                     if (caps != null)
                     {
@@ -39,18 +39,13 @@ namespace SimpleKVM.Displays.win
 
                         sources = sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
                                         .Where(x => !string.IsNullOrWhiteSpace(x))
-                                        .Select(x => Convert.ToUInt32(x, 16))
-                                        .ToArray();
+                                        .Select(x => (int)(Convert.ToUInt32(x, 16)))
+                                        .ToList();
                     }
 
                     mon.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
 
-                    var newMonitor = new Monitor()
-                    {
-                        MonitorUniqueId = mon.UniqueId,
-                        Model = model,
-                        ValidSources = sources.Cast<int>().ToList()
-                    };
+                    var newMonitor = new Monitor(mon.UniqueId, model, sources);
 
                     cachedMonitorList.Add(newMonitor);
                 });

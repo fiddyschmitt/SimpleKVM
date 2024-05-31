@@ -40,9 +40,6 @@ namespace SimpleKVM.GUI
             var scale = Math.Min(scaleX, scaleY);
 
             var drawRects = Screen.AllScreens
-                                    .OrderBy(screen => screen.Bounds.Left)
-                                    .ThenBy(screen => screen.Bounds.Top)
-                                    .ThenBy(screen => screen.DeviceName)
                                     .Select(screen =>
                                     {
                                         var screenRect = screen.Bounds;
@@ -57,9 +54,11 @@ namespace SimpleKVM.GUI
                                         return new
                                         {
                                             ScreenName = screen.DeviceName,
+                                            ScreenIndex = screen.ScreenIndex(),
                                             DrawRectable = drawRect
                                         };
                                     })
+                                    .OrderBy(screen => screen.ScreenIndex)
                                     .ToList();
 
             var rightMost = drawRects.Max(rect => rect.DrawRectable.Right);
@@ -78,12 +77,12 @@ namespace SimpleKVM.GUI
             var textBrush = new SolidBrush(borderColour);
 
             monitors = drawRects
-                            .Select((rect, index) =>
+                            .Select(rect =>
                             {
                                 var drawRect = rect.DrawRectable;
                                 drawRect.Offset(offsetToCenter);
 
-                                var r = new MonitorBox(rect.ScreenName, drawRect, borderPen, $"{index + 1}", EnumPosition.Center, font, textBrush);
+                                var r = new MonitorBox(rect.ScreenName, drawRect, borderPen, $"{rect.ScreenIndex}", EnumPosition.Center, font, textBrush);
                                 return r;
                             })
                             .OfType<MonitorBox>()
@@ -109,7 +108,7 @@ namespace SimpleKVM.GUI
             }
         }
 
-        public void BoxClicked(object sender, Element e)
+        public void BoxClicked(object? sender, Element e)
         {
             if (e is MonitorBox clickedMonitor)
             {

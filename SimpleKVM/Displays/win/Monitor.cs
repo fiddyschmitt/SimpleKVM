@@ -9,6 +9,10 @@ namespace SimpleKVM.Displays.win
 {
     public class Monitor : Displays.Monitor
     {
+        public Monitor(string uniqueId, string model, List<int> validSources) : base(uniqueId, model, validSources)
+        {
+        }
+
         public override int GetCurrentSource()
         {
             uint currentSource = 0;
