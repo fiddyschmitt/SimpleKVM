@@ -41,7 +41,7 @@
             // btnSave
             // 
             btnSave.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
-            btnSave.Location = new System.Drawing.Point(8, 158);
+            btnSave.Location = new System.Drawing.Point(12, 150);
             btnSave.Margin = new System.Windows.Forms.Padding(2);
             btnSave.Name = "btnSave";
             btnSave.Size = new System.Drawing.Size(75, 23);
@@ -77,7 +77,7 @@
             // btnTest
             // 
             btnTest.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
-            btnTest.Location = new System.Drawing.Point(142, 158);
+            btnTest.Location = new System.Drawing.Point(142, 150);
             btnTest.Margin = new System.Windows.Forms.Padding(2);
             btnTest.Name = "btnTest";
             btnTest.Size = new System.Drawing.Size(75, 23);
@@ -90,7 +90,7 @@
             // 
             label2.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             label2.AutoSize = true;
-            label2.Location = new System.Drawing.Point(218, 162);
+            label2.Location = new System.Drawing.Point(218, 154);
             label2.Name = "label2";
             label2.Size = new System.Drawing.Size(182, 15);
             label2.TabIndex = 4;
