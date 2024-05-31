@@ -9,12 +9,12 @@ namespace SimpleKVM.Displays
     {
         public string MonitorUniqueId = uniqueId;
 
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public string Model = model;
 
         public abstract int GetCurrentSource();
 
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public readonly List<int> ValidSources = validSources;
 
         public abstract bool SetSource(int newSourceId);
