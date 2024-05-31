@@ -40,7 +40,6 @@ namespace SimpleKVM
 
             InitialiseSystemTray();
 
-            DisplaySystem.GetMonitors();    //for the monitors to be cached
             InitializeRuleListView();
 
             LoadRules();
@@ -213,11 +212,27 @@ namespace SimpleKVM
                 if (triggerType == null) return;
                 if (actionType == null) return;
 
-                editRuleForm = new ModifyRule(usbSystem, title, triggerType.Value, actionType.Value);
+                try
+                {
+                    Cursor = Cursors.WaitCursor;
+                    editRuleForm = new ModifyRule(usbSystem, title, triggerType.Value, actionType.Value);
+                }
+                finally
+                {
+                    Cursor = Cursors.Default;
+                }
             }
             else
             {
-                editRuleForm = new ModifyRule(usbSystem, title, rule);
+                try
+                {
+                    Cursor = Cursors.WaitCursor;
+                    editRuleForm = new ModifyRule(usbSystem, title, rule);
+                }
+                finally
+                {
+                    Cursor = Cursors.Default;
+                }
             }
 
             editRuleForm.StartPosition = FormStartPosition.CenterParent;

@@ -28,32 +28,42 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.SuspendLayout();
+            panel1 = new System.Windows.Forms.Panel();
+            ucMonitorLayout1 = new UcMonitorLayout();
+            SuspendLayout();
             // 
             // panel1
             // 
-            this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panel1.Location = new System.Drawing.Point(11, 11);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(605, 252);
-            this.panel1.TabIndex = 5;
+            panel1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            panel1.Location = new System.Drawing.Point(118, 20);
+            panel1.Margin = new System.Windows.Forms.Padding(2);
+            panel1.Name = "panel1";
+            panel1.Size = new System.Drawing.Size(427, 181);
+            panel1.TabIndex = 5;
+            // 
+            // ucMonitorLayout1
+            // 
+            ucMonitorLayout1.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            ucMonitorLayout1.Location = new System.Drawing.Point(3, 206);
+            ucMonitorLayout1.Name = "ucMonitorLayout1";
+            ucMonitorLayout1.Size = new System.Drawing.Size(656, 256);
+            ucMonitorLayout1.TabIndex = 6;
             // 
             // UcSelectMonitorsAndSources
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Controls.Add(this.panel1);
-            this.Name = "UcSelectMonitorsAndSources";
-            this.Size = new System.Drawing.Size(630, 277);
-            this.ResumeLayout(false);
-
+            AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            Controls.Add(ucMonitorLayout1);
+            Controls.Add(panel1);
+            Margin = new System.Windows.Forms.Padding(2);
+            Name = "UcSelectMonitorsAndSources";
+            Size = new System.Drawing.Size(662, 476);
+            ResumeLayout(false);
         }
 
         #endregion
         private System.Windows.Forms.Panel panel1;
+        private UcMonitorLayout ucMonitorLayout1;
     }
 }

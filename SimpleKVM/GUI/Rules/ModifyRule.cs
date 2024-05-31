@@ -103,7 +103,7 @@ namespace SimpleKVM.GUI.Rules
             Width = Controls.Cast<Control>().Max(c => c.Width + 64);
             Height = Controls.Cast<Control>().Max(c => c.Bottom) + 96;
 
-            if (triggerCreatorUc != null) triggerCreatorUc.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
+            if (triggerCreatorUc != null) triggerCreatorUc.Anchor = AnchorStyles.Left | AnchorStyles.Top;
             if (actionCreatorUc != null) actionCreatorUc.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom;
 
             RuleToEdit = ruleToEdit;
@@ -187,7 +187,7 @@ namespace SimpleKVM.GUI.Rules
                 Task.Factory.StartNew(() =>
                 {
                     var originalSources = DisplaySystem
-                                            .GetMonitors()
+                                            .GetMonitors(true)
                                             .Select(monitor => new
                                             {
                                                 Monitor = monitor,

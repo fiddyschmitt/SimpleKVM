@@ -20,15 +20,22 @@ namespace SimpleKVM.GUI.Actions
 
             //give the panel a scrollbar
             panel1.AutoScroll = false;
-            var monitors = Displays.DisplaySystem.GetMonitors();
+            var monitors = Displays.DisplaySystem.GetMonitors(false);
 
             var monitorsWithAutogenName = monitors
+                                            .Select(mon => new
+                                            {
+                                                Mon = mon,
+                                                Screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == mon.MonitorUniqueId)
+                                            })
+                                            .OrderBy(mon => mon.Screen?.Bounds.Left ?? 0)
+                                            .ThenBy(mon => mon.Screen?.Bounds.Top ?? 0)
+                                            .ThenBy(mon => mon.Mon.MonitorUniqueId)
+                                            .Select(mon => mon.Mon)
                                             .Select((monitor, index) =>
                                             {
-                                                //var autogenName = monitor.MonitorName.Trim();
-                                                //if (string.IsNullOrEmpty(autogenName)) autogenName = monitor.MonitorDeviceName;
-                                                //autogenName = $"Monitor {index + 1}: {autogenName}";
-                                                var autogenName = $"{monitor.MonitorUniqueId}";
+                                                var autogenName = $"Monitor {index + 1}";
+                                                var model = monitor.Model.Trim();
                                                 if (!string.IsNullOrEmpty(monitor.Model)) autogenName += $" ({monitor.Model})";
 
                                                 return new
@@ -56,22 +63,22 @@ namespace SimpleKVM.GUI.Actions
                                                                     .OfType<SetMonitorSourceAction>()
                                                                     .FirstOrDefault(a => a.Monitor.MonitorUniqueId.Equals(monitor.Monitor.MonitorUniqueId));
 
-                                            if (setMonitorAction == null)
-                                            {
-                                                sourceIdToSelect = -1;
-                                            } else
-                                            {
-                                                sourceIdToSelect = setMonitorAction.SetMonitorSourceIdTo;
-                                            }
+
+                                            sourceIdToSelect = setMonitorAction?.SetMonitorSourceIdTo ?? -1;
                                         }
 
                                         var uc = new UcSelectMonitorSource();
                                         uc.DisplayMonitor(monitor.AutogenName, monitor.Monitor, sourceIdToSelect);
                                         uc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-                                        uc.Width = (int)(panel1.Width * 0.95);
+                                        uc.Width = panel1.Width;
 
-                                        uc.Left = 8;
+
+                                        uc.Padding = new Padding(16, 4, 16, 4);
+                                        uc.Height = uc.Height + uc.Padding.Top + uc.Padding.Bottom;
+
                                         uc.Top = panel1.Controls.Count * uc.Height;
+
+                                        uc.MouseClick += Uc_MouseClick;
 
                                         panel1.Controls.Add(uc);
 
@@ -79,12 +86,41 @@ namespace SimpleKVM.GUI.Actions
                                     })
                                     .ToArray();
 
+            ucMonitorLayout1.MonitorClicked += UcMonitorLayout1_MonitorClicked;
+
+
             panel1.HorizontalScroll.Enabled = false;
             panel1.HorizontalScroll.Visible = false;
             panel1.HorizontalScroll.Maximum = 0;
             panel1.AutoScroll = true;
         }
 
+        private void Uc_MouseClick(object? sender, MouseEventArgs e)
+        {
+            if (sender is UcSelectMonitorSource sourceSelector && sourceSelector.Monitor != null)
+            {
+                ucMonitorLayout1.SelectMonitor(sourceSelector.Monitor.MonitorUniqueId);
+            }
+        }
+
+        private void UcMonitorLayout1_MonitorClicked(object? sender, MonitorBox clickedMonitor)
+        {
+            panel1
+                .Controls
+                .OfType<UcSelectMonitorSource>()
+                .ToList()
+                .ForEach(sourceSelector =>
+                {
+                    if (sourceSelector.Monitor?.MonitorUniqueId == clickedMonitor.ScreenName)
+                    {
+                        sourceSelector.BackColor = SystemColors.Highlight;
+                    }
+                    else
+                    {
+                        sourceSelector.BackColor = SystemColors.Control;
+                    }
+                });
+        }
 
         public List<ValidationResult> ValidateData()
         {
