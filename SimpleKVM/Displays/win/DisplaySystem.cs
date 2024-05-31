@@ -21,9 +21,22 @@ namespace SimpleKVM.Displays.win
 
         public static IList<Monitor> GetMonitors()
         {
-            var monitorsChanged = !cachedMonitorList?.All(mon => Screen.AllScreens.Any(scr => scr.DeviceName.Equals(mon.MonitorUniqueId))) ?? false;
+            bool refreshRequired;
+            if (cachedMonitorList == null)
+            {
+                refreshRequired = true;
+            }
+            else
+            {
+                //confirm all screens are in the cache
+                var allScreens = Screen.AllScreens.Select(screen => screen.DeviceName);
+                var allMonitors = cachedMonitorList.Select(mon => mon.MonitorUniqueId);
 
-            if (cachedMonitorList == null || monitorsChanged)
+                refreshRequired = allMonitors.Except(allScreens).Any() || allScreens.Except(allMonitors).Any();
+            }
+
+
+            if (cachedMonitorList == null || refreshRequired)
             {
                 cachedMonitorList = [];
                 MonitorController.EnumMonitors(mon =>
