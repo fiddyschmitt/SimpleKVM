@@ -28,6 +28,8 @@ namespace SimpleKVM
         const string Version = "2.0.0";
         public static List<Rule> Rules { get; protected set; } = [];
 
+        Task initMonitorList;
+
         public Form1()
         {
             //DisplaySystem_2_experiments.GetMonitors();
@@ -39,6 +41,11 @@ namespace SimpleKVM
             Text = $"{ProgramName} {Version}";
 
             InitialiseSystemTray();
+
+            initMonitorList = Task.Factory.StartNew(() =>
+            {
+                DisplaySystem.GetMonitors();    //for the monitors to be cached
+            }, TaskCreationOptions.LongRunning);
 
             InitializeRuleListView();
 
@@ -202,6 +209,16 @@ namespace SimpleKVM
                             })
                             .ToList();
 
+            try
+            {
+                Cursor = Cursors.WaitCursor;
+                initMonitorList.Wait();
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
+
             var creatingNewRule = (rule == null);
 
             var title = creatingNewRule ? "Create new rule" : "Edit rule";
@@ -215,8 +232,8 @@ namespace SimpleKVM
                 try
                 {
                     Cursor = Cursors.WaitCursor;
-                    editRuleForm = new ModifyRule(usbSystem, title, triggerType.Value, actionType.Value);
-                }
+                editRuleForm = new ModifyRule(usbSystem, title, triggerType.Value, actionType.Value);
+            }
                 finally
                 {
                     Cursor = Cursors.Default;
@@ -227,8 +244,8 @@ namespace SimpleKVM
                 try
                 {
                     Cursor = Cursors.WaitCursor;
-                    editRuleForm = new ModifyRule(usbSystem, title, rule);
-                }
+                editRuleForm = new ModifyRule(usbSystem, title, rule);
+            }
                 finally
                 {
                     Cursor = Cursors.Default;

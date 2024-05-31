@@ -20,7 +20,7 @@ namespace SimpleKVM.GUI.Actions
 
             //give the panel a scrollbar
             panel1.AutoScroll = false;
-            var monitors = Displays.DisplaySystem.GetMonitors(false);
+            var monitors = Displays.DisplaySystem.GetMonitors();
 
             var monitorsWithAutogenName = monitors
                                             .Select(mon => new

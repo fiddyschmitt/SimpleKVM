@@ -8,6 +8,7 @@ using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 
 namespace SimpleKVM.Displays.win
 {
@@ -16,39 +17,46 @@ namespace SimpleKVM.Displays.win
         static readonly Regex modelRegex = new(@"model\((.*?)\)");
         static readonly Regex sourcesRegex = new(@"(?<=\s)60\((.*?)\)");
 
+        static List<Monitor>? cachedMonitorList;
+
         public static IList<Monitor> GetMonitors()
         {
-            List<Monitor> result = [];
-            MonitorController.EnumMonitors(mon =>
+            var monitorsChanged = !cachedMonitorList?.All(mon => Screen.AllScreens.Any(scr => scr.DeviceName.Equals(mon.MonitorUniqueId))) ?? false;
+
+            if (cachedMonitorList == null || monitorsChanged)
             {
-                var caps = mon.PhysicalMonitor.GetVCPCapabilities();
-
-                var model = "Unknown";
-                var sources = Array.Empty<uint>();
-
-                if (caps != null)
+                cachedMonitorList = [];
+                MonitorController.EnumMonitors(mon =>
                 {
-                    model = modelRegex.Match(caps).Groups[1].Value;
+                    var caps = mon.PhysicalMonitor.GetVCPCapabilities();
 
-                    sources = sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
-                                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                                    .Select(x => Convert.ToUInt32(x, 16))
-                                    .ToArray();
-                }
+                    var model = "Unknown";
+                    var sources = Array.Empty<uint>();
 
-                mon.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
+                    if (caps != null)
+                    {
+                        model = modelRegex.Match(caps).Groups[1].Value;
 
-                var newMonitor = new Monitor()
-                {
-                    MonitorUniqueId = mon.UniqueId,
-                    Model = model,
-                    ValidSources = sources.Cast<int>().ToList()
-                };
+                        sources = sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
+                                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                                        .Select(x => Convert.ToUInt32(x, 16))
+                                        .ToArray();
+                    }
 
-                result.Add(newMonitor);
-            });
+                    mon.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
 
-            return result;
+                    var newMonitor = new Monitor()
+                    {
+                        MonitorUniqueId = mon.UniqueId,
+                        Model = model,
+                        ValidSources = sources.Cast<int>().ToList()
+                    };
+
+                    cachedMonitorList.Add(newMonitor);
+                });
+            }
+
+            return cachedMonitorList;
         }
     }
 }

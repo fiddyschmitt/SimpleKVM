@@ -72,7 +72,7 @@
             txtRuleName.Name = "txtRuleName";
             txtRuleName.Size = new System.Drawing.Size(323, 23);
             txtRuleName.TabIndex = 0;
-            txtRuleName.Text = "Switch to work laptop";
+            txtRuleName.Text = "Switch to this computer";
             // 
             // btnTest
             // 

@@ -187,7 +187,7 @@ namespace SimpleKVM.GUI.Rules
                 Task.Factory.StartNew(() =>
                 {
                     var originalSources = DisplaySystem
-                                            .GetMonitors(true)
+                                            .GetMonitors()
                                             .Select(monitor => new
                                             {
                                                 Monitor = monitor,
@@ -203,7 +203,7 @@ namespace SimpleKVM.GUI.Rules
                         {
                             originalSources.Monitor.SetSource(originalSources.OriginalSource);
                         });
-                });
+                }, TaskCreationOptions.LongRunning);
             }
         }
     }

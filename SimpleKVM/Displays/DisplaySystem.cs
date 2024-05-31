@@ -8,29 +8,18 @@ namespace SimpleKVM.Displays
 {
     public static class DisplaySystem
     {
-        static List<Monitor>? cachedMonitors = null;
-
-        public static IList<Monitor> GetMonitors(bool useCached)
+        public static IList<Monitor> GetMonitors()
         {
-            if (useCached && cachedMonitors != null)
-            {
-                return cachedMonitors;
-            }
-
-            List<Monitor> result;
+            List<Monitor>? result = null;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 result = win.DisplaySystem.GetMonitors()
                                 .Cast<Monitor>()
                                 .ToList();
-
-                cachedMonitors = result;
-
-                return result;
             }
 
-            result = new List<Monitor>();
+            result ??= [];
             return result;
         }
     }
