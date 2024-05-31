@@ -33,7 +33,7 @@ namespace SimpleKVM.GUI.Actions
                                             {
                                                 var autogenName = $"Monitor {mon.Screen?.ScreenIndex()}";
                                                 var model = mon.Mon.Model.Trim();
-                                                if (!string.IsNullOrEmpty(model)) autogenName += $" ({mon.Mon.Model})";
+                                                if (!string.IsNullOrEmpty(model)) autogenName += $" ({model})";
 
                                                 return new
                                                 {
