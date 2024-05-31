@@ -4,8 +4,8 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
-	<Nullable>enable</Nullable>
-	<ApplicationIcon>iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico</ApplicationIcon>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
