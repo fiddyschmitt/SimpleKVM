@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SimpleKVM;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -136,7 +137,7 @@ namespace DDCKVMService
 
                         if (GetMonitorInfo(hMonitor, ref mi))
                         {
-                            action.Invoke((hMonitor, mon, mi.DeviceName));
+                            action.Invoke((hMonitor, mon, mi.GetUniqueId()));
                         }
                     }
 
@@ -147,7 +148,7 @@ namespace DDCKVMService
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        struct RECT
+        public struct RECT
         {
             public int Left;
             public int Top;
@@ -156,7 +157,7 @@ namespace DDCKVMService
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        struct MONITORINFOEX
+        public struct MONITORINFOEX
         {
             public int Size;
             public RECT Monitor;

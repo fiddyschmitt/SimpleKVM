@@ -9,6 +9,7 @@ using System.Xml.Serialization;
 using System.IO;
 using Newtonsoft.Json;
 using System.Xml;
+using static DDCKVMService.MonitorController;
 
 namespace SimpleKVM
 {
@@ -94,6 +95,28 @@ namespace SimpleKVM
             return result;
         }
 
+        public static string GetUniqueId(this Screen screen)
+        {
+            var str = $"{screen.Bounds.Left},{screen.Bounds.Top},{screen.Bounds.Right},{screen.Bounds.Bottom}";
+            var strMD5 = str.CreateMD5();
+            return strMD5;
+        }
+
+        public static string GetUniqueId(this MONITORINFOEX monitorInfo)
+        {
+            var str = $"{monitorInfo.Monitor.Left},{monitorInfo.Monitor.Top},{monitorInfo.Monitor.Right},{monitorInfo.Monitor.Bottom}";
+            var strMD5 = str.CreateMD5();
+            return strMD5;
+        }
+
+        public static string CreateMD5(this string input)
+        {
+            var inputBytes = Encoding.UTF8.GetBytes(input);
+            var hashBytes = System.Security.Cryptography.MD5.HashData(inputBytes);
+
+            return Convert.ToHexString(hashBytes);
+        }
+
         public static T Next<T>(this T src) where T : struct
         {
             if (!typeof(T).IsEnum) throw new ArgumentException(String.Format("Argument {0} is not an Enum", typeof(T).FullName));
@@ -157,10 +180,10 @@ namespace SimpleKVM
             return result;
         }
 
-        static readonly string[] possibleSettingsFolders = new[] {
+        static readonly string[] possibleSettingsFolders = [
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? ""),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))
-            };
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))
+            ];
 
         public static void WriteTextFile(string folder, string filename, string content)
         {
@@ -175,7 +198,12 @@ namespace SimpleKVM
 
                 try
                 {
-                    File.WriteAllText(fullFilename, content);
+                    var existingContent = File.ReadAllText(fullFilename);
+                    if (existingContent != content)
+                    {
+                        File.WriteAllText(fullFilename, content);
+                    }
+
                     break;
                 }
                 catch

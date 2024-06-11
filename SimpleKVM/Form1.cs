@@ -232,8 +232,8 @@ namespace SimpleKVM
                 try
                 {
                     Cursor = Cursors.WaitCursor;
-                editRuleForm = new ModifyRule(usbSystem, title, triggerType.Value, actionType.Value);
-            }
+                    editRuleForm = new ModifyRule(usbSystem, title, triggerType.Value, actionType.Value);
+                }
                 finally
                 {
                     Cursor = Cursors.Default;
@@ -244,8 +244,8 @@ namespace SimpleKVM
                 try
                 {
                     Cursor = Cursors.WaitCursor;
-                editRuleForm = new ModifyRule(usbSystem, title, rule);
-            }
+                    editRuleForm = new ModifyRule(usbSystem, title, rule);
+                }
                 finally
                 {
                     Cursor = Cursors.Default;
@@ -254,6 +254,7 @@ namespace SimpleKVM
 
             editRuleForm.StartPosition = FormStartPosition.CenterParent;
             var diagResult = editRuleForm.ShowDialog(this);
+            var save = false;
 
             if (diagResult == DialogResult.OK)
             {
@@ -279,7 +280,7 @@ namespace SimpleKVM
                     ruleListview?.RefreshContent();
                 }
 
-                SaveRules();
+                save = true;
             }
 
             //resume the rules which were running earlier
@@ -288,6 +289,11 @@ namespace SimpleKVM
                 {
                     rule.StartMonitoring();
                 });
+
+            if (save)
+            {
+                SaveRules();
+            }
         }
 
         private void BtnNewRule_Click(object sender, EventArgs e)

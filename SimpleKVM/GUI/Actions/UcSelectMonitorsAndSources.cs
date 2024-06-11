@@ -26,7 +26,7 @@ namespace SimpleKVM.GUI.Actions
                                             .Select(mon => new
                                             {
                                                 Mon = mon,
-                                                Screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == mon.MonitorUniqueId)
+                                                Screen = Screen.AllScreens.FirstOrDefault(s => s.GetUniqueId() == mon.MonitorUniqueId)
                                             })
                                             .OrderBy(mon => mon.Screen?.ScreenIndex())
                                             .Select(mon =>
@@ -108,7 +108,7 @@ namespace SimpleKVM.GUI.Actions
                 .ToList()
                 .ForEach(sourceSelector =>
                 {
-                    if (sourceSelector.Monitor?.MonitorUniqueId == clickedMonitor.ScreenName)
+                    if (sourceSelector.Monitor?.MonitorUniqueId == clickedMonitor.UniqueId)
                     {
                         sourceSelector.BackColor = SystemColors.Highlight;
                     }

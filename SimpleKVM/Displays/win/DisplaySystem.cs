@@ -29,7 +29,7 @@ namespace SimpleKVM.Displays.win
             else
             {
                 //confirm all screens are in the cache
-                var allScreens = Screen.AllScreens.Select(screen => screen.DeviceName);
+                var allScreens = Screen.AllScreens.Select(screen => screen.GetUniqueId());
                 var allMonitors = cachedMonitorList.Select(mon => mon.MonitorUniqueId);
 
                 refreshRequired = allMonitors.Except(allScreens).Any() || allScreens.Except(allMonitors).Any();

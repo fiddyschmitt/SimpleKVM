@@ -55,7 +55,7 @@ namespace SimpleKVM.GUI
 
                                             return new
                                             {
-                                                ScreenName = screen.DeviceName,
+                                                UniqueId = screen.GetUniqueId(),
                                                 ScreenIndex = screen.ScreenIndex(),
                                                 DrawRectable = drawRect
                                             };
@@ -84,7 +84,7 @@ namespace SimpleKVM.GUI
                                     var drawRect = rect.DrawRectable;
                                     drawRect.Offset(offsetToCenter);
 
-                                    var r = new MonitorBox(rect.ScreenName, drawRect, borderPen, $"{rect.ScreenIndex}", EnumPosition.Center, font, textBrush);
+                                    var r = new MonitorBox(rect.UniqueId, drawRect, borderPen, $"{rect.ScreenIndex}", EnumPosition.Center, font, textBrush);
                                     return r;
                                 })
                                 .OfType<MonitorBox>()
@@ -107,7 +107,7 @@ namespace SimpleKVM.GUI
 
         public void SelectMonitor(string monitorUniqueId)
         {
-            var monitorBox = monitors.FirstOrDefault(mon => mon.ScreenName == monitorUniqueId);
+            var monitorBox = monitors.FirstOrDefault(mon => mon.UniqueId == monitorUniqueId);
 
             if (monitorBox != null)
             {
@@ -140,8 +140,8 @@ namespace SimpleKVM.GUI
         }
     }
 
-    public class MonitorBox(string screenName, Rectangle rectangle, Pen borderPen, string text, EnumPosition textPosition, Font font, Brush textBrush) : RectangleWithText(rectangle, borderPen, text, textPosition, font, textBrush)
+    public class MonitorBox(string uniqueName, Rectangle rectangle, Pen borderPen, string text, EnumPosition textPosition, Font font, Brush textBrush) : RectangleWithText(rectangle, borderPen, text, textPosition, font, textBrush)
     {
-        public string ScreenName { get; } = screenName;
+        public string UniqueId { get; } = uniqueName;
     }
 }
