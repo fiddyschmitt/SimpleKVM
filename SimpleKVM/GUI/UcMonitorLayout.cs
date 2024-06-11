@@ -26,7 +26,6 @@ namespace SimpleKVM.GUI
         {
             try
             {
-                throw new Exception("blah");
                 var left = Screen.AllScreens.Min(screen => screen.Bounds.Left);
                 var right = Screen.AllScreens.Max(screen => screen.Bounds.Right);
                 var top = Screen.AllScreens.Min(screen => screen.Bounds.Top);
