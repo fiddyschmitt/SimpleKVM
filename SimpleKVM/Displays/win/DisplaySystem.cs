@@ -33,6 +33,8 @@ namespace SimpleKVM.Displays.win
                 var allMonitors = cachedMonitorList.Select(mon => mon.MonitorUniqueId);
 
                 refreshRequired = allMonitors.Except(allScreens).Any() || allScreens.Except(allMonitors).Any();
+
+                refreshRequired |= cachedMonitorList.Any(mon => mon.ValidSources.Count == 0);
             }
 
 
