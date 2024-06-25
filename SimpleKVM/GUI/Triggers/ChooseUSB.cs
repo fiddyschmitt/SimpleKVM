@@ -43,7 +43,7 @@ namespace SimpleKVM
 
         private void SizeLastColumn(ListView lv)
         {
-            lv.Columns[^1].Width = -2;
+            lv.Columns[^1].Width = -8;
         }
 
         private void ListView1_MouseDoubleClick(object sender, MouseEventArgs e)
