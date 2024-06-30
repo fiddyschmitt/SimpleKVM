@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -27,6 +28,7 @@ namespace SimpleKVM
         const string ProgramName = "Simple KVM";
         const string Version = "2.0.0";
         public static List<Rule> Rules { get; protected set; } = [];
+        public static string SettingsFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
 
         Task initMonitorList;
 
@@ -307,7 +309,7 @@ namespace SimpleKVM
 
         private static void LoadRules()
         {
-            var rulesJson = Extensions.ReadTextFile("", "rules.json");
+            var rulesJson = File.ReadAllText(SettingsFilename);
             var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? [];
             Rules.AddRange(loadedRules);
         }
@@ -317,7 +319,7 @@ namespace SimpleKVM
             var rulesJson = Rules.SerializeToJson();
             if (rulesJson != null)
             {
-                Extensions.WriteTextFile("", "rules.json", rulesJson);
+                Extensions.WriteTextFile(SettingsFilename, rulesJson);
             }
         }
 

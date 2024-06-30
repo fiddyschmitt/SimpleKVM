@@ -180,61 +180,13 @@ namespace SimpleKVM
             return result;
         }
 
-        static readonly string[] possibleSettingsFolders = [
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? ""),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))
-            ];
-
-        public static void WriteTextFile(string folder, string filename, string content)
+        public static void WriteTextFile(string filename, string content)
         {
-            var settingsFolders = possibleSettingsFolders
-                                    .Select(f => Path.Combine(f, folder))
-                                    .ToList();
-
-            foreach (var f in settingsFolders)
+            var existingContent = File.ReadAllText(filename);
+            if (existingContent != content)
             {
-                if (!Directory.Exists(f)) Directory.CreateDirectory(f);
-                string fullFilename = Path.Combine(f, folder, filename);
-
-                try
-                {
-                    var existingContent = File.ReadAllText(fullFilename);
-                    if (existingContent != content)
-                    {
-                        File.WriteAllText(fullFilename, content);
-                    }
-
-                    break;
-                }
-                catch
-                {
-
-                }
+                File.WriteAllText(filename, content);
             }
-        }
-
-        public static string? ReadTextFile(string folder, string filename)
-        {
-            var settingsFolders = possibleSettingsFolders
-                                    .Select(f => Path.Combine(f, folder))
-                                    .ToList();
-
-            foreach (var f in settingsFolders)
-            {
-                string fullFilename = Path.Combine(f, folder, filename);
-
-                try
-                {
-                    var content = File.ReadAllText(fullFilename);
-                    return content;
-                }
-                catch
-                {
-
-                }
-            }
-
-            return null;
         }
 
         public static string ToString(this IEnumerable<string> list, string separator)
