@@ -182,11 +182,13 @@ namespace SimpleKVM
 
         public static void WriteTextFile(string filename, string content)
         {
-            var existingContent = File.ReadAllText(filename);
-            if (existingContent != content)
+            if (File.Exists(filename) && File.ReadAllText(filename) == content)
             {
-                File.WriteAllText(filename, content);
+                //nothing's changed
+                return;
             }
+
+            File.WriteAllText(filename, content);
         }
 
         public static string ToString(this IEnumerable<string> list, string separator)

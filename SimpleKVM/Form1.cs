@@ -309,9 +309,12 @@ namespace SimpleKVM
 
         private static void LoadRules()
         {
-            var rulesJson = File.ReadAllText(SettingsFilename);
-            var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? [];
-            Rules.AddRange(loadedRules);
+            if (File.Exists(SettingsFilename))
+            {
+                var rulesJson = File.ReadAllText(SettingsFilename);
+                var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? [];
+                Rules.AddRange(loadedRules);
+            }
         }
 
         private static void SaveRules()
