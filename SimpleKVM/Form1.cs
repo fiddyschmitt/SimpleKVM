@@ -118,16 +118,14 @@ namespace SimpleKVM
             var selectedRules = ruleListview
                                     .SelectedItems
                                     .Cast<ListViewItem>()
-                                    .Select(lvi => lvi.Tag as Rule);
+                                    .Select(lvi => lvi.Tag)
+                                    .OfType<Rule>();
 
             ruleListview.ContextMenuStrip = new ContextMenuStrip();
 
-            ruleListview.ContextMenuStrip.Items.Add("Enable", null, (sender, obj) =>
+            var enableRuleItem = ruleListview.ContextMenuStrip.Items.Add("Enable", null, (sender, obj) =>
             {
-                var toDelete = selectedRules
-                                    .ToList();
-
-                toDelete
+                selectedRules
                     .ToList()
                     .ForEach(rule =>
                     {
@@ -137,12 +135,9 @@ namespace SimpleKVM
                 SaveRules();
             });
 
-            ruleListview.ContextMenuStrip.Items.Add("Disable", null, (sender, obj) =>
+            var disableRuleItem = ruleListview.ContextMenuStrip.Items.Add("Disable", null, (sender, obj) =>
             {
-                var toDelete = selectedRules
-                                    .ToList();
-
-                toDelete
+                selectedRules
                     .ToList()
                     .ForEach(rule =>
                     {
@@ -154,17 +149,14 @@ namespace SimpleKVM
 
             ruleListview.ContextMenuStrip.Items.Add("-");
 
-            ruleListview.ContextMenuStrip.Items.Add("Edit", null, (sender, obj) =>
+            var editResultItem = ruleListview.ContextMenuStrip.Items.Add("Edit", null, (sender, obj) =>
             {
                 editAction.Invoke(sender, obj);
             });
 
-            ruleListview.ContextMenuStrip.Items.Add("Delete", null, (sender, obj) =>
+            var deleteRuleItem = ruleListview.ContextMenuStrip.Items.Add("Delete", null, (sender, obj) =>
             {
-                var toDelete = selectedRules
-                                    .ToList();
-
-                toDelete
+                selectedRules
                     .ToList()
                     .ForEach(rule =>
                     {
@@ -181,7 +173,7 @@ namespace SimpleKVM
 
             ruleListview.ContextMenuStrip.Items.Add("-");
 
-            ruleListview.ContextMenuStrip.Items.Add("Run now", null, (sender, obj) =>
+            var runNowItem = ruleListview.ContextMenuStrip.Items.Add("Run now", null, (sender, obj) =>
             {
                 var selectedRule = ruleListview
                                     .SelectedItems
@@ -191,6 +183,15 @@ namespace SimpleKVM
 
                 selectedRule?.Run();
             });
+
+            ruleListview.ContextMenuStrip.Opening += (s, a) =>
+            {
+                enableRuleItem.Enabled = selectedRules.Any(rule => rule.Status != EnumRuleStatus.Running);
+                disableRuleItem.Enabled = selectedRules.Any(rule => rule.Status != EnumRuleStatus.Disabled);
+                editResultItem.Enabled = selectedRules.Count() == 1;
+                deleteRuleItem.Enabled = selectedRules.Any();
+                runNowItem.Enabled = selectedRules.Count() == 1;
+            };
 
             panel1.Controls.Add(ruleListview);
 
