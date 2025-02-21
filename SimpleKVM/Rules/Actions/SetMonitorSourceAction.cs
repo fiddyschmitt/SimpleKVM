@@ -17,7 +17,7 @@ namespace SimpleKVM.Rules.Actions
             SetMonitorSourceIdTo = sourceId;
         }
 
-        public bool IsValid()
+        public static bool IsValid()
         {
             //check that the monitor exists
             return true;

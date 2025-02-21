@@ -19,7 +19,7 @@ namespace SimpleKVM.Rules.Triggers
         public EnumUsbEvent UsbEvent { get; set; }
 
         [JsonIgnore]
-        public USBSystem? UsbSystem => SimpleKVM.USB.USBSystem.INSTANCE;
+        public static USBSystem? UsbSystem => SimpleKVM.USB.USBSystem.INSTANCE;
 
         public override string GetTriggerAsFriendlyString()
         {

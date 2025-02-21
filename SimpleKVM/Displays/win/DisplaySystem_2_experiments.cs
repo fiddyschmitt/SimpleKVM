@@ -86,8 +86,7 @@ namespace SimpleKVM.Displays.win
             DISPLAYCONFIG_OUTPUT_TECHNOLOGY_UDI_EMBEDDED = 13,
             DISPLAYCONFIG_OUTPUT_TECHNOLOGY_SDTVDONGLE = 14,
             DISPLAYCONFIG_OUTPUT_TECHNOLOGY_MIRACAST = 15,
-            DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL = 0x80000000,
-            DISPLAYCONFIG_OUTPUT_TECHNOLOGY_FORCE_UINT32 = 0xFFFFFFFF
+            DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL = 0x80000000
         }
 
         public enum DISPLAYCONFIG_SCANLINE_ORDERING : uint
@@ -284,14 +283,14 @@ namespace SimpleKVM.Displays.win
         }
 
         [DllImport("user32.dll")]
-        public static extern int GetDisplayConfigBufferSizes(
+        static extern int GetDisplayConfigBufferSizes(
             QUERY_DEVICE_CONFIG_FLAGS Flags,
             out uint NumPathArrayElements,
             out uint NumModeInfoArrayElements
         );
 
         [DllImport("user32.dll")]
-        public static extern int QueryDisplayConfig(
+        static extern int QueryDisplayConfig(
             QUERY_DEVICE_CONFIG_FLAGS Flags,
             ref uint NumPathArrayElements,
             [Out] DISPLAYCONFIG_PATH_INFO[] PathInfoArray,
@@ -301,7 +300,7 @@ namespace SimpleKVM.Displays.win
         );
 
         [DllImport("user32.dll")]
-        public static extern int DisplayConfigGetDeviceInfo(
+        static extern int DisplayConfigGetDeviceInfo(
             ref DISPLAYCONFIG_TARGET_DEVICE_NAME deviceName
         );
 
@@ -356,7 +355,7 @@ namespace SimpleKVM.Displays.win
 
             Debug.WriteLine("------------------ WmiMonitorBasicDisplayParams ------------------");
             var searcher = new ManagementObjectSearcher("root\\WMI", "SELECT * FROM WmiMonitorBasicDisplayParams");
-            foreach (ManagementObject queryObj in searcher.Get())
+            foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
             {
                 foreach (var property in queryObj.Properties)
                 {
@@ -369,7 +368,7 @@ namespace SimpleKVM.Displays.win
 
             Debug.WriteLine("------------------ Win32_DesktopMonitor ------------------");
             searcher = new ManagementObjectSearcher("root\\CIMV2", "SELECT * FROM Win32_DesktopMonitor");
-            foreach (ManagementObject queryObj in searcher.Get())
+            foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
             {
                 foreach (var property in queryObj.Properties)
                 {
@@ -383,7 +382,7 @@ namespace SimpleKVM.Displays.win
             Debug.WriteLine("------------------ WmiMonitorID ------------------");
             searcher = new ManagementObjectSearcher("root\\WMI", "SELECT * FROM WmiMonitorID");
 
-            foreach (ManagementObject queryObj in searcher.Get())
+            foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
             {
                 foreach (var property in queryObj.Properties)
                 {
@@ -410,7 +409,7 @@ namespace SimpleKVM.Displays.win
             Debug.WriteLine("------------------ WmiMonitorConnectionParams ------------------");
             searcher = new ManagementObjectSearcher("root\\WMI", "SELECT * FROM WmiMonitorConnectionParams");
 
-            foreach (ManagementObject queryObj in searcher.Get())
+            foreach (ManagementObject queryObj in searcher.Get().Cast<ManagementObject>())
             {
                 foreach (var property in queryObj.Properties)
                 {
@@ -590,7 +589,7 @@ namespace SimpleKVM.Displays.win
         public static IList<DISPLAY_DEVICE> GetAdapters()
         {
             var result = new List<DISPLAY_DEVICE>();
-            DISPLAY_DEVICE d = new DISPLAY_DEVICE();
+            var d = new DISPLAY_DEVICE();
             d.cb = Marshal.SizeOf(d);
             try
             {

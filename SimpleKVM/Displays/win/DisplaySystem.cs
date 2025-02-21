@@ -12,10 +12,10 @@ using System.Windows.Forms;
 
 namespace SimpleKVM.Displays.win
 {
-    public static class DisplaySystem
+    public static partial class DisplaySystem
     {
-        static readonly Regex modelRegex = new(@"model\((.*?)\)");
-        static readonly Regex sourcesRegex = new(@"(?<=\s)60\((.*?)\)");
+        static readonly Regex modelRegex = ModelRegex();
+        static readonly Regex sourcesRegex = SourcesRegex();
 
         static List<Monitor>? cachedMonitorList;
 
@@ -68,5 +68,10 @@ namespace SimpleKVM.Displays.win
 
             return cachedMonitorList;
         }
+
+        [GeneratedRegex(@"model\((.*?)\)")]
+        private static partial Regex ModelRegex();
+        [GeneratedRegex(@"(?<=\s)60\((.*?)\)")]
+        private static partial Regex SourcesRegex();
     }
 }

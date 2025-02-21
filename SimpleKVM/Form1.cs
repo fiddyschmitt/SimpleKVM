@@ -28,9 +28,9 @@ namespace SimpleKVM
         const string ProgramName = "Simple KVM";
         const string Version = "2.0.0";
         public static List<Rule> Rules { get; protected set; } = [];
-        public static string SettingsFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
+        static readonly string SettingsFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
 
-        Task initMonitorList;
+        readonly Task initMonitorList;
 
         public Form1()
         {

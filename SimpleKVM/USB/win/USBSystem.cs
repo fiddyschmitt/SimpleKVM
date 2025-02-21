@@ -33,7 +33,7 @@ namespace SimpleKVM.USB.win
             insertWatcher.Start();
 
             var removeQuery = new WqlEventQuery($"SELECT * FROM __InstanceDeletionEvent WITHIN 2 WHERE TargetInstance ISA '{deviceClass}'");
-            ManagementEventWatcher removeWatcher = new ManagementEventWatcher(removeQuery);
+            var removeWatcher = new ManagementEventWatcher(removeQuery);
             removeWatcher.EventArrived += (sender, e) => PropogateEvent(e, deviceClass, EnumUsbEvent.Removed);
             removeWatcher.Start();
         }

@@ -210,10 +210,8 @@ namespace SimpleKVM.GUI.Drawing.Rendering
                     .ToList()
                     .ForEach(item =>
                     {
-                        if (previousPositionsByID.TryGetValue(item.ID, out Point value))
+                        if (previousPositionsByID.TryGetValue(item.ID, out Point previousPosition))
                         {
-                            var previousPosition = value;
-
                             var originalElementPos = item.Element.GetPosition();
                             var deltaX = originalElementPos.X - previousPosition.X;
                             var deltaY = originalElementPos.Y - previousPosition.Y;

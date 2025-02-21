@@ -80,7 +80,7 @@ namespace SimpleKVM.GUI.Rules
 
             var actionCreatorUc = actionType switch
             {
-                EnumActionType.SelectMonitorSource => new UcSelectMonitorsAndSources(null, ruleToEdit),
+                EnumActionType.SelectMonitorSource => new UcSelectMonitorsAndSources(ruleToEdit),
                 _ => null
             };
 

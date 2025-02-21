@@ -183,10 +183,7 @@ namespace SimpleKVM.GUI
             var listviewX = (ListViewItem)x;
             var listviewY = (ListViewItem)y;
 
-            var objX = listviewX.Tag as T;
-            var objY = listviewY.Tag as T;
-
-            if (objX == null || objY == null) return 0;
+            if (listviewX.Tag is not T objX || listviewY.Tag is not T objY) return 0;
 
             var valueX = ColumnInfo[ColumnToSort].ValueLookup(objX);
             var valueY = ColumnInfo[ColumnToSort].ValueLookup(objY);

@@ -41,7 +41,7 @@ namespace SimpleKVM
             SizeLastColumn((ListView)sender);
         }
 
-        private void SizeLastColumn(ListView lv)
+        private static void SizeLastColumn(ListView lv)
         {
             lv.Columns[^1].Width = -8;
         }

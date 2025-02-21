@@ -12,7 +12,7 @@ namespace SimpleKVM.Rules
     {
         public Trigger Trigger;
 
-        public List<IAction> Actions = new();
+        public List<IAction> Actions = [];
         public int RunCount { get; set; }
         public DateTime? LastRun { get; set; }
         public EnumRuleStatus Status { get; set; } = EnumRuleStatus.Stopped;

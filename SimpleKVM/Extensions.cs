@@ -13,7 +13,7 @@ using static DDCKVMService.MonitorController;
 
 namespace SimpleKVM
 {
-    public static class Extensions
+    public static partial class Extensions
     {
         public static string StartAndReadStdout(this ProcessStartInfo psi)
         {
@@ -43,7 +43,7 @@ namespace SimpleKVM
 
         public static string RemoveNonPrintable(this string input)
         {
-            var result = Regex.Replace(input, @"\p{C}+", string.Empty);
+            var result = NonPrintableRegex().Replace(input, string.Empty);
             return result;
         }
 
@@ -196,5 +196,8 @@ namespace SimpleKVM
             string result = string.Join(separator, list);
             return result;
         }
+
+        [GeneratedRegex(@"\p{C}+")]
+        private static partial Regex NonPrintableRegex();
     }
 }

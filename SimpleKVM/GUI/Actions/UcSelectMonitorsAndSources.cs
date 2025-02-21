@@ -14,7 +14,7 @@ namespace SimpleKVM.GUI.Actions
 {
     public partial class UcSelectMonitorsAndSources : UserControl, IValidate, IActionCreator
     {
-        public UcSelectMonitorsAndSources(IValueChangedListener? valueChangedListener = null, Rule? ruleToEdit = null)
+        public UcSelectMonitorsAndSources(Rule? ruleToEdit = null)
         {
             InitializeComponent();
 

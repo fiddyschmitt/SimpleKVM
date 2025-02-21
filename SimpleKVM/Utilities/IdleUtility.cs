@@ -9,7 +9,7 @@ namespace SimpleKVM.Utilities
     {
         public static uint GetIdleTimeMilliseconds()
         {
-            LASTINPUTINFO lastInPut = new LASTINPUTINFO();
+            var lastInPut = new LASTINPUTINFO();
             lastInPut.cbSize = (uint)Marshal.SizeOf(lastInPut);
             GetLastInputInfo(ref lastInPut);
 

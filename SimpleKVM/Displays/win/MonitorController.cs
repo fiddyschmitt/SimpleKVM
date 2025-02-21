@@ -41,20 +41,20 @@ namespace DDCKVMService
         );
 
         [DllImport("Dxva2.dll")]
-        public static extern bool GetCapabilitiesStringLength(
+        static extern bool GetCapabilitiesStringLength(
             IntPtr hMonitor,
             ref uint pdwCapabilitiesStringLengthInCharacters
         );
 
         [DllImport("Dxva2.dll")]
-        public static extern bool CapabilitiesRequestAndCapabilitiesReply(
+        static extern bool CapabilitiesRequestAndCapabilitiesReply(
             IntPtr hMonitor,
             [MarshalAs(UnmanagedType.LPStr)] StringBuilder pszASCIICapabilitiesString,
             uint dwCapabilitiesStringLengthInCharacters
         );
 
         [DllImport("Dxva2.dll")]
-        public static extern bool GetVCPFeatureAndVCPFeatureReply(
+        static extern bool GetVCPFeatureAndVCPFeatureReply(
             IntPtr hMonitor,
             byte bVCPCode,
             IntPtr pvct,

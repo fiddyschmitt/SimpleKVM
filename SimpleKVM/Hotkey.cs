@@ -85,10 +85,7 @@ namespace SimpleKVM
 
         public void UnregisterHotkey()
         {
-            if (FakeWindow.HotkeyActions.ContainsKey((Modifier, Keys)))
-            {
-                FakeWindow.HotkeyActions.Remove((Modifier, Keys));
-            }
+            FakeWindow.HotkeyActions.Remove((Modifier, Keys));
 
             UnregisterHotKey(FakeWindow.Handle, HotkeyId);
         }
@@ -122,15 +119,14 @@ namespace SimpleKVM
                     // invoke the event to notify the parent.
                     var together = (modifier, key);
 
-                    if (HotkeyActions.ContainsKey(together))
+                    if (HotkeyActions.TryGetValue(together, out Action? action))
                     {
-                        var action = HotkeyActions[together];
                         action();
                     }
                 }
             }
 
-            public readonly Dictionary<(ModifierKeys, Keys), Action> HotkeyActions = new();
+            public readonly Dictionary<(ModifierKeys, Keys), Action> HotkeyActions = [];
 
             public void Dispose()
             {

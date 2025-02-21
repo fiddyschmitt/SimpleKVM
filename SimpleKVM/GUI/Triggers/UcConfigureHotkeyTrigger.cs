@@ -68,7 +68,7 @@ namespace SimpleKVM.GUI.Triggers
             linkLabel1.Text = hyperlink;
         }
 
-        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        private void LinkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             if (e.Link?.LinkData == null) return;
 
