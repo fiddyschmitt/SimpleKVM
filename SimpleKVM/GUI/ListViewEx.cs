@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace SimpleKVM.GUI
 {
-    public class ListViewEx<T> : ListView
+    public class ListViewEx<T> : ListView where T : class
     {
         public ListViewEx(IList<(string ColumnName, Func<T, object> ValueLookup, Func<T, string> DisplayStringLookup)> columnInfo) : base()
         {
@@ -63,7 +63,7 @@ namespace SimpleKVM.GUI
                         .Select(lvi => new
                         {
                             ListViewItem = lvi,
-                            Obj = (T)lvi.Tag
+                            Obj = lvi.Tag as T
                         })
                         .First(lvi => item.Equals(lvi.Obj))
                         .ListViewItem;
@@ -77,7 +77,8 @@ namespace SimpleKVM.GUI
         {
             var result = SelectedItems
                             .OfType<ListViewItem>()
-                            .Select(lvi => (T)lvi.Tag)
+                            .Select(lvi => lvi.Tag)
+                            .OfType<T>()
                             .ToList();
 
             return result;
@@ -87,7 +88,8 @@ namespace SimpleKVM.GUI
         {
             var result = Items
                             .OfType<ListViewItem>()
-                            .Select(lvi => (T)lvi.Tag)
+                            .Select(lvi => lvi.Tag)
+                            .OfType<T>()
                             .ToList();
 
             return result;
@@ -102,7 +104,7 @@ namespace SimpleKVM.GUI
                 .Select(lvi => new
                 {
                     ListViewItem = lvi,
-                    Obj = (T)lvi.Tag
+                    Obj = lvi.Tag as T
                 })
                 .ToList()
                 .ForEach(lvi =>
@@ -117,6 +119,8 @@ namespace SimpleKVM.GUI
                         .ToList()
                         .ForEach(col =>
                         {
+                            if (lvi.Obj == null) return;
+
                             var newDisplayValue = col.Column.DisplayStringLookup(lvi.Obj);
                             if (lvi.ListViewItem.SubItems.Count <= col.Index)
                             {
@@ -163,7 +167,7 @@ namespace SimpleKVM.GUI
         }
     }
 
-    public class ListViewColumnSorter<T> : IComparer
+    public class ListViewColumnSorter<T> : IComparer where T : class
     {
         public ListViewColumnSorter(IList<(string ColumnName, Func<T, object> ValueLookup, Func<T, string> DisplayStringLookup)> columnInfo)
         {
@@ -179,8 +183,8 @@ namespace SimpleKVM.GUI
             var listviewX = (ListViewItem)x;
             var listviewY = (ListViewItem)y;
 
-            var objX = (T)listviewX.Tag;
-            var objY = (T)listviewY.Tag;
+            var objX = listviewX.Tag as T;
+            var objY = listviewY.Tag as T;
 
             if (objX == null || objY == null) return 0;
 

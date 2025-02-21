@@ -543,7 +543,7 @@ namespace SimpleKVM.Displays.win
 
         public class Screen
         {
-            public string ScreenName { get; set; }
+            public required string ScreenName { get; set; }
             public Rectangle Bounds { get; set; }
             public List<DisplayDevice> DisplayDevices = [];
 
@@ -555,7 +555,7 @@ namespace SimpleKVM.Displays.win
 
         public class DisplayDevice
         {
-            public string DisplayDeviceName { get; set; }
+            public required string DisplayDeviceName { get; set; }
 
             public override string ToString()
             {

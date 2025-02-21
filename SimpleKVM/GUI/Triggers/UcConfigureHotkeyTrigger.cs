@@ -70,6 +70,8 @@ namespace SimpleKVM.GUI.Triggers
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
+            if (e.Link?.LinkData == null) return;
+
             int linkId = (int)e.Link.LinkData;
             switch (linkId)
             {
