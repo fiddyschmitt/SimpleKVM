@@ -115,11 +115,8 @@ namespace SimpleKVM.GUI
             var result = new List<IAction>();
             if (Monitor != null)
             {
-                var selectedSourceId = (int)(cmbSources.SelectedValue ?? -1);
-                if (selectedSourceId < 0)
-                {
-                    selectedSourceId = OriginalSourceId;
-                }
+                var selectedSourceId = (cmbSources.SelectedValue as int?) ?? OriginalSourceId;
+
                 var newAction = new SetMonitorSourceAction(Monitor, selectedSourceId);
                 result.Add(newAction);
             }
