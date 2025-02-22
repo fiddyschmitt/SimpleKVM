@@ -33,7 +33,7 @@ namespace SimpleKVM
         public static string[] SplitAndKeep(this string input, string seperator)
         {
             var result = input
-                    .Split(new[] { seperator }, StringSplitOptions.None)
+                    .Split([seperator], StringSplitOptions.None)
                     .Skip(1)
                     .Select(block => $"{seperator}{block}")
                     .ToArray();
