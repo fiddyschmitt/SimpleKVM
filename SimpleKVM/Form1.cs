@@ -49,6 +49,8 @@ namespace SimpleKVM
 
             InitialiseSystemTray();
 
+            LoadConfig();
+
             initMonitorList = Task.Factory.StartNew(() =>
             {
                 DisplaySystem.GetMonitors();    //for the monitors to be cached
@@ -56,7 +58,6 @@ namespace SimpleKVM
 
             InitializeRuleListView();
 
-            LoadConfig();
             LoadRules();
 
             Rules.ForEach(rule =>

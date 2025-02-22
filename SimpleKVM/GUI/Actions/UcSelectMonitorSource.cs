@@ -49,11 +49,11 @@ namespace SimpleKVM.GUI
 
             var monitorItems = monitor
                                     .ValidSources
-                                    .Select(sourceId =>
+                                    .Select(source =>
                                     {
-                                        var sourceName = SourceIdToName(sourceId, monitor.Model, Form1.Config?.Overrides?.MonitorOverrides);
+                                        var sourceName = source.SourceName;
 
-                                        if (sourceId == currentSource)
+                                        if (source.SourceId == currentSource)
                                         {
                                             sourceName += " (Active)";
                                         }
@@ -61,7 +61,7 @@ namespace SimpleKVM.GUI
                                         return new
                                         {
                                             SourceName = sourceName,
-                                            SourceId = sourceId
+                                            source.SourceId
                                         };
                                     })
                                     .ToList();
@@ -86,7 +86,7 @@ namespace SimpleKVM.GUI
                                         ?.Index ?? 0;
         }
 
-        public static string SourceIdToName(int sourceId, string model, List<MonitorOverride>? monitorOverrides)
+        public static string SourceIdToName(int sourceId)
         {
             //https://en.wikipedia.org/wiki/Monitor_Control_Command_Set
             //https://milek7.pl/ddcbacklight/mccs.pdf
@@ -114,13 +114,6 @@ namespace SimpleKVM.GUI
                 18 => "HDMI 2",
                 _ => $"{sourceId}",
             };
-
-            //check if the user has overriden the Display Name for this SourceId, by using the config file overrides
-            sourceName = monitorOverrides?
-                            .FirstOrDefault(mon => mon.Model.Equals(model, StringComparison.OrdinalIgnoreCase))?
-                            .SourceDisplayNames
-                            .FirstOrDefault(srcOvr => srcOvr.SourceId == sourceId)?
-                            .NewDisplayName ?? sourceName;
 
             return sourceName;
         }

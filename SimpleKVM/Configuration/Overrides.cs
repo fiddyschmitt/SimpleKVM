@@ -13,13 +13,13 @@ namespace SimpleKVM.Configuration
 
     public class MonitorOverride
     {
-        public required string Model;
-        public List<SourceDisplayNameOverride> SourceDisplayNames = [];
+        public required int MonitorNumber;
+        public List<Source> Sources = [];
     }
 
-    public class SourceDisplayNameOverride
+    public class Source
     {
         public required int SourceId;
-        public required string NewDisplayName;
+        public required string SourceName;
     }
 }

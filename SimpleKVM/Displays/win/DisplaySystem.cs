@@ -1,4 +1,5 @@
 ﻿using DDCKVMService;
+using SimpleKVM.GUI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -43,22 +44,40 @@ namespace SimpleKVM.Displays.win
                 cachedMonitorList = [];
                 MonitorController.EnumMonitors(mon =>
                 {
+                    List<(int SourceId, string SourceName)>? sources = null;
+
+                    //Determine all the sources the monitor supports.
+
+                    //First we'll check the config file, to see if the user has specified a custom list of sources for this monitor
+                    var monitorNumber = Screen.AllScreens.FirstOrDefault(s => s.GetUniqueId() == mon.UniqueId)?.ScreenIndex();
+                    if (monitorNumber.HasValue)
+                    {
+                        sources = Form1
+                                    .Config?
+                                    .Overrides?
+                                    .MonitorOverrides?
+                                    .FirstOrDefault(ovr => ovr.MonitorNumber == monitorNumber)?
+                                    .Sources
+                                    .Select(src => (src.SourceId, src.SourceName))
+                                    .ToList();
+                    }
+
+                    //Second, we'll query the monitor for its capabilities string, which contains the model & valid sources (if still required)
                     var caps = mon.PhysicalMonitor.GetVCPCapabilities();
 
                     var model = "Unknown";
-                    var sources = new List<int>();
-
                     if (caps != null)
                     {
                         model = modelRegex.Match(caps).Groups[1].Value;
 
-                        sources = sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
+                        sources ??= sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
                                         .Where(x => !string.IsNullOrWhiteSpace(x))
                                         .Select(x => (int)(Convert.ToUInt32(x, 16)))
+                                        .Select(sourceId => (sourceId, UcSelectMonitorSource.SourceIdToName(sourceId)))
                                         .ToList();
                     }
 
-                    mon.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
+                    sources ??= [];
 
                     var newMonitor = new Monitor(mon.UniqueId, model, sources);
 

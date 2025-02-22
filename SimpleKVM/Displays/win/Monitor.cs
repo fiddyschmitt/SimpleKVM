@@ -9,7 +9,7 @@ namespace SimpleKVM.Displays.win
 {
     public class Monitor : Displays.Monitor
     {
-        public Monitor(string uniqueId, string model, List<int> validSources) : base(uniqueId, model, validSources)
+        public Monitor(string uniqueId, string model, List<(int SourceId, string SourceName)> validSources) : base(uniqueId, model, validSources)
         {
         }
 
