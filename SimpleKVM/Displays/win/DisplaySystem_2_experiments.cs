@@ -491,7 +491,7 @@ namespace SimpleKVM.Displays.win
             Debug.WriteLine("------------------ InfoCombined() ------------------");
             InfoCombined();
 
-            return new List<Monitor>();
+            return [];
         }
 
         private static void InfoCombined()

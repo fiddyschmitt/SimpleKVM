@@ -89,11 +89,11 @@ namespace SimpleKVM.GUI.Drawing
                 var child = childSelector(item);
                 if (child == null)
                 {
-                    return new List<T>();
+                    return [];
                 }
                 else
                 {
-                    return new List<T>() { child };
+                    return [child];
                 }
             });
 

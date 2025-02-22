@@ -25,7 +25,7 @@ namespace SimpleKVM
         {
             Invoke(new MethodInvoker(() =>
             {
-                var lvi = new ListViewItem(new[] { e.UsbEvent.ToString(), $"{e.Device.DeviceClass} {e.Device.DeviceID}" })
+                var lvi = new ListViewItem([e.UsbEvent.ToString(), $"{e.Device.DeviceClass} {e.Device.DeviceID}"])
                 {
                     Tag = e
                 };
