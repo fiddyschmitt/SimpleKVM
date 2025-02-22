@@ -10,6 +10,7 @@ using System.Linq;
 using SimpleKVM.Rules.Actions;
 using SimpleKVM.GUI.Actions;
 using IAction = SimpleKVM.Rules.Actions.IAction;
+using SimpleKVM.Configuration;
 
 namespace SimpleKVM.GUI
 {
@@ -50,7 +51,7 @@ namespace SimpleKVM.GUI
                                     .ValidSources
                                     .Select(sourceId =>
                                     {
-                                        var sourceName = SourceIdToName(sourceId);
+                                        var sourceName = SourceIdToName(sourceId, monitor.Model, Form1.Config?.Overrides?.MonitorOverrides);
 
                                         if (sourceId == currentSource)
                                         {
@@ -85,7 +86,7 @@ namespace SimpleKVM.GUI
                                         ?.Index ?? 0;
         }
 
-        public static string SourceIdToName(int sourceId)
+        public static string SourceIdToName(int sourceId, string model, List<MonitorOverride>? monitorOverrides)
         {
             //https://en.wikipedia.org/wiki/Monitor_Control_Command_Set
             //https://milek7.pl/ddcbacklight/mccs.pdf
@@ -113,6 +114,13 @@ namespace SimpleKVM.GUI
                 18 => "HDMI 2",
                 _ => $"{sourceId}",
             };
+
+            //check if the user has overriden the Display Name for this SourceId, by using the config file overrides
+            sourceName = monitorOverrides?
+                            .FirstOrDefault(mon => mon.Model.Equals(model, StringComparison.OrdinalIgnoreCase))?
+                            .SourceDisplayNames
+                            .FirstOrDefault(srcOvr => srcOvr.SourceId == sourceId)?
+                            .NewDisplayName ?? sourceName;
 
             return sourceName;
         }

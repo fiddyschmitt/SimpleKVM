@@ -1,4 +1,6 @@
-﻿using SimpleKVM.Displays.win;
+﻿using Newtonsoft.Json;
+using SimpleKVM.Configuration;
+using SimpleKVM.Displays.win;
 using SimpleKVM.GUI;
 using SimpleKVM.GUI.Rules;
 using SimpleKVM.GUI.Triggers;
@@ -29,6 +31,9 @@ namespace SimpleKVM
         const string Version = "2.1.0";
         public static List<Rule> Rules { get; protected set; } = [];
         static readonly string SettingsFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
+        static readonly string ConfigFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+
+        public static Config? Config { get; protected set; }
 
         readonly Task initMonitorList;
 
@@ -51,6 +56,7 @@ namespace SimpleKVM
 
             InitializeRuleListView();
 
+            LoadConfig();
             LoadRules();
 
             Rules.ForEach(rule =>
@@ -306,6 +312,19 @@ namespace SimpleKVM
             contextMenu.Items.Add("USB rule", null, (sender, obj) => { EditRule(EnumTriggerType.Usb, EnumActionType.SelectMonitorSource, null); });
             contextMenu.Items.Add("No Longer Idle rule", null, (sender, obj) => { EditRule(EnumTriggerType.NoLongerIdle, EnumActionType.SelectMonitorSource, null); });
             contextMenu.Show(btnNewRule, new Point(btnNewRule.Width, (int)(btnNewRule.Height / 2d)));
+        }
+
+        private static void LoadConfig()
+        {
+            if (File.Exists(ConfigFilename))
+            {
+                try
+                {
+                    var configText = File.ReadAllText(ConfigFilename);
+                    Config = JsonConvert.DeserializeObject<Config>(configText);
+                }
+                catch { }
+            }
         }
 
         private static void LoadRules()
