@@ -44,11 +44,18 @@ namespace SimpleKVM.GUI
             //var tooltip = new ToolTip();
             //tooltip.SetToolTip(lblMonitorName, monitor.MonitorUniqueId);
 
+            var currentSource = monitor.GetCurrentSource();
+
             var monitorItems = monitor
                                     .ValidSources
                                     .Select(sourceId =>
                                     {
                                         var sourceName = SourceIdToName(sourceId);
+
+                                        if (sourceId == currentSource)
+                                        {
+                                            sourceName += " (Active)";
+                                        }
 
                                         return new
                                         {
