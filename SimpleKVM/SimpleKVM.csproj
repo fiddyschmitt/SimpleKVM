@@ -28,10 +28,4 @@
     <PackageReference Include="System.Management" Version="9.0.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="License.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>
