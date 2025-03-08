@@ -100,7 +100,7 @@ namespace SimpleKVM.GUI.Actions
             }
         }
 
-        private void UcMonitorLayout1_MonitorClicked(object? sender, MonitorBox clickedMonitor)
+        private void UcMonitorLayout1_MonitorClicked(object? sender, MonitorBox? clickedMonitor)
         {
             panel1
                 .Controls
@@ -108,7 +108,7 @@ namespace SimpleKVM.GUI.Actions
                 .ToList()
                 .ForEach(sourceSelector =>
                 {
-                    if (sourceSelector.Monitor?.MonitorUniqueId == clickedMonitor.UniqueId)
+                    if (sourceSelector.Monitor?.MonitorUniqueId == clickedMonitor?.UniqueId)
                     {
                         sourceSelector.BackColor = SystemColors.Highlight;
                     }

@@ -14,7 +14,7 @@ namespace SimpleKVM.GUI
 {
     public partial class UcMonitorLayout : UserControl
     {
-        public event EventHandler<MonitorBox>? MonitorClicked;
+        public event EventHandler<MonitorBox?>? MonitorClicked;
         List<MonitorBox> monitors = [];
 
         public UcMonitorLayout()
@@ -122,9 +122,8 @@ namespace SimpleKVM.GUI
                 monitors
                     .ForEach(elem =>
                     {
-                        if (elem == e)
+                        if (elem == e && !elem.ShouldHighlight)
                         {
-                            //elem.ShouldHighlight = !elem.ShouldHighlight;
                             elem.ShouldHighlight = true;
                         }
                         else
@@ -135,7 +134,14 @@ namespace SimpleKVM.GUI
 
                 monitorDrawer.Invalidate();
 
+                if (clickedMonitor.ShouldHighlight)
+                {
                 MonitorClicked?.Invoke(this, clickedMonitor);
+            }
+                else
+                {
+                    MonitorClicked?.Invoke(this, null);
+                }
             }
         }
     }
