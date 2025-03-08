@@ -1,4 +1,5 @@
 ﻿using SimpleKVM.GUI.Drawing.Elements;
+using SimpleKVM.Utilities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -39,6 +40,15 @@ namespace SimpleKVM.GUI
                 var top = Screen.AllScreens.Min(screen => screen.Bounds.Top);
                 var bottom = Screen.AllScreens.Max(screen => screen.Bounds.Bottom);
 
+                var allScreensHaveSameScale = Screen.AllScreens
+                                                .Select(screen =>
+                                                {
+                                                    (var screenScaleX, var screenScaleY) = User32Utils.GetScalingFactor(screen);
+                                                    return $"{screenScaleX},{screenScaleY}";
+                                                })
+                                                .Distinct()
+                                                .Count() == 1;
+
                 var virtualScreen = new Rectangle(left, top, right - left, bottom - top);
                 var offset = new Point(-virtualScreen.X, -virtualScreen.Y);
                 virtualScreen.Offset(offset);
@@ -48,18 +58,25 @@ namespace SimpleKVM.GUI
                 var scaleX = (monitorDrawer.Width - 100) / (double)virtualScreen.Width;
                 var scaleY = (monitorDrawer.Height - 100) / (double)virtualScreen.Height;
                 var scale = Math.Min(scaleX, scaleY);
+                var applicationScale = DeviceDpi / 96f;
+                if (allScreensHaveSameScale || applicationScale == 0)
+                {
+                    applicationScale = 1;
+                }
 
                 var drawRects = Screen.AllScreens
                                         .Select(screen =>
                                         {
+                                            (var screenScaleX, var screenScaleY) = User32Utils.GetScalingFactor(screen);
+
                                             var screenRect = screen.Bounds;
                                             screenRect.Offset(offset);
 
                                             var drawRect = new Rectangle(
-                                                (int)(screenRect.X * scale),
-                                                (int)(screenRect.Y * scale),
-                                                (int)(screenRect.Width * scale),
-                                                (int)(screenRect.Height * scale));
+                                                (int)(screenRect.X * scale / applicationScale),
+                                                (int)(screenRect.Y * scale / applicationScale),
+                                                (int)(screenRect.Width * scale / screenScaleX),
+                                                (int)(screenRect.Height * scale / screenScaleY));
 
                                             return new
                                             {
