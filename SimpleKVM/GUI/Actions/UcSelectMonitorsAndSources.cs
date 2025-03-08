@@ -14,9 +14,25 @@ namespace SimpleKVM.GUI.Actions
 {
     public partial class UcSelectMonitorsAndSources : UserControl, IValidate, IActionCreator
     {
+        public Rule? RuleToEdit { get; }
+
         public UcSelectMonitorsAndSources(Rule? ruleToEdit = null)
         {
             InitializeComponent();
+
+            RuleToEdit = ruleToEdit;
+
+            RefreshMonitorList();
+
+            ucMonitorLayout1.MonitorClicked += UcMonitorLayout1_MonitorClicked;
+        }
+
+        private void RefreshMonitorList()
+        {
+            Cursor = Cursors.WaitCursor;
+
+            ucMonitorLayout1.Reload();
+            Application.DoEvents();
 
             //give the panel a scrollbar
             panel1.AutoScroll = false;
@@ -43,53 +59,52 @@ namespace SimpleKVM.GUI.Actions
                                             })
                                             .ToList();
 
-            var monitorControls = monitorsWithAutogenName
-                                    .Select(monitor =>
-                                    {
-                                        int sourceIdToSelect;
-                                        if (ruleToEdit == null)
-                                        {
-                                            sourceIdToSelect = monitor.Monitor.GetCurrentSource();
-                                        }
-                                        else
-                                        {
-                                            //We are editing the action. So let's set the sourceId to whatever the user chose when they first created the action.
 
-                                            var setMonitorAction = ruleToEdit
-                                                                    .Actions
-                                                                    .OfType<SetMonitorSourceAction>()
-                                                                    .FirstOrDefault(a => a.Monitor.MonitorUniqueId.Equals(monitor.Monitor.MonitorUniqueId));
+            panel1.Controls.Clear();
 
+            monitorsWithAutogenName
+                .ForEach(monitor =>
+                {
+                    int sourceIdToSelect;
+                    if (RuleToEdit == null)
+                    {
+                        sourceIdToSelect = monitor.Monitor.GetCurrentSource();
+                    }
+                    else
+                    {
+                        //We are editing the action. So let's set the sourceId to whatever the user chose when they first created the action.
 
-                                            sourceIdToSelect = setMonitorAction?.SetMonitorSourceIdTo ?? -1;
-                                        }
-
-                                        var uc = new UcSelectMonitorSource();
-                                        uc.DisplayMonitor(monitor.AutogenName, monitor.Monitor, sourceIdToSelect);
-                                        uc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-                                        uc.Width = panel1.Width;
+                        var setMonitorAction = RuleToEdit
+                                                .Actions
+                                                .OfType<SetMonitorSourceAction>()
+                                                .FirstOrDefault(a => a.Monitor.MonitorUniqueId.Equals(monitor.Monitor.MonitorUniqueId));
 
 
-                                        uc.Padding = new Padding(16, 4, 16, 4);
-                                        uc.Height = uc.Height + uc.Padding.Top + uc.Padding.Bottom;
+                        sourceIdToSelect = setMonitorAction?.SetMonitorSourceIdTo ?? -1;
+                    }
 
-                                        uc.Top = panel1.Controls.Count * uc.Height;
+                    var uc = new UcSelectMonitorSource();
+                    uc.DisplayMonitor(monitor.AutogenName, monitor.Monitor, sourceIdToSelect);
+                    uc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+                    uc.Width = panel1.Width;
 
-                                        uc.MouseClick += Uc_MouseClick;
 
-                                        panel1.Controls.Add(uc);
+                    uc.Padding = new Padding(16, 4, 16, 4);
+                    uc.Height = uc.Height + uc.Padding.Top + uc.Padding.Bottom;
 
-                                        return uc;
-                                    })
-                                    .ToArray();
+                    uc.Top = panel1.Controls.Count * uc.Height;
 
-            ucMonitorLayout1.MonitorClicked += UcMonitorLayout1_MonitorClicked;
+                    uc.MouseClick += Uc_MouseClick;
 
+                    panel1.Controls.Add(uc);
+                });
 
             panel1.HorizontalScroll.Enabled = false;
             panel1.HorizontalScroll.Visible = false;
             panel1.HorizontalScroll.Maximum = 0;
             panel1.AutoScroll = true;
+
+            Cursor = Cursors.Default;
         }
 
         private void Uc_MouseClick(object? sender, MouseEventArgs e)
@@ -123,6 +138,11 @@ namespace SimpleKVM.GUI.Actions
         {
             var result = new List<ValidationResult>();
             return result;
+        }
+
+        private void BtnRefresh_Click(object sender, EventArgs e)
+        {
+            RefreshMonitorList();
         }
 
         List<IAction> IActionCreator.GetAction()

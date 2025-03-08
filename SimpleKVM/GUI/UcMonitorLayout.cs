@@ -20,9 +20,17 @@ namespace SimpleKVM.GUI
         public UcMonitorLayout()
         {
             InitializeComponent();
+
+            monitorDrawer.AllowDragging = false;
+            monitorDrawer.BoxClicked += BoxClicked;
         }
 
-        private void UcMonitorLayout_Load(object sender, EventArgs e)
+        public void Reload()
+        {
+            UcMonitorLayout_Load(this, null);
+        }
+
+        private void UcMonitorLayout_Load(object sender, EventArgs? e)
         {
             try
             {
@@ -94,10 +102,8 @@ namespace SimpleKVM.GUI
                                 .OfType<Element>()
                                 .ToList();
 
-                monitorDrawer.AllowDragging = false;
+                monitorDrawer.ResetLayout();
                 monitorDrawer.Draw(elems);
-
-                monitorDrawer.BoxClicked += BoxClicked;
             }
             catch (Exception ex)
             {
@@ -136,8 +142,8 @@ namespace SimpleKVM.GUI
 
                 if (clickedMonitor.ShouldHighlight)
                 {
-                MonitorClicked?.Invoke(this, clickedMonitor);
-            }
+                    MonitorClicked?.Invoke(this, clickedMonitor);
+                }
                 else
                 {
                     MonitorClicked?.Invoke(this, null);

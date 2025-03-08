@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             panel1 = new System.Windows.Forms.Panel();
+            BtnRefresh = new System.Windows.Forms.Button();
             ucMonitorLayout1 = new UcMonitorLayout();
             SuspendLayout();
             // 
@@ -42,6 +43,17 @@
             panel1.Size = new System.Drawing.Size(427, 181);
             panel1.TabIndex = 5;
             // 
+            // BtnRefresh
+            // 
+            BtnRefresh.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            BtnRefresh.Location = new System.Drawing.Point(550, 20);
+            BtnRefresh.Name = "BtnRefresh";
+            BtnRefresh.Size = new System.Drawing.Size(75, 23);
+            BtnRefresh.TabIndex = 0;
+            BtnRefresh.Text = "Refresh";
+            BtnRefresh.UseVisualStyleBackColor = true;
+            BtnRefresh.Click += BtnRefresh_Click;
+            // 
             // ucMonitorLayout1
             // 
             ucMonitorLayout1.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
@@ -54,6 +66,7 @@
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            Controls.Add(BtnRefresh);
             Controls.Add(ucMonitorLayout1);
             Controls.Add(panel1);
             Margin = new System.Windows.Forms.Padding(2);
@@ -65,5 +78,6 @@
         #endregion
         private System.Windows.Forms.Panel panel1;
         private UcMonitorLayout ucMonitorLayout1;
+        private System.Windows.Forms.Button BtnRefresh;
     }
 }
