@@ -28,7 +28,7 @@ namespace SimpleKVM
         readonly USBSystem? usbSystem;
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
-        const string Version = "2.1.0";
+        const string Version = "2.2.0";
         public static List<Rule> Rules { get; protected set; } = [];
         static readonly string SettingsFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
         static readonly string ConfigFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
