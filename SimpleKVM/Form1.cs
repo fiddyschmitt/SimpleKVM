@@ -317,6 +317,40 @@ namespace SimpleKVM
 
         private static void LoadConfig()
         {
+            //var exampleConfig = new Config()
+            //{
+            //    Overrides = new()
+            //    {
+            //        MonitorOverrides =
+            //            [
+            //                new MonitorOverride()
+            //                {
+            //                    MonitorNumber = 1,
+            //                    Sources =
+            //                    [
+            //                        new Source()
+            //                        {
+            //                            SourceName = "DP1",
+            //                            SourceId = 15
+            //                        },
+            //                        new Source()
+            //                        {
+            //                            SourceName = "HDMI1",
+            //                            SourceId = 5
+            //                        },
+            //                        new Source()
+            //                        {
+            //                            SourceName = "HDMI2",
+            //                            SourceId = 6
+            //                        }
+            //                    ]
+            //                }
+            //            ]
+            //    }
+            //};
+            //var exampleConfigJson = JsonConvert.SerializeObject(exampleConfig, Formatting.Indented);
+            //File.WriteAllText(ConfigFilename, exampleConfigJson);
+
             if (File.Exists(ConfigFilename))
             {
                 try
