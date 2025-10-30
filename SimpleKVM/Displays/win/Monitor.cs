@@ -48,9 +48,10 @@ namespace SimpleKVM.Displays.win
                 {
                     physicalMonitor.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
 
+                    physicalMonitor.PhysicalMonitor.SetVCPRegister(0x60, (uint)newSourceId);
+
                     if (newSourceId != currentSource)
                     {
-                        physicalMonitor.PhysicalMonitor.SetVCPRegister(0x60, (uint)newSourceId);
                         result = true;
                     }
                 }
