@@ -11,13 +11,16 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using static SimpleKVM.GUI.Drawing.Elements.RectangleWithText;
 using static System.Windows.Forms.DataFormats;
+using System.ComponentModel;
 
 namespace SimpleKVM.GUI.Drawing.Rendering
 {
     public class GDIDrawer : Panel, IRenderer
     {
         public EventHandler<Element>? BoxClicked;
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool DrawArrowheads { get; set; } = true;
+        [DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Visible)]
         public bool AllowDragging { get; set; } = true;
 
         public GDIDrawer()
@@ -53,7 +56,7 @@ namespace SimpleKVM.GUI.Drawing.Rendering
             if (mouseArgs.Button != MouseButtons.Left) return;
 
             clickedElement = Elements
-                                .OfType<Container>()
+                                .OfType<Elements.Container>()
                                 .Where(container => container.ContainsPoint(mouseArgs.Location.Minus(AutoScrollPosition)))
                                 .FirstOrDefault();
             performedDrag = false;
@@ -102,7 +105,7 @@ namespace SimpleKVM.GUI.Drawing.Rendering
 
             var allAffectedElements = new[] { (clickedElement as Element) }
                                         .Recurse(element => element.Children)
-                                        .OfType<Container>()
+                                        .OfType<Elements.Container>()
                                         .ToList();
 
             allAffectedElements
@@ -133,7 +136,7 @@ namespace SimpleKVM.GUI.Drawing.Rendering
             {
                 var deepestClickedElement = Elements
                                 ?.Recurse(e => e.Children)
-                                .OfType<Container>()
+                                .OfType<Elements.Container>()
                                 .Where(container => container.ContainsPoint(mouseArgs.Location.Minus(AutoScrollPosition)))
                                 .LastOrDefault();
 
@@ -161,7 +164,7 @@ namespace SimpleKVM.GUI.Drawing.Rendering
             {
                 previousPositionsByID = Elements
                                             .Where(element => !Elements.Any(e => e.Children.Contains(element)))
-                                            .OfType<Container>()
+                                            .OfType<Elements.Container>()
                                             .GroupBy(
                                                 element => element.ToString(),
                                                 element => element,
@@ -190,7 +193,7 @@ namespace SimpleKVM.GUI.Drawing.Rendering
             {
                 Elements
                     .Where(element => !Elements.Any(e => e.Children.Contains(element)))
-                    .OfType<Container>()
+                    .OfType<Elements.Container>()
                     .GroupBy(
                         element => element.ToString(),
                         element => element,
@@ -218,7 +221,7 @@ namespace SimpleKVM.GUI.Drawing.Rendering
 
                             var allAffectedElements = new[] { (item.Element as Element) }
                                         .Recurse(element => element.Children)
-                                        .OfType<Container>()
+                                        .OfType<Elements.Container>()
                                         .ToList();
 
                             allAffectedElements
@@ -256,6 +259,7 @@ namespace SimpleKVM.GUI.Drawing.Rendering
             AutoScrollMinSize = new Size(newWidth, newHeight);
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<Element>? Elements { get; protected set; } = null;
         PaintEventArgs? e;
 

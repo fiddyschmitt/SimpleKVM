@@ -11,8 +11,10 @@ namespace SimpleKVM
 {
     public partial class ChooseUSB : Form
     {
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public USBDevice? SelectedDevice { get; protected set; }
         public USBSystem UsbSystem { get; }
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public EnumUsbEvent SelectedVerb { get; protected set; } = EnumUsbEvent.Inserted;
 
         public ChooseUSB(USBSystem usbSystem)

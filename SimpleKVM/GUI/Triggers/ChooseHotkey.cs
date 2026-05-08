@@ -13,6 +13,7 @@ namespace SimpleKVM.GUI.Triggers
 {
     public partial class ChooseHotkey : Form
     {
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? HotkeyStringChosenByUser { get; internal set; }
         public Rule? RuleBeingEdited { get; }
 

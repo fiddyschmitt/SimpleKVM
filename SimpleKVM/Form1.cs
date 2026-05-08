@@ -50,6 +50,7 @@ namespace SimpleKVM
             InitialiseSystemTray();
 
             LoadConfig();
+            AppSettingsManager.Load();
 
             initMonitorList = Task.Factory.StartNew(() =>
             {
@@ -304,6 +305,13 @@ namespace SimpleKVM
             {
                 SaveRules();
             }
+        }
+
+        private void BtnSettings_Click(object sender, EventArgs e)
+        {
+            var settingsForm = new GUI.SettingsForm();
+            settingsForm.StartPosition = FormStartPosition.CenterParent;
+            settingsForm.ShowDialog(this);
         }
 
         private void BtnNewRule_Click(object sender, EventArgs e)

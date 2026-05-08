@@ -1,4 +1,5 @@
 ﻿using DDCKVMService;
+using SimpleKVM.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -48,10 +49,11 @@ namespace SimpleKVM.Displays.win
                 {
                     physicalMonitor.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource);
 
-                    physicalMonitor.PhysicalMonitor.SetVCPRegister(0x60, (uint)newSourceId);
+                    bool shouldSwitch = AppSettingsManager.Current.ForceInputChange || newSourceId != currentSource;
 
-                    if (newSourceId != currentSource)
+                    if (shouldSwitch)
                     {
+                        physicalMonitor.PhysicalMonitor.SetVCPRegister(0x60, (uint)newSourceId);
                         result = true;
                     }
                 }

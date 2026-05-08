@@ -32,6 +32,7 @@ namespace SimpleKVM.GUI
                 });
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Monitor? Monitor { get; protected set; }
         int OriginalSourceId;
 

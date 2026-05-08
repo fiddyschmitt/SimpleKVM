@@ -22,6 +22,7 @@ namespace SimpleKVM.GUI.Rules
         ITriggerCreator? triggerCreator;
         IActionCreator? actionCreator;
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Rule? RuleToEdit { get; protected set; }
 
         public ModifyRule()

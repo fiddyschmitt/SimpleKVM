@@ -31,6 +31,7 @@
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             btnNewRule = new System.Windows.Forms.Button();
+            btnSettings = new System.Windows.Forms.Button();
             statsTimer = new System.Windows.Forms.Timer(components);
             panel1 = new System.Windows.Forms.Panel();
             notifyIcon1 = new System.Windows.Forms.NotifyIcon(components);
@@ -47,7 +48,19 @@
             btnNewRule.Text = "New rule";
             btnNewRule.UseVisualStyleBackColor = true;
             btnNewRule.Click += BtnNewRule_Click;
-            // 
+            //
+            // btnSettings
+            //
+            btnSettings.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            btnSettings.Location = new System.Drawing.Point(91, 289);
+            btnSettings.Margin = new System.Windows.Forms.Padding(2);
+            btnSettings.Name = "btnSettings";
+            btnSettings.Size = new System.Drawing.Size(75, 23);
+            btnSettings.TabIndex = 5;
+            btnSettings.Text = "Settings";
+            btnSettings.UseVisualStyleBackColor = true;
+            btnSettings.Click += BtnSettings_Click;
+            //
             // statsTimer
             // 
             statsTimer.Interval = 1000;
@@ -76,6 +89,7 @@
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             ClientSize = new System.Drawing.Size(696, 320);
             Controls.Add(panel1);
+            Controls.Add(btnSettings);
             Controls.Add(btnNewRule);
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             Margin = new System.Windows.Forms.Padding(2);
@@ -88,6 +102,7 @@
 
         #endregion
         private System.Windows.Forms.Button btnNewRule;
+        private System.Windows.Forms.Button btnSettings;
         private System.Windows.Forms.Timer statsTimer;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.NotifyIcon notifyIcon1;
