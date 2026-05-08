@@ -26,7 +26,7 @@ namespace SimpleKVM.Utilities
         [StructLayout(LayoutKind.Sequential)]
         struct LASTINPUTINFO
         {
-            public static readonly int SizeOf = Marshal.SizeOf(typeof(LASTINPUTINFO));
+            public static readonly int SizeOf = Marshal.SizeOf<LASTINPUTINFO>();
 
             [MarshalAs(UnmanagedType.U4)]
             public UInt32 cbSize;

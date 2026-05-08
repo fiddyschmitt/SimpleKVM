@@ -309,8 +309,10 @@ namespace SimpleKVM
 
         private void BtnSettings_Click(object sender, EventArgs e)
         {
-            var settingsForm = new GUI.SettingsForm();
-            settingsForm.StartPosition = FormStartPosition.CenterParent;
+            var settingsForm = new SettingsForm
+            {
+                StartPosition = FormStartPosition.CenterParent
+            };
             settingsForm.ShowDialog(this);
         }
 

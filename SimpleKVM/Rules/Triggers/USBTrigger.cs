@@ -47,10 +47,7 @@ namespace SimpleKVM.Rules.Triggers
 
         public override void StopMonitoring()
         {
-            if (UsbSystem != null)
-            {
-                UsbSystem.UsbEvent -= UsbSystem_UsbEvent;
-            }
+            UsbSystem?.UsbEvent -= UsbSystem_UsbEvent;
         }
     }
 }

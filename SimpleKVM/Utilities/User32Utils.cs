@@ -56,7 +56,7 @@ namespace SimpleKVM.Utilities
         {
             var dm = new DEVMODE
             {
-                dmSize = (short)Marshal.SizeOf(typeof(DEVMODE))
+                dmSize = (short)Marshal.SizeOf<DEVMODE>()
             };
             EnumDisplaySettings(screen.DeviceName, -1, ref dm);
 

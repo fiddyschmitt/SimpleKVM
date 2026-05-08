@@ -115,7 +115,7 @@ namespace DDCKVMService
         {
             // Iterate monitors and retrieve their physical monitor instances
             EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
-                (IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr dwData) =>
+                (hMonitor, hdcMonitor, ref lprcMonitor, dwData) =>
                 {
                     var supported = GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out uint arrSize);
                     if (!supported)
@@ -134,7 +134,7 @@ namespace DDCKVMService
                     {
                         var mi = new MONITORINFOEX
                         {
-                            Size = Marshal.SizeOf(typeof(MONITORINFOEX))
+                            Size = Marshal.SizeOf<MONITORINFOEX>()
                         };
 
                         if (GetMonitorInfo(hMonitor, ref mi))
