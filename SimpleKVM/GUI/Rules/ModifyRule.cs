@@ -181,31 +181,29 @@ namespace SimpleKVM.GUI.Rules
 
         private void BtnTest_Click(object sender, EventArgs e)
         {
-            var rule = GetRule();
+            var actions = actionCreator?.GetAction();
+            if (actions == null || actions.Count == 0) return;
 
-            if (rule != null)
+            Task.Factory.StartNew(() =>
             {
-                Task.Factory.StartNew(() =>
-                {
-                    var originalSources = DisplaySystem
-                                            .GetMonitors()
-                                            .Select(monitor => new
-                                            {
-                                                Monitor = monitor,
-                                                OriginalSource = monitor.GetCurrentSource()
-                                            })
-                                            .ToList();
+                var originalSources = DisplaySystem
+                                        .GetMonitors()
+                                        .Select(monitor => new
+                                        {
+                                            Monitor = monitor,
+                                            OriginalSource = monitor.GetCurrentSource()
+                                        })
+                                        .ToList();
 
-                    rule.Run();
-                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                actions.ForEach(action => action.Run());
+                Thread.Sleep(TimeSpan.FromSeconds(10));
 
-                    originalSources
-                        .ForEach(originalSources =>
-                        {
-                            originalSources.Monitor.SetSource(originalSources.OriginalSource);
-                        });
-                }, TaskCreationOptions.LongRunning);
-            }
+                originalSources
+                    .ForEach(originalSource =>
+                    {
+                        originalSource.Monitor.SetSource(originalSource.OriginalSource);
+                    });
+            }, TaskCreationOptions.LongRunning);
         }
     }
 }
