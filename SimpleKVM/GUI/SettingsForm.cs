@@ -15,19 +15,61 @@ namespace SimpleKVM.GUI
         {
             InitializeComponent();
 
-            chkRunAtStartup.Checked = File.Exists(ShortcutPath);
+            chkRunAtStartup.Checked = IsStartupShortcutValid();
             chkForceInputChange.Checked = AppSettingsManager.Current.ForceInputChange;
         }
 
         private void BtnOK_Click(object? sender, EventArgs e)
         {
-            ApplyStartupSetting(chkRunAtStartup.Checked);
+            try
+            {
+                ApplyStartupSetting(chkRunAtStartup.Checked);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"Failed to update startup shortcut:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             AppSettingsManager.Current.ForceInputChange = chkForceInputChange.Checked;
             AppSettingsManager.Save();
 
             DialogResult = DialogResult.OK;
             Close();
+        }
+
+        static bool IsStartupShortcutValid()
+        {
+            if (!File.Exists(ShortcutPath)) return false;
+
+            try
+            {
+                Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null) return false;
+
+                dynamic shell = Activator.CreateInstance(shellType)!;
+                try
+                {
+                    var shortcut = shell.CreateShortcut(ShortcutPath);
+                    try
+                    {
+                        string targetPath = shortcut.TargetPath;
+                        return string.Equals(targetPath, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase);
+                    }
+                    finally
+                    {
+                        Marshal.ReleaseComObject(shortcut);
+                    }
+                }
+                finally
+                {
+                    Marshal.ReleaseComObject(shell);
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         static void ApplyStartupSetting(bool enable)
@@ -44,9 +86,7 @@ namespace SimpleKVM.GUI
 
         static void CreateStartupShortcut()
         {
-            Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
-            if (shellType == null) return;
-
+            Type? shellType = Type.GetTypeFromProgID("WScript.Shell") ?? throw new InvalidOperationException("WScript.Shell is not available on this system.");
             dynamic shell = Activator.CreateInstance(shellType)!;
             try
             {

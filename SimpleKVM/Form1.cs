@@ -30,7 +30,7 @@ namespace SimpleKVM
         const string ProgramName = "Simple KVM";
         const string Version = "2.2.1";
         public static List<Rule> Rules { get; protected set; } = [];
-        static readonly string SettingsFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
+        static readonly string RulesFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
         static readonly string ConfigFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
 
         public static Config? Config { get; protected set; }
@@ -309,7 +309,7 @@ namespace SimpleKVM
 
         private void BtnSettings_Click(object sender, EventArgs e)
         {
-            var settingsForm = new SettingsForm
+            using var settingsForm = new SettingsForm
             {
                 StartPosition = FormStartPosition.CenterParent
             };
@@ -374,9 +374,9 @@ namespace SimpleKVM
 
         private static void LoadRules()
         {
-            if (File.Exists(SettingsFilename))
+            if (File.Exists(RulesFilename))
             {
-                var rulesJson = File.ReadAllText(SettingsFilename);
+                var rulesJson = File.ReadAllText(RulesFilename);
                 var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? [];
                 Rules.AddRange(loadedRules);
             }
@@ -384,11 +384,9 @@ namespace SimpleKVM
 
         private static void SaveRules()
         {
-            var rulesJson = Rules.SerializeToJson();
-            if (rulesJson != null)
-            {
-                Extensions.WriteTextFile(SettingsFilename, rulesJson);
-            }
+            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+            var rulesJson = JsonConvert.SerializeObject(Rules, Formatting.Indented, settings);
+            Extensions.WriteTextFile(RulesFilename, rulesJson);
         }
 
         private void Rule_Triggered(object? sender, EventArgs e)
