@@ -1,21 +1,30 @@
 ﻿using DDCKVMService;
+using Newtonsoft.Json;
 using SimpleKVM.Configuration;
+using SimpleKVM.Displays.win.I2C;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
+using System.Threading;
 
 namespace SimpleKVM.Displays.win
 {
     public class Monitor : Displays.Monitor
     {
+        [JsonIgnore]
+        internal II2CTransport? I2CTransport;
+
+        [JsonIgnore]
+        internal object? I2CDisplayHandle;
+
         public Monitor(string uniqueId, string model, List<(int SourceId, string SourceName)> validSources) : base(uniqueId, model, validSources)
         {
         }
 
         public override int GetCurrentSource()
         {
+            if (UseLgAltMode)
+                return -1;
+
             uint currentSource = 0;
             MonitorController.EnumMonitors(physicalMonitor =>
             {
@@ -28,19 +37,14 @@ namespace SimpleKVM.Displays.win
             return (int)currentSource;
         }
 
-        //public static string ControlMyMonitorExe => Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? "", @"ext\win\controlmymonitor\ControlMyMonitor.exe");
-
         public override bool SetSource(int newSourceId)
         {
-            /*
-            var monitorListCommand = new ProcessStartInfo
+            if (UseLgAltMode && I2CTransport != null && I2CDisplayHandle != null)
             {
-                FileName = ControlMyMonitorExe,
-                Arguments = $"/SetValueIfNeeded \"{ MonitorDeviceName }\" 60 {inputId}"
-            };
-
-            monitorListCommand.StartAndReadStdout();
-            */
+                bool ok = I2CTransport.SetVcp(I2CDisplayHandle, LgInputSources.I2CAddress, LgInputSources.VcpCode, (uint)newSourceId);
+                if (ok) Thread.Sleep(30);
+                return ok;
+            }
 
             bool result = false;
             MonitorController.EnumMonitors(physicalMonitor =>

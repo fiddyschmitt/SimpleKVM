@@ -12,6 +12,9 @@ namespace SimpleKVM.Displays
         [JsonIgnore]
         public string Model;
 
+        [JsonIgnore]
+        public bool UseLgAltMode { get; set; }
+
         public abstract int GetCurrentSource();
 
         [JsonIgnore]

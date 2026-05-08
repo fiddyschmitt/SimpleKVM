@@ -15,6 +15,7 @@ namespace SimpleKVM.Configuration
     {
         public required int MonitorNumber;
         public List<Source> Sources = [];
+        public bool? UseLgAltMode;
     }
 
     public class Source
