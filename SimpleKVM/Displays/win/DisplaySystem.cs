@@ -2,22 +2,13 @@
 using SimpleKVM.GUI;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Management;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace SimpleKVM.Displays.win
 {
-    public static partial class DisplaySystem
+    public static class DisplaySystem
     {
-        static readonly Regex modelRegex = ModelRegex();
-        static readonly Regex sourcesRegex = SourcesRegex();
-
         static List<Monitor>? cachedMonitorList;
 
         public static IList<Monitor> GetMonitors()
@@ -68,13 +59,17 @@ namespace SimpleKVM.Displays.win
                     var model = "Unknown";
                     if (caps != null)
                     {
-                        model = modelRegex.Match(caps).Groups[1].Value;
+                        var parsed = CapabilitiesParser.Parse(caps);
 
-                        sources ??= sourcesRegex.Match(caps).Groups[1].Value.Split(' ')
-                                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                                        .Select(x => (int)(Convert.ToUInt32(x, 16)))
-                                        .Select(sourceId => (sourceId, UcSelectMonitorSource.SourceIdToName(sourceId)))
+                        if (!string.IsNullOrEmpty(parsed.Model))
+                            model = parsed.Model;
+
+                        if (sources == null && parsed.VcpFeatures.TryGetValue(0x60, out var inputSources))
+                        {
+                            sources = inputSources
+                                        .Select(sourceId => ((int)sourceId, UcSelectMonitorSource.SourceIdToName(sourceId)))
                                         .ToList();
+                        }
                     }
 
                     sources ??= [];
@@ -87,10 +82,5 @@ namespace SimpleKVM.Displays.win
 
             return cachedMonitorList;
         }
-
-        [GeneratedRegex(@"model\((.*?)\)")]
-        private static partial Regex ModelRegex();
-        [GeneratedRegex(@"(?<=\s)60\((.*?)\)")]
-        private static partial Regex SourcesRegex();
     }
 }
