@@ -90,7 +90,8 @@ namespace SimpleKVM.Displays.win
                     }
                     else if (monitorOverride?.UseLgAltMode == null)
                     {
-                        useLgAltMode = model.Contains("LG", StringComparison.OrdinalIgnoreCase);
+                        useLgAltMode = model.Contains("LG", StringComparison.OrdinalIgnoreCase)
+                        && (sources == null || sources.Count == 0);
                     }
 
                     if (useLgAltMode && sources == null)
