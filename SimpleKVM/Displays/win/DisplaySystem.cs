@@ -82,6 +82,22 @@ namespace SimpleKVM.Displays.win
                         }
                     }
 
+                    if (sources == null || sources.Count == 0)
+                    {
+                        if (mon.PhysicalMonitor.GetVCPRegister(0x60, out _))
+                        {
+                            sources =
+                            [
+                                (0x11, "HDMI 1"),
+                                (0x12, "HDMI 2"),
+                                (0x0F, "DisplayPort 1"),
+                                (0x10, "DisplayPort 2"),
+                                (0x03, "DVI 1"),
+                                (0x01, "VGA 1"),
+                            ];
+                        }
+                    }
+
                     // Determine LG alt mode
                     bool useLgAltMode = false;
                     if (monitorOverride?.UseLgAltMode == true)
