@@ -57,11 +57,12 @@ namespace SimpleKVM.GUI.Actions
                 if (match == null) continue;
 
                 var monitor = match.Mon;
+                var currentSource = monitor.GetCurrentSource();
 
                 int sourceIdToSelect;
                 if (RuleToEdit == null)
                 {
-                    sourceIdToSelect = monitor.GetCurrentSource();
+                    sourceIdToSelect = currentSource;
                 }
                 else
                 {
@@ -71,8 +72,6 @@ namespace SimpleKVM.GUI.Actions
                         .FirstOrDefault(a => a.Monitor.MonitorUniqueId.Equals(monitor.MonitorUniqueId));
                     sourceIdToSelect = setMonitorAction?.SetMonitorSourceIdTo ?? -1;
                 }
-
-                var currentSource = monitor.GetCurrentSource();
 
                 var items = monitor
                     .ValidSources
