@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
@@ -9,12 +8,15 @@ using SimpleKVM.GUI.Actions;
 using SimpleKVM.Rules.Actions;
 using IAction = SimpleKVM.Rules.Actions.IAction;
 using SimpleKVM.Rules;
+using SimpleKVM.Displays;
 
 namespace SimpleKVM.GUI.Actions
 {
     public partial class UcSelectMonitorsAndSources : UserControl, IValidate, IActionCreator
     {
         public Rule? RuleToEdit { get; }
+
+        readonly List<MonitorComboEntry> monitorCombos = [];
 
         public UcSelectMonitorsAndSources(Rule? ruleToEdit = null)
         {
@@ -23,121 +25,121 @@ namespace SimpleKVM.GUI.Actions
             RuleToEdit = ruleToEdit;
 
             RefreshMonitorList();
-
-            ucMonitorLayout1.MonitorClicked += UcMonitorLayout1_MonitorClicked;
         }
 
         private void RefreshMonitorList()
         {
             Cursor = Cursors.WaitCursor;
 
+            foreach (var entry in monitorCombos)
+                ucMonitorLayout1.DrawingPanel.Controls.Remove(entry.ComboBox);
+            monitorCombos.Clear();
+
             ucMonitorLayout1.Reload();
+            Size = ucMonitorLayout1.Size;
             Application.DoEvents();
 
-            //give the panel a scrollbar
-            panel1.AutoScroll = false;
             var monitors = Displays.DisplaySystem.GetMonitors();
 
-            var monitorsWithAutogenName = monitors
-                                            .Select(mon => new
-                                            {
-                                                Mon = mon,
-                                                Screen = Screen.AllScreens.FirstOrDefault(s => s.GetUniqueId() == mon.MonitorUniqueId)
-                                            })
-                                            .OrderBy(mon => mon.Screen?.ScreenIndex())
-                                            .Select(mon =>
-                                            {
-                                                var autogenName = $"Monitor {mon.Screen?.ScreenIndex()}";
-                                                var model = mon.Mon.Model.Trim();
-                                                if (!string.IsNullOrEmpty(model)) autogenName += $" ({model})";
-
-                                                return new
-                                                {
-                                                    AutogenName = autogenName,
-                                                    Monitor = mon.Mon
-                                                };
-                                            })
-                                            .ToList();
-
-
-            panel1.Controls.Clear();
-
-            monitorsWithAutogenName
-                .ForEach(monitor =>
+            var monitorsWithScreen = monitors
+                .Select(mon => new
                 {
-                    int sourceIdToSelect;
-                    if (RuleToEdit == null)
+                    Mon = mon,
+                    Screen = Screen.AllScreens.FirstOrDefault(s => s.GetUniqueId() == mon.MonitorUniqueId)
+                })
+                .Where(m => m.Screen != null)
+                .ToList();
+
+            foreach (var monitorBox in ucMonitorLayout1.Monitors)
+            {
+                var match = monitorsWithScreen
+                    .FirstOrDefault(m => m.Screen!.GetUniqueId() == monitorBox.UniqueId);
+                if (match == null) continue;
+
+                var monitor = match.Mon;
+
+                int sourceIdToSelect;
+                if (RuleToEdit == null)
+                {
+                    sourceIdToSelect = monitor.GetCurrentSource();
+                }
+                else
+                {
+                    var setMonitorAction = RuleToEdit
+                        .Actions
+                        .OfType<SetMonitorSourceAction>()
+                        .FirstOrDefault(a => a.Monitor.MonitorUniqueId.Equals(monitor.MonitorUniqueId));
+                    sourceIdToSelect = setMonitorAction?.SetMonitorSourceIdTo ?? -1;
+                }
+
+                var currentSource = monitor.GetCurrentSource();
+
+                var items = monitor
+                    .ValidSources
+                    .Select(source =>
                     {
-                        sourceIdToSelect = monitor.Monitor.GetCurrentSource();
-                    }
-                    else
+                        var sourceName = source.SourceName;
+                        if (source.SourceId == currentSource)
+                            sourceName += " (Active)";
+                        return new { SourceName = sourceName, source.SourceId };
+                    })
+                    .ToList();
+
+                items.Add(new { SourceName = "Leave unchanged", SourceId = -1 });
+
+                var selectedIndex = items.Count - 1;
+                for (int i = 0; i < items.Count; i++)
+                {
+                    if (items[i].SourceId == sourceIdToSelect)
                     {
-                        //We are editing the action. So let's set the sourceId to whatever the user chose when they first created the action.
-
-                        var setMonitorAction = RuleToEdit
-                                                .Actions
-                                                .OfType<SetMonitorSourceAction>()
-                                                .FirstOrDefault(a => a.Monitor.MonitorUniqueId.Equals(monitor.Monitor.MonitorUniqueId));
-
-
-                        sourceIdToSelect = setMonitorAction?.SetMonitorSourceIdTo ?? -1;
+                        selectedIndex = i;
+                        break;
                     }
+                }
 
-                    var uc = new UcSelectMonitorSource();
-                    uc.DisplayMonitor(monitor.AutogenName, monitor.Monitor, sourceIdToSelect);
-                    uc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-                    uc.Width = panel1.Width;
+                var combo = new ComboBox
+                {
+                    DropDownStyle = ComboBoxStyle.DropDownList,
+                    FormattingEnabled = true,
+                    Visible = false,
+                };
 
+                ucMonitorLayout1.DrawingPanel.Controls.Add(combo);
+                combo.BringToFront();
 
-                    uc.Padding = new Padding(16, 4, 16, 4);
-                    uc.Height = uc.Height + uc.Padding.Top + uc.Padding.Bottom;
+                combo.DisplayMember = "SourceName";
+                combo.ValueMember = "SourceId";
+                combo.DataSource = items;
+                combo.SelectedIndex = selectedIndex;
 
-                    uc.Top = panel1.Controls.Count * uc.Height;
+                int maxTextWidth = 0;
+                using (var g = combo.CreateGraphics())
+                {
+                    foreach (var item in items)
+                    {
+                        var size = g.MeasureString(item.SourceName, combo.Font);
+                        maxTextWidth = Math.Max(maxTextWidth, (int)Math.Ceiling(size.Width));
+                    }
+                }
+                int dropdownButtonWidth = SystemInformation.VerticalScrollBarWidth;
+                combo.Width = maxTextWidth + dropdownButtonWidth + 10;
 
-                    uc.MouseClick += Uc_MouseClick;
+                var rect = monitorBox.Rectangle;
+                int padding = 6;
+                combo.Left = rect.Left + (rect.Width - combo.Width) / 2;
+                combo.Top = rect.Bottom - padding - combo.Height;
 
-                    panel1.Controls.Add(uc);
-                });
+                combo.Visible = true;
 
-            panel1.HorizontalScroll.Enabled = false;
-            panel1.HorizontalScroll.Visible = false;
-            panel1.HorizontalScroll.Maximum = 0;
-            panel1.AutoScroll = true;
+                monitorCombos.Add(new MonitorComboEntry(monitor, combo, sourceIdToSelect));
+            }
 
             Cursor = Cursors.Default;
         }
 
-        private void Uc_MouseClick(object? sender, MouseEventArgs e)
-        {
-            if (sender is UcSelectMonitorSource sourceSelector && sourceSelector.Monitor != null)
-            {
-                ucMonitorLayout1.SelectMonitor(sourceSelector.Monitor.MonitorUniqueId);
-            }
-        }
-
-        private void UcMonitorLayout1_MonitorClicked(object? sender, MonitorBox? clickedMonitor)
-        {
-            panel1
-                .Controls
-                .OfType<UcSelectMonitorSource>()
-                .ToList()
-                .ForEach(sourceSelector =>
-                {
-                    if (sourceSelector.Monitor?.MonitorUniqueId == clickedMonitor?.UniqueId)
-                    {
-                        sourceSelector.BackColor = SystemColors.Highlight;
-                    }
-                    else
-                    {
-                        sourceSelector.BackColor = SystemColors.Control;
-                    }
-                });
-        }
-
         public List<ValidationResult> ValidateData()
         {
-            var result = new List<ValidationResult>();
-            return result;
+            return [];
         }
 
         private void BtnRefresh_Click(object sender, EventArgs e)
@@ -147,13 +149,15 @@ namespace SimpleKVM.GUI.Actions
 
         List<IAction> IActionCreator.GetAction()
         {
-            var result = panel1
-                                .Controls
-                                .OfType<UcSelectMonitorSource>()
-                                .SelectMany(uc => uc.GetAction())
-                                .ToList();
-
-            return result;
+            return monitorCombos
+                .Select(entry =>
+                {
+                    var selectedSourceId = (entry.ComboBox.SelectedValue as int?) ?? entry.OriginalSourceId;
+                    return (IAction)new SetMonitorSourceAction(entry.Monitor, selectedSourceId);
+                })
+                .ToList();
         }
+
+        record MonitorComboEntry(Monitor Monitor, ComboBox ComboBox, int OriginalSourceId);
     }
 }

@@ -35,7 +35,7 @@
             // 
             monitorDrawer.AllowDragging = true;
             monitorDrawer.DrawArrowheads = true;
-            monitorDrawer.Location = new System.Drawing.Point(3, 3);
+            monitorDrawer.Location = new System.Drawing.Point(0, 0);
             monitorDrawer.Name = "gdiDrawer1";
             monitorDrawer.Size = new System.Drawing.Size(650, 250);
             monitorDrawer.TabIndex = 0;

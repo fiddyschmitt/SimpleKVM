@@ -18,6 +18,9 @@ namespace SimpleKVM.GUI
         public event EventHandler<MonitorBox?>? MonitorClicked;
         List<MonitorBox> monitors = [];
 
+        public IReadOnlyList<MonitorBox> Monitors => monitors;
+        public Panel DrawingPanel => monitorDrawer;
+
         public UcMonitorLayout()
         {
             InitializeComponent();
@@ -88,15 +91,12 @@ namespace SimpleKVM.GUI
                                         .OrderBy(screen => screen.ScreenIndex)
                                         .ToList();
 
-                var rightMost = drawRects.Max(rect => rect.DrawRectable.Right);
-                var bottomMost = drawRects.Max(rect => rect.DrawRectable.Bottom);
-                var shiftRight = (int)((monitorDrawer.Width - rightMost) / 2d);
-                var shiftDown = (int)((monitorDrawer.Height - bottomMost) / 2d);
-                var offsetToCenter = new Point(shiftRight, shiftDown);
+                int pad = 50;
+                var offsetToPad = new Point(
+                    pad - drawRects.Min(r => r.DrawRectable.Left),
+                    pad - drawRects.Min(r => r.DrawRectable.Top));
 
-
-                var borderColour = Color.FromArgb(209, 209, 209);   //light gray
-                borderColour = Color.Black;
+                var borderColour = Color.Black;
                 var borderPen = new Pen(borderColour, 1);
 
                 var fontFamily = new FontFamily("Arial");
@@ -107,13 +107,18 @@ namespace SimpleKVM.GUI
                                 .Select(rect =>
                                 {
                                     var drawRect = rect.DrawRectable;
-                                    drawRect.Offset(offsetToCenter);
+                                    drawRect.Offset(offsetToPad);
 
-                                    var r = new MonitorBox(rect.UniqueId, drawRect, borderPen, $"{rect.ScreenIndex}", EnumPosition.Center, font, textBrush);
+                                    var r = new MonitorBox(rect.UniqueId, drawRect, borderPen, $"{rect.ScreenIndex}", EnumPosition.TopCenter, font, textBrush);
                                     return r;
                                 })
                                 .OfType<MonitorBox>()
                                 .ToList();
+
+                var diagramWidth = monitors.Max(m => m.Rectangle.Right) + pad;
+                var diagramHeight = monitors.Max(m => m.Rectangle.Bottom) + pad;
+                monitorDrawer.Size = new Size(diagramWidth, diagramHeight);
+                Size = monitorDrawer.Size;
 
                 var elems = monitors
                                 .OfType<Element>()
@@ -140,32 +145,6 @@ namespace SimpleKVM.GUI
 
         public void BoxClicked(object? sender, Element e)
         {
-            if (e is MonitorBox clickedMonitor)
-            {
-                monitors
-                    .ForEach(elem =>
-                    {
-                        if (elem == e && !elem.ShouldHighlight)
-                        {
-                            elem.ShouldHighlight = true;
-                        }
-                        else
-                        {
-                            elem.ShouldHighlight = false;
-                        }
-                    });
-
-                monitorDrawer.Invalidate();
-
-                if (clickedMonitor.ShouldHighlight)
-                {
-                    MonitorClicked?.Invoke(this, clickedMonitor);
-                }
-                else
-                {
-                    MonitorClicked?.Invoke(this, null);
-                }
-            }
         }
     }
 
