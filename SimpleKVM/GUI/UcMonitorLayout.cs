@@ -14,7 +14,6 @@ namespace SimpleKVM.GUI
 {
     public partial class UcMonitorLayout : UserControl
     {
-        public event EventHandler<MonitorBox?>? MonitorClicked;
         List<MonitorBox> monitors = [];
 
         Pen? _borderPen;
@@ -30,7 +29,6 @@ namespace SimpleKVM.GUI
             InitializeComponent();
 
             monitorDrawer.AllowDragging = false;
-            monitorDrawer.BoxClicked += BoxClicked;
         }
 
         public void Reload()
@@ -71,7 +69,7 @@ namespace SimpleKVM.GUI
                                             {
                                                 UniqueId = screen.GetUniqueId(),
                                                 ScreenIndex = screen.ScreenIndex(),
-                                                DrawRectable = drawRect
+                                                DrawRectangle = drawRect
                                             };
                                         })
                                         .OrderBy(screen => screen.ScreenIndex)
@@ -79,8 +77,8 @@ namespace SimpleKVM.GUI
 
                 int pad = 50;
                 var offsetToPad = new Point(
-                    pad - drawRects.Min(r => r.DrawRectable.Left),
-                    pad - drawRects.Min(r => r.DrawRectable.Top));
+                    pad - drawRects.Min(r => r.DrawRectangle.Left),
+                    pad - drawRects.Min(r => r.DrawRectangle.Top));
 
                 _borderPen?.Dispose();
                 _fontFamily?.Dispose();
@@ -96,7 +94,7 @@ namespace SimpleKVM.GUI
                 monitors = drawRects
                                 .Select(rect =>
                                 {
-                                    var drawRect = rect.DrawRectable;
+                                    var drawRect = rect.DrawRectangle;
                                     drawRect.Offset(offsetToPad);
 
                                     var r = new MonitorBox(rect.UniqueId, drawRect, _borderPen, $"{rect.ScreenIndex}", EnumPosition.TopCenter, _font, _textBrush);
@@ -123,19 +121,6 @@ namespace SimpleKVM.GUI
             }
         }
 
-        public void SelectMonitor(string monitorUniqueId)
-        {
-            var monitorBox = monitors.FirstOrDefault(mon => mon.UniqueId == monitorUniqueId);
-
-            if (monitorBox != null)
-            {
-                BoxClicked(this, monitorBox);
-            }
-        }
-
-        public void BoxClicked(object? sender, Element e)
-        {
-        }
     }
 
     public class MonitorBox(string uniqueName, Rectangle rectangle, Pen borderPen, string text, EnumPosition textPosition, Font font, Brush textBrush) : RectangleWithText(rectangle, borderPen, text, textPosition, font, textBrush)
