@@ -113,16 +113,13 @@ namespace SimpleKVM.GUI.Actions
                 combo.SelectedIndex = selectedIndex;
 
                 int maxTextWidth = 0;
-                using (var g = combo.CreateGraphics())
+                foreach (var item in items)
                 {
-                    foreach (var item in items)
-                    {
-                        var size = g.MeasureString(item.SourceName, combo.Font);
-                        maxTextWidth = Math.Max(maxTextWidth, (int)Math.Ceiling(size.Width));
-                    }
+                    var size = TextRenderer.MeasureText(item.SourceName, combo.Font);
+                    maxTextWidth = Math.Max(maxTextWidth, size.Width);
                 }
                 int dropdownButtonWidth = SystemInformation.VerticalScrollBarWidth;
-                combo.Width = maxTextWidth + dropdownButtonWidth + 10;
+                combo.Width = maxTextWidth + dropdownButtonWidth;
 
                 var rect = monitorBox.Rectangle;
                 int padding = 6;
