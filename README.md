@@ -64,10 +64,8 @@ Yes
 
 
 ## Run at startup
-1. Open the run window, using `win + r`
-2. Open the startup folder by typing: `shell:startup`
-3. Paste a shortcut to `SimpleKVM.exe` into that folder
-4. Open the properties for the shortcut, and select Run: Minimized
+1. Click the settings button
+2. Tick 'Run at Startup'
 
 ## Thanks to
 This program was inspired by [haimgel's display-switch program](https://github.com/haimgel/display-switch).
