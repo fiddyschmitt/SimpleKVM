@@ -105,7 +105,6 @@ namespace SimpleKVM.GUI.Rules
             Height = Controls.Cast<Control>().Max(c => c.Bottom) + 96;
 
             triggerCreatorUc?.Anchor = AnchorStyles.Left | AnchorStyles.Top;
-            actionCreatorUc?.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom;
 
             RuleToEdit = ruleToEdit;
         }
