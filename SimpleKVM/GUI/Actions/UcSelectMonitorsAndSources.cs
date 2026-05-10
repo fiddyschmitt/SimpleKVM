@@ -25,6 +25,8 @@ namespace SimpleKVM.GUI.Actions
             RuleToEdit = ruleToEdit;
 
             RefreshMonitorList();
+
+            Load += (_, _) => ResizeParentForm();
         }
 
         private void RefreshMonitorList()
