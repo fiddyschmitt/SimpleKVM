@@ -15,6 +15,7 @@ namespace SimpleKVM.GUI
     public partial class UcMonitorLayout : UserControl
     {
         List<MonitorBox> monitors = [];
+        static readonly Size InitialDrawerSize = new(650, 250);
 
         Pen? _borderPen;
         FontFamily? _fontFamily;
@@ -49,8 +50,8 @@ namespace SimpleKVM.GUI
                 var offset = new Point(-virtualScreen.X, -virtualScreen.Y);
                 virtualScreen.Offset(offset);
 
-                var scaleX = (monitorDrawer.Width - 100) / (double)virtualScreen.Width;
-                var scaleY = (monitorDrawer.Height - 100) / (double)virtualScreen.Height;
+                var scaleX = InitialDrawerSize.Width / (double)virtualScreen.Width;
+                var scaleY = InitialDrawerSize.Height / (double)virtualScreen.Height;
                 var scale = Math.Min(scaleX, scaleY);
 
                 var drawRects = Screen.AllScreens

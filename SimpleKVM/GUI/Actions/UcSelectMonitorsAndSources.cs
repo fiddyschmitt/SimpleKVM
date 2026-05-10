@@ -37,6 +37,7 @@ namespace SimpleKVM.GUI.Actions
 
             ucMonitorLayout1.Reload();
             Size = ucMonitorLayout1.Size;
+            ResizeParentForm();
             Application.DoEvents();
 
             var monitors = Displays.DisplaySystem.GetMonitors();
@@ -134,6 +135,19 @@ namespace SimpleKVM.GUI.Actions
             }
 
             Cursor = Cursors.Default;
+        }
+
+        private void ResizeParentForm()
+        {
+            var form = FindForm();
+            if (form == null) return;
+
+            var requiredHeight = Top + ucMonitorLayout1.Height + 96;
+            var requiredWidth = ucMonitorLayout1.Width + 64;
+
+            form.ClientSize = new Size(
+                Math.Max(form.ClientSize.Width, requiredWidth),
+                Math.Max(form.ClientSize.Height, requiredHeight));
         }
 
         public List<ValidationResult> ValidateData()
