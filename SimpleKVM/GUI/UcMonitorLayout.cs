@@ -18,6 +18,11 @@ namespace SimpleKVM.GUI
         public event EventHandler<MonitorBox?>? MonitorClicked;
         List<MonitorBox> monitors = [];
 
+        Pen? _borderPen;
+        FontFamily? _fontFamily;
+        Font? _font;
+        SolidBrush? _textBrush;
+
         public IReadOnlyList<MonitorBox> Monitors => monitors;
         public Panel DrawingPanel => monitorDrawer;
 
@@ -96,12 +101,16 @@ namespace SimpleKVM.GUI
                     pad - drawRects.Min(r => r.DrawRectable.Left),
                     pad - drawRects.Min(r => r.DrawRectable.Top));
 
-                var borderColour = Color.Black;
-                var borderPen = new Pen(borderColour, 1);
+                _borderPen?.Dispose();
+                _fontFamily?.Dispose();
+                _font?.Dispose();
+                _textBrush?.Dispose();
 
-                var fontFamily = new FontFamily("Arial");
-                var font = new Font(fontFamily, (int)(360 * scale), FontStyle.Regular, GraphicsUnit.Point);
-                var textBrush = new SolidBrush(borderColour);
+                var borderColour = Color.Black;
+                _borderPen = new Pen(borderColour, 1);
+                _fontFamily = new FontFamily("Arial");
+                _font = new Font(_fontFamily, (int)(360 * scale), FontStyle.Regular, GraphicsUnit.Point);
+                _textBrush = new SolidBrush(borderColour);
 
                 monitors = drawRects
                                 .Select(rect =>
@@ -109,7 +118,7 @@ namespace SimpleKVM.GUI
                                     var drawRect = rect.DrawRectable;
                                     drawRect.Offset(offsetToPad);
 
-                                    var r = new MonitorBox(rect.UniqueId, drawRect, borderPen, $"{rect.ScreenIndex}", EnumPosition.TopCenter, font, textBrush);
+                                    var r = new MonitorBox(rect.UniqueId, drawRect, _borderPen, $"{rect.ScreenIndex}", EnumPosition.TopCenter, _font, _textBrush);
                                     return r;
                                 })
                                 .OfType<MonitorBox>()
