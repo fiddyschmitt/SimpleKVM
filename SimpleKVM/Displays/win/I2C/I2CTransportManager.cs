@@ -34,9 +34,15 @@ namespace SimpleKVM.Displays.win.I2C
                 var vendorDisplays = new List<(II2CTransport Transport, I2CDisplayInfo Info)>();
                 foreach (var transport in _transports)
                 {
-                    foreach (var display in transport.EnumerateDisplays())
+                    try
                     {
-                        vendorDisplays.Add((transport, display));
+                        foreach (var display in transport.EnumerateDisplays())
+                        {
+                            vendorDisplays.Add((transport, display));
+                        }
+                    }
+                    catch
+                    {
                     }
                 }
 

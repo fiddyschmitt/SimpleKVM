@@ -76,40 +76,57 @@ namespace SimpleKVM.Displays.win.I2C
             var result = new List<I2CDisplayInfo>();
             if (!_initialized) return result;
 
-            _ADL2_Adapter_NumberOfAdapters_Get!(_context, out int numAdapters);
-
-            for (int adapterIdx = 0; adapterIdx < numAdapters; adapterIdx++)
+            try
             {
-                if (_ADL2_Adapter_Active_Get != null)
+                _ADL2_Adapter_NumberOfAdapters_Get!(_context, out int numAdapters);
+
+                for (int adapterIdx = 0; adapterIdx < numAdapters; adapterIdx++)
                 {
-                    _ADL2_Adapter_Active_Get(_context, adapterIdx, out int active);
-                    if (active == 0) continue;
-                }
-
-                int status = _ADL2_Display_DisplayInfo_Get!(_context, adapterIdx, out int numDisplays, out IntPtr displayInfoPtr, 0);
-                if (status != 0 || numDisplays == 0) continue;
-
-                int structSize = Marshal.SizeOf<ADLDisplayInfo>();
-                for (int d = 0; d < numDisplays; d++)
-                {
-                    var info = Marshal.PtrToStructure<ADLDisplayInfo>(displayInfoPtr + d * structSize);
-
-                    if ((info.displayInfoValue & ADL_DISPLAY_CONNECTED) == 0) continue;
-                    if ((info.displayInfoValue & ADL_DISPLAY_MAPPED) == 0) continue;
-
-                    var edid = ReadEdid(adapterIdx, info.displayID.displayLogicalIndex);
-
-                    result.Add(new I2CDisplayInfo
+                    if (_ADL2_Adapter_Active_Get != null)
                     {
-                        VendorDisplayHandle = new AmdDisplayHandle(adapterIdx, info.displayID.displayLogicalIndex),
-                        EdidManufacturerId = edid.ManufacturerId,
-                        EdidProductCode = edid.ProductCode,
-                        EdidSerial = edid.Serial,
-                        ConnectorType = MapConnectorType(info.displayConnector)
-                    });
-                }
+                        _ADL2_Adapter_Active_Get(_context, adapterIdx, out int active);
+                        if (active == 0) continue;
+                    }
 
-                Marshal.FreeHGlobal(displayInfoPtr);
+                    int status = _ADL2_Display_DisplayInfo_Get!(_context, adapterIdx, out int numDisplays, out IntPtr displayInfoPtr, 0);
+                    if (status != 0 || numDisplays == 0) continue;
+
+                    try
+                    {
+                        int structSize = Marshal.SizeOf<ADLDisplayInfo>();
+                        for (int d = 0; d < numDisplays; d++)
+                        {
+                            try
+                            {
+                                var info = Marshal.PtrToStructure<ADLDisplayInfo>(displayInfoPtr + d * structSize);
+
+                                if ((info.displayInfoValue & ADL_DISPLAY_CONNECTED) == 0) continue;
+                                if ((info.displayInfoValue & ADL_DISPLAY_MAPPED) == 0) continue;
+
+                                var edid = ReadEdid(adapterIdx, info.displayID.displayLogicalIndex);
+
+                                result.Add(new I2CDisplayInfo
+                                {
+                                    VendorDisplayHandle = new AmdDisplayHandle(adapterIdx, info.displayID.displayLogicalIndex),
+                                    EdidManufacturerId = edid.ManufacturerId,
+                                    EdidProductCode = edid.ProductCode,
+                                    EdidSerial = edid.Serial,
+                                    ConnectorType = MapConnectorType(info.displayConnector)
+                                });
+                            }
+                            catch
+                            {
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        Marshal.FreeHGlobal(displayInfoPtr);
+                    }
+                }
+            }
+            catch
+            {
             }
 
             return result;
@@ -117,21 +134,28 @@ namespace SimpleKVM.Displays.win.I2C
 
         (ushort ManufacturerId, ushort ProductCode, uint Serial) ReadEdid(int adapterIndex, int displayIndex)
         {
-            var sendBuf = new byte[] { 0xA0, 0x00 };
-            var recvBuf = new byte[128];
+            try
+            {
+                var sendBuf = new byte[] { 0xA0, 0x00 };
+                var recvBuf = new byte[128];
 
-            int status = _ADL2_Display_DDCBlockAccess_Get!(_context, adapterIndex, displayIndex, 0, sendBuf.Length, sendBuf, out _, recvBuf);
-            if (status != 0)
+                int status = _ADL2_Display_DDCBlockAccess_Get!(_context, adapterIndex, displayIndex, 0, sendBuf.Length, sendBuf, out _, recvBuf);
+                if (status != 0)
+                    return (0, 0, 0);
+
+                if (recvBuf.Length < 18 || recvBuf[0] != 0x00 || recvBuf[1] != 0xFF)
+                    return (0, 0, 0);
+
+                ushort mfg = (ushort)((recvBuf[8] << 8) | recvBuf[9]);
+                ushort product = (ushort)(recvBuf[10] | (recvBuf[11] << 8));
+                uint serial = (uint)(recvBuf[12] | (recvBuf[13] << 8) | (recvBuf[14] << 16) | (recvBuf[15] << 24));
+
+                return (mfg, product, serial);
+            }
+            catch
+            {
                 return (0, 0, 0);
-
-            if (recvBuf.Length < 18 || recvBuf[0] != 0x00 || recvBuf[1] != 0xFF)
-                return (0, 0, 0);
-
-            ushort mfg = (ushort)((recvBuf[8] << 8) | recvBuf[9]);
-            ushort product = (ushort)(recvBuf[10] | (recvBuf[11] << 8));
-            uint serial = (uint)(recvBuf[12] | (recvBuf[13] << 8) | (recvBuf[14] << 16) | (recvBuf[15] << 24));
-
-            return (mfg, product, serial);
+            }
         }
 
         public bool SetVcp(object displayHandle, byte i2cAddress, byte vcpCode, uint value)

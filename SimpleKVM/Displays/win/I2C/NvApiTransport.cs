@@ -79,41 +79,53 @@ namespace SimpleKVM.Displays.win.I2C
             var result = new List<I2CDisplayInfo>();
             if (!_initialized) return result;
 
-            var gpuHandles = new IntPtr[64];
-            int status = _NvAPI_EnumPhysicalGPUs!(gpuHandles, out int gpuCount);
-            if (status != 0) return result;
-
-            for (int g = 0; g < gpuCount; g++)
+            try
             {
-                IntPtr gpu = gpuHandles[g];
+                var gpuHandles = new IntPtr[64];
+                int status = _NvAPI_EnumPhysicalGPUs!(gpuHandles, out int gpuCount);
+                if (status != 0) return result;
 
-                int displayCount = 0;
-                status = _NvAPI_GPU_GetConnectedDisplayIds!(gpu, null, ref displayCount, 0);
-                if (status != 0 || displayCount == 0) continue;
-
-                var displayIds = new NV_GPU_DISPLAYIDS[displayCount];
-                for (int i = 0; i < displayCount; i++)
-                    displayIds[i].version = NV_GPU_DISPLAYIDS_VER;
-
-                status = _NvAPI_GPU_GetConnectedDisplayIds(gpu, displayIds, ref displayCount, 0);
-                if (status != 0) continue;
-
-                for (int d = 0; d < displayCount; d++)
+                for (int g = 0; g < gpuCount; g++)
                 {
-                    var display = displayIds[d];
-                    if (!display.isConnected) continue;
+                    IntPtr gpu = gpuHandles[g];
 
-                    var edid = ReadEdid(gpu, display.displayId);
+                    int displayCount = 0;
+                    status = _NvAPI_GPU_GetConnectedDisplayIds!(gpu, null, ref displayCount, 0);
+                    if (status != 0 || displayCount == 0) continue;
 
-                    result.Add(new I2CDisplayInfo
+                    var displayIds = new NV_GPU_DISPLAYIDS[displayCount];
+                    for (int i = 0; i < displayCount; i++)
+                        displayIds[i].version = NV_GPU_DISPLAYIDS_VER;
+
+                    status = _NvAPI_GPU_GetConnectedDisplayIds(gpu, displayIds, ref displayCount, 0);
+                    if (status != 0) continue;
+
+                    for (int d = 0; d < displayCount; d++)
                     {
-                        VendorDisplayHandle = new NvDisplayHandle(gpu, display.displayId),
-                        EdidManufacturerId = edid.ManufacturerId,
-                        EdidProductCode = edid.ProductCode,
-                        EdidSerial = edid.Serial,
-                        ConnectorType = MapConnectorType(display.connectorType)
-                    });
+                        try
+                        {
+                            var display = displayIds[d];
+                            if (!display.isConnected) continue;
+
+                            var edid = ReadEdid(gpu, display.displayId);
+
+                            result.Add(new I2CDisplayInfo
+                            {
+                                VendorDisplayHandle = new NvDisplayHandle(gpu, display.displayId),
+                                EdidManufacturerId = edid.ManufacturerId,
+                                EdidProductCode = edid.ProductCode,
+                                EdidSerial = edid.Serial,
+                                ConnectorType = MapConnectorType(display.connectorType)
+                            });
+                        }
+                        catch
+                        {
+                        }
+                    }
                 }
+            }
+            catch
+            {
             }
 
             return result;
@@ -121,23 +133,30 @@ namespace SimpleKVM.Displays.win.I2C
 
         (ushort ManufacturerId, ushort ProductCode, uint Serial) ReadEdid(IntPtr gpuHandle, int displayId)
         {
-            var edid = new NV_EDID();
-            edid.version = NV_EDID_VER;
-            edid.edidData = new byte[256];
+            try
+            {
+                var edid = new NV_EDID();
+                edid.version = NV_EDID_VER;
+                edid.edidData = new byte[256];
 
-            int status = _NvAPI_GPU_GetEDID!(gpuHandle, displayId, ref edid);
-            if (status != 0 || edid.edidSize < 18)
+                int status = _NvAPI_GPU_GetEDID!(gpuHandle, displayId, ref edid);
+                if (status != 0 || edid.edidSize < 18)
+                    return (0, 0, 0);
+
+                byte[] data = edid.edidData;
+                if (data[0] != 0x00 || data[1] != 0xFF)
+                    return (0, 0, 0);
+
+                ushort mfg = (ushort)((data[8] << 8) | data[9]);
+                ushort product = (ushort)(data[10] | (data[11] << 8));
+                uint serial = (uint)(data[12] | (data[13] << 8) | (data[14] << 16) | (data[15] << 24));
+
+                return (mfg, product, serial);
+            }
+            catch
+            {
                 return (0, 0, 0);
-
-            byte[] data = edid.edidData;
-            if (data[0] != 0x00 || data[1] != 0xFF)
-                return (0, 0, 0);
-
-            ushort mfg = (ushort)((data[8] << 8) | data[9]);
-            ushort product = (ushort)(data[10] | (data[11] << 8));
-            uint serial = (uint)(data[12] | (data[13] << 8) | (data[14] << 16) | (data[15] << 24));
-
-            return (mfg, product, serial);
+            }
         }
 
         public bool SetVcp(object displayHandle, byte i2cAddress, byte vcpCode, uint value)

@@ -34,9 +34,15 @@ namespace SimpleKVM.Displays.win
 
             if (cachedMonitorList == null || refreshRequired)
             {
-                I2CTransportManager.Initialize();
-                var edidDisplays = EdidHelper.GetDisplayEdidInfo();
-                I2CTransportManager.BuildDisplayMap(edidDisplays);
+                try
+                {
+                    I2CTransportManager.Initialize();
+                    var edidDisplays = EdidHelper.GetDisplayEdidInfo();
+                    I2CTransportManager.BuildDisplayMap(edidDisplays);
+                }
+                catch
+                {
+                }
 
                 cachedMonitorList = [];
                 MonitorController.EnumMonitors(mon =>
