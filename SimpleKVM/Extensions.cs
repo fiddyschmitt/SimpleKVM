@@ -167,7 +167,11 @@ namespace SimpleKVM
 
         public static T? DeserializJson<T>(this string json) where T : class
         {
-            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+            var settings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+                SerializationBinder = Configuration.SafeSerializationBinder.Instance
+            };
             var result = JsonConvert.DeserializeObject<T>(json, settings);
             return result;
         }
