@@ -138,10 +138,88 @@ namespace SimpleKVM.GUI
                         });
                 });
 
-            columnsChanged.ForEach(col => { Columns[col].Width = -2; });
+            if (columnsChanged.Count > 0)
+            {
+                AutoFitColumns();
+            }
+        }
 
-            //AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-            //AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
+        public void AutoFitColumns()
+        {
+            if (Columns.Count == 0) return;
+
+            //Before the handle exists, the negative sentinel widths aren't computed by the control and
+            //reading Width back just returns them, so the maths below would corrupt the layout.
+            //OnHandleCreated runs the autofit once the control is real.
+            if (!IsHandleCreated) return;
+
+            BeginUpdate();
+            try
+            {
+                //Size each column to the wider of its header and its content. Width = -2
+                //(LVSCW_AUTOSIZE_USEHEADER) does exactly that - except on the last column, where it
+                //instead fills the remaining control width as of that moment. That value goes stale
+                //when the control is later resized, leaving a phantom horizontal scrollbar, so the
+                //last column is sized manually and stretched to the edge instead.
+                for (int i = 0; i < Columns.Count - 1; i++)
+                {
+                    Columns[i].Width = -2;
+                }
+
+                var lastColumn = Columns[^1];
+                lastColumn.Width = -1;  //fit content
+                lastColumnNaturalWidth = Math.Max(lastColumn.Width, MeasureHeaderWidth(lastColumn));
+
+                StretchLastColumn();
+            }
+            finally
+            {
+                EndUpdate();
+            }
+        }
+
+        int lastColumnNaturalWidth;
+
+        int MeasureHeaderWidth(ColumnHeader column)
+        {
+            return TextRenderer.MeasureText(column.Text, Font).Width + 12;    //+12 approximates the header cell padding
+        }
+
+        void StretchLastColumn()
+        {
+            if (Columns.Count == 0) return;
+
+            if (lastColumnNaturalWidth == 0)
+            {
+                lastColumnNaturalWidth = MeasureHeaderWidth(Columns[^1]);
+            }
+
+            var otherColumnsWidth = 0;
+            for (int i = 0; i < Columns.Count - 1; i++)
+            {
+                otherColumnsWidth += Columns[i].Width;
+            }
+
+            //Fill the control exactly, so there is neither a gap nor a horizontal scrollbar.
+            //If the control is too narrow, fall back to the column's natural width and let the scrollbar appear.
+            Columns[^1].Width = Math.Max(lastColumnNaturalWidth, ClientSize.Width - otherColumnsWidth);
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);    //realizes the columns and any items added before the handle existed
+
+            AutoFitColumns();
+        }
+
+        protected override void OnClientSizeChanged(EventArgs e)
+        {
+            base.OnClientSizeChanged(e);
+
+            if (IsHandleCreated)
+            {
+                StretchLastColumn();
+            }
         }
 
         private void ListViewEx_ColumnClick(object? sender, ColumnClickEventArgs e)
