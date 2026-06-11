@@ -35,11 +35,10 @@ namespace SimpleKVM
             keysAsString = keysAsString.Replace("Win+", "");
 
             var converter = new KeysConverter();
-            var keys = converter.ConvertFromString(keysAsString) as Keys?;
+            var keys = converter.ConvertFromString(keysAsString) as Keys?
+                            ?? throw new Exception($"Could not parse hotkey: {keysAsString}");
 
-            if (keys == null) return;
-
-            (Modifier, Keys) = Split(keys.Value);
+            (Modifier, Keys) = Split(keys);
 
             if (hasWinPress)
             {
