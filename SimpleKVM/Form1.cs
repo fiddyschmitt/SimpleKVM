@@ -450,13 +450,5 @@ namespace SimpleKVM
             //notifyIcon1.Visible = false;
         }
 
-        private void NotifyIcon1_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Right)
-            {
-                var mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic);
-                mi?.Invoke(notifyIcon1, null);
-            }
-        }
     }
 }

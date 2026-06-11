@@ -81,7 +81,6 @@
             notifyIcon1.Text = "notifyIcon1";
             notifyIcon1.Visible = true;
             notifyIcon1.DoubleClick += NotifyIcon1_DoubleClick;
-            notifyIcon1.MouseUp += NotifyIcon1_MouseUp;
             // 
             // Form1
             // 
