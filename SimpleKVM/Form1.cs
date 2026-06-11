@@ -286,7 +286,11 @@ namespace SimpleKVM
                 else
                 {
                     var editedRule = editRuleForm.GetRule(); //forces the new data to be collected into the Rule object
-                    editedRule?.StartMonitoring();
+
+                    if (editedRule?.Status != EnumRuleStatus.Disabled)
+                    {
+                        editedRule?.StartMonitoring();
+                    }
 
                     ruleListview?.RefreshContent();
                 }
