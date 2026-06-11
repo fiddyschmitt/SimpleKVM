@@ -391,6 +391,10 @@ namespace SimpleKVM
 
         private void Rule_Triggered(object? sender, EventArgs e)
         {
+            //Triggers run on background threads and can fire before the form's handle exists (e.g. a USB event
+            //during startup) or during shutdown. Marshalling to the UI thread would throw in those situations.
+            if (!IsHandleCreated || IsDisposed) return;
+
             //BeginInvoke rather than Invoke, so trigger threads never block on the UI thread.
             //NoLongerIdle.StopMonitoring waits for its monitor task, which could deadlock if that task was blocked here.
             BeginInvoke(new MethodInvoker(() =>
