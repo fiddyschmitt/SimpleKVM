@@ -2,7 +2,12 @@ namespace SimpleKVM.Displays.win.I2C
 {
     public static class DdcCiMessage
     {
-        const byte DestinationAddress = 0x6E;
+        /// <summary>
+        /// I2C slave 0x37 shifted left for a write. All DDC/CI traffic goes here, including the LG
+        /// sidechannel (which only changes the source address byte, not the slave address).
+        /// </summary>
+        public const byte DestinationAddress = 0x6E;
+
         const byte SetVcpOpcode = 0x03;
 
         public static byte[] BuildSetVcp(byte sourceAddress, byte vcpCode, uint value)

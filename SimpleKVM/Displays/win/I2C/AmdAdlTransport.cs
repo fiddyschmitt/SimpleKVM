@@ -158,14 +158,14 @@ namespace SimpleKVM.Displays.win.I2C
             }
         }
 
-        public bool SetVcp(object displayHandle, byte i2cAddress, byte vcpCode, uint value)
+        public bool SetVcp(object displayHandle, byte sourceAddress, byte vcpCode, uint value)
         {
             if (!_initialized || displayHandle is not AmdDisplayHandle handle) return false;
 
-            byte[] msg = DdcCiMessage.BuildSetVcp(i2cAddress, vcpCode, value);
+            byte[] msg = DdcCiMessage.BuildSetVcp(sourceAddress, vcpCode, value);
 
             byte[] sendBuf = new byte[msg.Length + 1];
-            sendBuf[0] = (byte)(i2cAddress << 1);
+            sendBuf[0] = DdcCiMessage.DestinationAddress;
             Array.Copy(msg, 0, sendBuf, 1, msg.Length);
 
             var recvBuf = new byte[1];
@@ -173,7 +173,7 @@ namespace SimpleKVM.Displays.win.I2C
             return status == 0;
         }
 
-        public bool GetVcp(object displayHandle, byte i2cAddress, byte vcpCode, out uint value)
+        public bool GetVcp(object displayHandle, byte sourceAddress, byte vcpCode, out uint value)
         {
             value = 0;
             return false;

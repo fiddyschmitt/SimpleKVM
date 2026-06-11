@@ -44,7 +44,7 @@ namespace SimpleKVM.Displays.win
 
             if (UseLgAltMode && I2CTransport != null && I2CDisplayHandle != null)
             {
-                bool ok = I2CTransport.SetVcp(I2CDisplayHandle, LgInputSources.I2CAddress, LgInputSources.VcpCode, (uint)newSourceId);
+                bool ok = I2CTransport.SetVcp(I2CDisplayHandle, LgInputSources.SourceAddress, LgInputSources.VcpCode, (uint)newSourceId);
                 if (ok) Thread.Sleep(30);
                 return ok;
             }

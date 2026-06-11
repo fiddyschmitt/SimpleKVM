@@ -159,40 +159,47 @@ namespace SimpleKVM.Displays.win.I2C
             }
         }
 
-        public bool SetVcp(object displayHandle, byte i2cAddress, byte vcpCode, uint value)
+        public bool SetVcp(object displayHandle, byte sourceAddress, byte vcpCode, uint value)
         {
             if (!_initialized || displayHandle is not NvDisplayHandle handle) return false;
 
-            byte[] msg = DdcCiMessage.BuildSetVcp(i2cAddress, vcpCode, value);
+            byte[] msg = DdcCiMessage.BuildSetVcp(sourceAddress, vcpCode, value);
 
             var i2cInfo = new NV_I2C_INFO_V3();
             i2cInfo.version = NV_I2C_INFO_V3_VER;
-            i2cInfo.displayMask = (uint)(1 << handle.DisplayId);
+            i2cInfo.displayMask = (uint)handle.DisplayId;   //NvAPI_I2CWrite takes the display id directly, not a shifted bit
             i2cInfo.bIsDDCPort = true;
-            i2cInfo.i2cDevAddress = (byte)(i2cAddress << 1);
-            i2cInfo.pbI2cRegAddress = IntPtr.Zero;
-            i2cInfo.regAddrSize = 0;
-            i2cInfo.i2cSpeed = 0xFFFF;
-            i2cInfo.i2cSpeedKhz = NV_I2C_SPEED_DEFAULT;
-            i2cInfo.portId = 1;
+            i2cInfo.i2cDevAddress = DdcCiMessage.DestinationAddress;
+            i2cInfo.i2cSpeed = NVAPI_I2C_SPEED_DEPRECATED;
+            i2cInfo.i2cSpeedKhz = NVAPI_I2C_SPEED_DEFAULT;
+            i2cInfo.portId = 0;
+            i2cInfo.bIsPortIdSet = 0;
 
-            IntPtr dataBuf = Marshal.AllocHGlobal(msg.Length);
+            //The source address byte is sent as the I2C register address and the rest of the message as the
+            //payload, matching NVIDIA's I2C sample. On the wire this produces the same bytes as the AMD path.
+            IntPtr regAddrBuf = Marshal.AllocHGlobal(1);
+            IntPtr dataBuf = Marshal.AllocHGlobal(msg.Length - 1);
             try
             {
-                Marshal.Copy(msg, 0, dataBuf, msg.Length);
+                Marshal.WriteByte(regAddrBuf, msg[0]);
+                i2cInfo.pbI2cRegAddress = regAddrBuf;
+                i2cInfo.regAddrSize = 1;
+
+                Marshal.Copy(msg, 1, dataBuf, msg.Length - 1);
                 i2cInfo.pbData = dataBuf;
-                i2cInfo.cbSize = (uint)msg.Length;
+                i2cInfo.cbSize = (uint)(msg.Length - 1);
 
                 int status = _NvAPI_I2CWrite!(handle.GpuHandle, ref i2cInfo);
                 return status == 0;
             }
             finally
             {
+                Marshal.FreeHGlobal(regAddrBuf);
                 Marshal.FreeHGlobal(dataBuf);
             }
         }
 
-        public bool GetVcp(object displayHandle, byte i2cAddress, byte vcpCode, out uint value)
+        public bool GetVcp(object displayHandle, byte sourceAddress, byte vcpCode, out uint value)
         {
             value = 0;
             return false;
@@ -213,7 +220,8 @@ namespace SimpleKVM.Displays.win.I2C
         static readonly int NV_GPU_DISPLAYIDS_VER = Marshal.SizeOf<NV_GPU_DISPLAYIDS>() | (3 << 16);
         static readonly int NV_EDID_VER = Marshal.SizeOf<NV_EDID>() | (3 << 16);
         static readonly int NV_I2C_INFO_V3_VER = Marshal.SizeOf<NV_I2C_INFO_V3>() | (3 << 16);
-        const int NV_I2C_SPEED_DEFAULT = 0xFFFF;
+        const uint NVAPI_I2C_SPEED_DEPRECATED = 0xFFFF;    //nvapi.h: i2cSpeed must be set to this
+        const int NVAPI_I2C_SPEED_DEFAULT = 0;             //NV_I2C_SPEED enum: use the current frequency setting
 
         [StructLayout(LayoutKind.Sequential)]
         struct NV_GPU_DISPLAYIDS
@@ -250,6 +258,7 @@ namespace SimpleKVM.Displays.win.I2C
             public uint i2cSpeed;
             public int i2cSpeedKhz;
             public byte portId;
+            public uint bIsPortIdSet;   //was missing; without it the size-encoded version is wrong and NvAPI rejects the struct
         }
     }
 

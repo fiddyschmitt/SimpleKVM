@@ -25,7 +25,10 @@ namespace SimpleKVM.Displays.win.I2C
     {
         bool IsAvailable { get; }
         List<I2CDisplayInfo> EnumerateDisplays();
-        bool SetVcp(object displayHandle, byte i2cAddress, byte vcpCode, uint value);
-        bool GetVcp(object displayHandle, byte i2cAddress, byte vcpCode, out uint value);
+
+        /// <param name="sourceAddress">The DDC source address byte (0x51 standard, 0x50 for the LG sidechannel).
+        /// The I2C slave address is always the standard DDC/CI 0x37 (0x6E on the wire).</param>
+        bool SetVcp(object displayHandle, byte sourceAddress, byte vcpCode, uint value);
+        bool GetVcp(object displayHandle, byte sourceAddress, byte vcpCode, out uint value);
     }
 }
