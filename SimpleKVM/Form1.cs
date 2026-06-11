@@ -427,6 +427,8 @@ namespace SimpleKVM
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            notifyIcon1.Visible = false;    //otherwise a ghost icon lingers in the tray until hovered
+
             if (ruleListview == null) return;
 
             //preserve the order
