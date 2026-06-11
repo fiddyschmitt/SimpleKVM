@@ -391,7 +391,9 @@ namespace SimpleKVM
 
         private void Rule_Triggered(object? sender, EventArgs e)
         {
-            Invoke(new MethodInvoker(() =>
+            //BeginInvoke rather than Invoke, so trigger threads never block on the UI thread.
+            //NoLongerIdle.StopMonitoring waits for its monitor task, which could deadlock if that task was blocked here.
+            BeginInvoke(new MethodInvoker(() =>
             {
                 //DisplayRules();
 
