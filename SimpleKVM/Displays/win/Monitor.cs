@@ -39,6 +39,9 @@ namespace SimpleKVM.Displays.win
 
         public override bool SetSource(int newSourceId)
         {
+            //-1 means "Leave unchanged"; 0 is what a failed GetVCPRegister read returns. Neither is a valid source.
+            if (newSourceId <= 0) return false;
+
             if (UseLgAltMode && I2CTransport != null && I2CDisplayHandle != null)
             {
                 bool ok = I2CTransport.SetVcp(I2CDisplayHandle, LgInputSources.I2CAddress, LgInputSources.VcpCode, (uint)newSourceId);

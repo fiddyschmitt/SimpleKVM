@@ -192,6 +192,7 @@ namespace SimpleKVM.GUI.Rules
                                             Monitor = monitor,
                                             OriginalSource = monitor.GetCurrentSource()
                                         })
+                                        .Where(originalSource => originalSource.OriginalSource > 0)    //the current source can't always be determined (e.g. LG alt mode); don't restore those monitors
                                         .ToList();
 
                 actions.ForEach(action => action.Run());
