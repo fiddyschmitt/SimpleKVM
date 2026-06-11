@@ -11,9 +11,20 @@ namespace SimpleKVM.Displays.win
 {
     public static class DisplaySystem
     {
+        static readonly object cacheLock = new();
         static List<Monitor>? cachedMonitorList;
 
         public static IList<Monitor> GetMonitors()
+        {
+            //GetMonitors is called from the warm-up task, the UI thread and rule trigger threads,
+            //so the cache check and refresh have to happen atomically
+            lock (cacheLock)
+            {
+                return GetMonitorsUnsynchronized();
+            }
+        }
+
+        static List<Monitor> GetMonitorsUnsynchronized()
         {
             bool refreshRequired;
             if (cachedMonitorList == null)
