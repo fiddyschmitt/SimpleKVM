@@ -22,5 +22,15 @@ namespace SimpleKVM.Displays
             result ??= [];
             return result;
         }
+
+        public static Dictionary<string, int> GetCurrentSources()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return win.DisplaySystem.GetCurrentSources();
+            }
+
+            return [];
+        }
     }
 }

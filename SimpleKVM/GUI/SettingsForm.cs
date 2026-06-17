@@ -17,6 +17,7 @@ namespace SimpleKVM.GUI
 
             chkRunAtStartup.Checked = IsStartupShortcutValid();
             chkForceInputChange.Checked = AppSettingsManager.Current.ForceInputChange;
+            chkFollowSourceChanges.Checked = AppSettingsManager.Current.FollowSourceChanges;
         }
 
         private void BtnOK_Click(object? sender, EventArgs e)
@@ -32,6 +33,7 @@ namespace SimpleKVM.GUI
             }
 
             AppSettingsManager.Current.ForceInputChange = chkForceInputChange.Checked;
+            AppSettingsManager.Current.FollowSourceChanges = chkFollowSourceChanges.Checked;
             AppSettingsManager.Save();
 
             DialogResult = DialogResult.OK;

@@ -26,6 +26,7 @@ namespace SimpleKVM
     public partial class Form1 : Form
     {
         readonly USBSystem? usbSystem;
+        readonly SourceFollowWatcher? sourceFollowWatcher;
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
         const string Version = "2.3.1";
@@ -75,6 +76,9 @@ namespace SimpleKVM
             });
 
             usbSystem = USBSystem.INSTANCE;
+
+            sourceFollowWatcher = new SourceFollowWatcher(() => Rules);
+            ApplyFollowSourceSetting();
         }
 
         private void InitialiseSystemTray()
@@ -318,6 +322,21 @@ namespace SimpleKVM
                 StartPosition = FormStartPosition.CenterParent
             };
             settingsForm.ShowDialog(this);
+
+            //The follow-source setting may have been toggled.
+            ApplyFollowSourceSetting();
+        }
+
+        private void ApplyFollowSourceSetting()
+        {
+            if (AppSettingsManager.Current.FollowSourceChanges)
+            {
+                sourceFollowWatcher?.Start();
+            }
+            else
+            {
+                sourceFollowWatcher?.Stop();
+            }
         }
 
         private void BtnNewRule_Click(object sender, EventArgs e)
@@ -428,6 +447,7 @@ namespace SimpleKVM
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             notifyIcon1.Visible = false;    //otherwise a ghost icon lingers in the tray until hovered
+            sourceFollowWatcher?.Stop();
 
             if (ruleListview == null) return;
 

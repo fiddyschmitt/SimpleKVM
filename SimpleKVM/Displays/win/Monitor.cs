@@ -45,7 +45,11 @@ namespace SimpleKVM.Displays.win
             if (UseLgAltMode && I2CTransport != null && I2CDisplayHandle != null)
             {
                 bool ok = I2CTransport.SetVcp(I2CDisplayHandle, LgInputSources.SourceAddress, LgInputSources.VcpCode, (uint)newSourceId);
-                if (ok) Thread.Sleep(30);
+                if (ok)
+                {
+                    Thread.Sleep(30);
+                    RaiseSourceSetByApp(MonitorUniqueId, newSourceId);
+                }
                 return ok;
             }
 
@@ -61,6 +65,7 @@ namespace SimpleKVM.Displays.win
                     if (shouldSwitch)
                     {
                         physicalMonitor.PhysicalMonitor.SetVCPRegister(0x60, (uint)newSourceId);
+                        RaiseSourceSetByApp(MonitorUniqueId, newSourceId);
                         result = true;
                     }
                 }

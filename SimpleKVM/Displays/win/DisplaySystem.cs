@@ -153,5 +153,24 @@ namespace SimpleKVM.Displays.win
 
             return cachedMonitorList;
         }
+
+        public static Dictionary<string, int> GetCurrentSources()
+        {
+            //Read VCP 0x60 for every physical monitor in a single enumeration pass. Calling
+            //Monitor.GetCurrentSource() per monitor would re-enumerate every monitor each time.
+            var result = new Dictionary<string, int>();
+
+            MonitorController.EnumMonitors(mon =>
+            {
+                if (result.ContainsKey(mon.UniqueId)) return;
+
+                if (mon.PhysicalMonitor.GetVCPRegister(0x60, out uint currentSource))
+                {
+                    result[mon.UniqueId] = (int)currentSource;
+                }
+            });
+
+            return result;
+        }
     }
 }

@@ -20,6 +20,8 @@ namespace SimpleKVM.GUI
             chkRunAtStartup = new System.Windows.Forms.CheckBox();
             chkForceInputChange = new System.Windows.Forms.CheckBox();
             lblForceInputChangeHint = new System.Windows.Forms.Label();
+            chkFollowSourceChanges = new System.Windows.Forms.CheckBox();
+            lblFollowSourceChangesHint = new System.Windows.Forms.Label();
             btnOK = new System.Windows.Forms.Button();
             btnCancel = new System.Windows.Forms.Button();
             SuspendLayout();
@@ -53,14 +55,34 @@ namespace SimpleKVM.GUI
             lblForceInputChangeHint.Size = new System.Drawing.Size(403, 15);
             lblForceInputChangeHint.TabIndex = 2;
             lblForceInputChangeHint.Text = "Switch input even if the monitor reports it is already on the selected source.";
-            // 
+            //
+            // chkFollowSourceChanges
+            //
+            chkFollowSourceChanges.AutoSize = true;
+            chkFollowSourceChanges.Location = new System.Drawing.Point(20, 100);
+            chkFollowSourceChanges.Name = "chkFollowSourceChanges";
+            chkFollowSourceChanges.Size = new System.Drawing.Size(186, 19);
+            chkFollowSourceChanges.TabIndex = 2;
+            chkFollowSourceChanges.Text = "Follow external source changes";
+            chkFollowSourceChanges.UseVisualStyleBackColor = true;
+            //
+            // lblFollowSourceChangesHint
+            //
+            lblFollowSourceChangesHint.AutoSize = false;
+            lblFollowSourceChangesHint.ForeColor = System.Drawing.SystemColors.GrayText;
+            lblFollowSourceChangesHint.Location = new System.Drawing.Point(38, 122);
+            lblFollowSourceChangesHint.Name = "lblFollowSourceChangesHint";
+            lblFollowSourceChangesHint.Size = new System.Drawing.Size(410, 32);
+            lblFollowSourceChangesHint.TabIndex = 6;
+            lblFollowSourceChangesHint.Text = "When another PC pulls the digital monitors toward itself, move the analog (VGA/DVI) monitors to match.";
+            //
             // btnOK
-            // 
+            //
             btnOK.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
-            btnOK.Location = new System.Drawing.Point(289, 115);
+            btnOK.Location = new System.Drawing.Point(289, 175);
             btnOK.Name = "btnOK";
             btnOK.Size = new System.Drawing.Size(75, 23);
-            btnOK.TabIndex = 2;
+            btnOK.TabIndex = 3;
             btnOK.Text = "OK";
             btnOK.UseVisualStyleBackColor = true;
             btnOK.Click += BtnOK_Click;
@@ -69,10 +91,10 @@ namespace SimpleKVM.GUI
             // 
             btnCancel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            btnCancel.Location = new System.Drawing.Point(370, 115);
+            btnCancel.Location = new System.Drawing.Point(370, 175);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new System.Drawing.Size(75, 23);
-            btnCancel.TabIndex = 3;
+            btnCancel.TabIndex = 4;
             btnCancel.Text = "Cancel";
             btnCancel.UseVisualStyleBackColor = true;
             // 
@@ -82,9 +104,11 @@ namespace SimpleKVM.GUI
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             CancelButton = btnCancel;
-            ClientSize = new System.Drawing.Size(458, 151);
+            ClientSize = new System.Drawing.Size(458, 217);
             Controls.Add(btnCancel);
             Controls.Add(btnOK);
+            Controls.Add(lblFollowSourceChangesHint);
+            Controls.Add(chkFollowSourceChanges);
             Controls.Add(lblForceInputChangeHint);
             Controls.Add(chkForceInputChange);
             Controls.Add(chkRunAtStartup);
@@ -102,6 +126,8 @@ namespace SimpleKVM.GUI
         private System.Windows.Forms.CheckBox chkRunAtStartup;
         private System.Windows.Forms.CheckBox chkForceInputChange;
         private System.Windows.Forms.Label lblForceInputChangeHint;
+        private System.Windows.Forms.CheckBox chkFollowSourceChanges;
+        private System.Windows.Forms.Label lblFollowSourceChangesHint;
         private System.Windows.Forms.Button btnOK;
         private System.Windows.Forms.Button btnCancel;
     }

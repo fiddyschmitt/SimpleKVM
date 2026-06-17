@@ -15,6 +15,18 @@ namespace SimpleKVM.Displays
         [JsonIgnore]
         public bool UseLgAltMode { get; set; }
 
+        /// <summary>
+        /// Raised when the app itself successfully writes a monitor's input source
+        /// (MonitorUniqueId, newSourceId). SourceFollowWatcher uses this to tell its own writes
+        /// apart from input changes made externally by another PC.
+        /// </summary>
+        public static event Action<string, int>? SourceSetByApp;
+
+        protected static void RaiseSourceSetByApp(string monitorUniqueId, int sourceId)
+        {
+            SourceSetByApp?.Invoke(monitorUniqueId, sourceId);
+        }
+
         public abstract int GetCurrentSource();
 
         [JsonIgnore]
