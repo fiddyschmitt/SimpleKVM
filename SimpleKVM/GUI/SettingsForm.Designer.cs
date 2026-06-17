@@ -74,7 +74,7 @@ namespace SimpleKVM.GUI
             lblFollowSourceChangesHint.Name = "lblFollowSourceChangesHint";
             lblFollowSourceChangesHint.Size = new System.Drawing.Size(410, 32);
             lblFollowSourceChangesHint.TabIndex = 6;
-            lblFollowSourceChangesHint.Text = "When another PC pulls the digital monitors toward itself, move the analog (VGA/DVI) monitors to match.";
+            lblFollowSourceChangesHint.Text = "When another PC pulls some monitors to itself, move the ones left behind to match.";
             //
             // btnOK
             //

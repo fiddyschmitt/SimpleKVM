@@ -10,10 +10,11 @@ using System.Threading.Tasks;
 namespace SimpleKVM
 {
     /// <summary>
-    /// Watches the input source of digital (DDC/CI-readable) monitors. When one is changed by
+    /// Watches the input source of each monitor it can read over DDC/CI. When one is changed by
     /// something other than this app - e.g. another PC pulling the shared monitors toward itself -
-    /// it runs the active rule(s) that target that monitor+input, which pushes the remaining
-    /// (analog VGA/DVI) monitors the same direction so they aren't left behind.
+    /// it runs the active rule(s) that target that monitor+input. Running a rule drives every
+    /// monitor it covers, so any left behind is moved the same direction (monitors already on
+    /// target are no-ops).
     /// </summary>
     public class SourceFollowWatcher
     {
@@ -140,9 +141,10 @@ namespace SimpleKVM
                                 .Distinct()
                                 .ToList();
 
-            //Run() re-asserts the changed monitor (a no-op, so no fight with the other PC), pushes
-            //the analog monitors, and tracks RunCount/LastRun. Its own writes announce themselves
-            //via SourceSetByApp and get suppressed, so the follow can't feed back on itself.
+            //Run() drives every monitor the rule covers: it re-asserts the changed monitor (a
+            //no-op, so no fight with the other PC) and moves the ones left behind. It tracks
+            //RunCount/LastRun, and its own writes announce themselves via SourceSetByApp and get
+            //suppressed, so the follow can't feed back on itself.
             rulesToRun.ForEach(rule => rule.Run());
         }
 
