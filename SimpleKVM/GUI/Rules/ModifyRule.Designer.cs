@@ -35,7 +35,10 @@
             txtRuleName = new System.Windows.Forms.TextBox();
             btnTest = new System.Windows.Forms.Button();
             label2 = new System.Windows.Forms.Label();
+            lblDelay = new System.Windows.Forms.Label();
+            nudDelay = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)errorProvider1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)nudDelay).BeginInit();
             SuspendLayout();
             // 
             // btnSave
@@ -95,12 +98,35 @@
             label2.Size = new System.Drawing.Size(182, 15);
             label2.TabIndex = 4;
             label2.Text = "(will revert back after 10 seconds)";
-            // 
+            //
+            // lblDelay
+            //
+            lblDelay.AutoSize = true;
+            lblDelay.Location = new System.Drawing.Point(8, 42);
+            lblDelay.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            lblDelay.Name = "lblDelay";
+            lblDelay.Size = new System.Drawing.Size(65, 15);
+            lblDelay.TabIndex = 5;
+            lblDelay.Text = "Delay (s):";
+            //
+            // nudDelay
+            //
+            nudDelay.Location = new System.Drawing.Point(81, 39);
+            nudDelay.Margin = new System.Windows.Forms.Padding(2);
+            nudDelay.Maximum = new decimal(new int[] { 3600, 0, 0, 0 });
+            nudDelay.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
+            nudDelay.Name = "nudDelay";
+            nudDelay.Size = new System.Drawing.Size(60, 23);
+            nudDelay.TabIndex = 1;
+            nudDelay.Value = new decimal(new int[] { 0, 0, 0, 0 });
+            //
             // ModifyRule
-            // 
+            //
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             ClientSize = new System.Drawing.Size(424, 186);
+            Controls.Add(nudDelay);
+            Controls.Add(lblDelay);
             Controls.Add(label2);
             Controls.Add(btnTest);
             Controls.Add(txtRuleName);
@@ -110,6 +136,7 @@
             Name = "ModifyRule";
             Text = "ModifyRule";
             ((System.ComponentModel.ISupportInitialize)errorProvider1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)nudDelay).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -122,5 +149,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button btnTest;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label lblDelay;
+        private System.Windows.Forms.NumericUpDown nudDelay;
     }
 }

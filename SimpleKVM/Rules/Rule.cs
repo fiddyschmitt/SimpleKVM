@@ -17,6 +17,7 @@ namespace SimpleKVM.Rules
         public DateTime? LastRun { get; set; }
         public EnumRuleStatus Status { get; set; } = EnumRuleStatus.Stopped;
         public string Name { get; set; } = "";
+        public int DelaySeconds { get; set; }
 
         public Rule(string name, Trigger trigger, List<IAction> actions)
         {
@@ -59,6 +60,9 @@ namespace SimpleKVM.Rules
 
         public void Run()
         {
+            if (DelaySeconds > 0)
+                System.Threading.Thread.Sleep(DelaySeconds * 1000);
+
             bool wasRun = false;
             Actions
                 .ForEach(action =>
