@@ -57,6 +57,7 @@ namespace SimpleKVM.GUI.Rules
             if (ruleToEdit != null)
             {
                 txtRuleName.Text = ruleToEdit.Name;
+                nudDelay.Value = ruleToEdit.DelaySeconds;
             }
 
             UserControl? triggerCreatorUc = triggerType switch
@@ -70,7 +71,7 @@ namespace SimpleKVM.GUI.Rules
             if (triggerCreatorUc != null)
             {
                 triggerCreatorUc.Left = label1.Left;
-                triggerCreatorUc.Top = txtRuleName.Bottom + 8;
+                triggerCreatorUc.Top = nudDelay.Bottom + 8;
 
                 Controls.Add(triggerCreatorUc);
 
@@ -157,7 +158,10 @@ namespace SimpleKVM.GUI.Rules
 
                 if (trigger != null && actions != null)
                 {
-                    result = new Rule(txtRuleName.Text, trigger, actions);
+                    result = new Rule(txtRuleName.Text, trigger, actions)
+                    {
+                        DelaySeconds = (int)nudDelay.Value
+                    };
                 }
 
                 return result;
@@ -165,6 +169,7 @@ namespace SimpleKVM.GUI.Rules
             else
             {
                 RuleToEdit.Name = txtRuleName.Text;
+                RuleToEdit.DelaySeconds = (int)nudDelay.Value;
                 RuleToEdit.Trigger = triggerCreator?.GetTrigger() ?? RuleToEdit.Trigger;
                 RuleToEdit.Actions = actionCreator?.GetAction() ?? RuleToEdit.Actions;
 
