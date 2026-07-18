@@ -196,6 +196,23 @@ namespace SimpleKVM
                 selectedRule?.Run();
             });
 
+            var setDelayItem = ruleListview.ContextMenuStrip.Items.Add("Set delay...", null, (sender, obj) =>
+            {
+                var selectedRule = selectedRules.FirstOrDefault();
+                if (selectedRule == null) return;
+
+                using var setDelayForm = new SetRuleDelay
+                {
+                    DelaySeconds = selectedRule.DelaySeconds
+                };
+
+                if (setDelayForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    selectedRule.DelaySeconds = setDelayForm.DelaySeconds;
+                    SaveRules();
+                }
+            });
+
             ruleListview.ContextMenuStrip.Opening += (s, a) =>
             {
                 enableRuleItem.Enabled = selectedRules.Any(rule => rule.Status != EnumRuleStatus.Running);
@@ -203,6 +220,10 @@ namespace SimpleKVM
                 editResultItem.Enabled = selectedRules.Count() == 1;
                 deleteRuleItem.Enabled = selectedRules.Any();
                 runNowItem.Enabled = selectedRules.Count() == 1;
+
+                setDelayItem.Enabled = selectedRules.Count() == 1;
+                var delayRule = selectedRules.FirstOrDefault();
+                setDelayItem.Text = delayRule?.DelaySeconds > 0 ? $"Set delay ({delayRule.DelaySeconds} s)..." : "Set delay...";
             };
 
             panel1.Controls.Add(ruleListview);
