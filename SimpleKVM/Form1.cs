@@ -29,7 +29,7 @@ namespace SimpleKVM
         readonly SourceFollowWatcher? sourceFollowWatcher;
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
-        const string Version = "2.3.1";
+        const string Version = "2.3.2";
         public static List<Rule> Rules { get; protected set; } = [];
         static readonly string RulesFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
         static readonly string ConfigFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
