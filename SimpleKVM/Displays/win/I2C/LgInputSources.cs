@@ -13,6 +13,11 @@ namespace SimpleKVM.Displays.win.I2C
         /// </summary>
         public const byte SourceAddress = 0x50;
 
+        /// <summary>
+        /// EDID manufacturer id "GSM" (LG/Goldstar), in the EDID's big-endian bit packing.
+        /// </summary>
+        public const ushort EdidManufacturerId = 0x1E6D;
+
         public static List<(int SourceId, string SourceName)> GetDefaultSources()
         {
             return

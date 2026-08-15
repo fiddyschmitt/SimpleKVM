@@ -45,10 +45,11 @@ namespace SimpleKVM.Displays.win
 
             if (cachedMonitorList == null || refreshRequired)
             {
+                List<EdidDisplayInfo> edidDisplays = [];
                 try
                 {
                     I2CTransportManager.Initialize();
-                    var edidDisplays = EdidHelper.GetDisplayEdidInfo();
+                    edidDisplays = EdidHelper.GetDisplayEdidInfo();
                     I2CTransportManager.BuildDisplayMap(edidDisplays);
                 }
                 catch
@@ -79,6 +80,8 @@ namespace SimpleKVM.Displays.win
                         if (sources != null && sources.Count == 0)
                             sources = null;
                     }
+
+                    bool userSpecifiedSources = sources != null;
 
                     //Second, we'll query the monitor for its capabilities string, which contains the model & valid sources (if still required)
                     var caps = mon.PhysicalMonitor.GetVCPCapabilities();
@@ -115,7 +118,9 @@ namespace SimpleKVM.Displays.win
                         }
                     }
 
-                    // Determine LG alt mode
+                    // Determine LG alt mode. LG monitors answer VCP 0x60 reads and report sources in
+                    // their capabilities string, but ignore VCP 0x60 writes, so every LG monitor
+                    // (EDID manufacturer GSM) defaults to the 0xF4 sidechannel unless overridden.
                     bool useLgAltMode = false;
                     if (monitorOverride?.UseLgAltMode == true)
                     {
@@ -123,11 +128,14 @@ namespace SimpleKVM.Displays.win
                     }
                     else if (monitorOverride?.UseLgAltMode == null)
                     {
-                        useLgAltMode = model.Contains("LG", StringComparison.OrdinalIgnoreCase)
-                        && (sources == null || sources.Count == 0);
+                        var edidInfo = edidDisplays.FirstOrDefault(e => e.UniqueId == mon.UniqueId);
+                        useLgAltMode = edidInfo?.EdidManufacturerId == LgInputSources.EdidManufacturerId
+                        || model.Contains("LG", StringComparison.OrdinalIgnoreCase);
                     }
 
-                    if (useLgAltMode && sources == null)
+                    // The sidechannel has its own source id namespace, so sources derived from the
+                    // capabilities string don't apply to it
+                    if (useLgAltMode && !userSpecifiedSources)
                     {
                         sources = LgInputSources.GetDefaultSources();
                     }
