@@ -181,12 +181,14 @@ namespace SimpleKVM.Displays.win.I2C
 
         static ConnectorType MapConnectorType(int adlConnector)
         {
+            //ADL_DISPLAY_CONTYPE_*. USB-C (18) is DisplayPort alt mode, which is
+            //what Windows reports it as, so map it the same way for matching.
             return adlConnector switch
             {
                 1 => ConnectorType.VGA,
                 2 or 3 => ConnectorType.DVI,
-                4 or 7 or 12 => ConnectorType.HDMI,
-                10 or 11 => ConnectorType.DisplayPort,
+                10 or 11 => ConnectorType.HDMI,
+                15 or 16 or 18 => ConnectorType.DisplayPort,
                 _ => ConnectorType.Unknown
             };
         }
