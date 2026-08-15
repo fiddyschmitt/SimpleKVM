@@ -67,7 +67,9 @@ namespace SimpleKVM.Displays.win
                     result.Add(new EdidDisplayInfo
                     {
                         UniqueId = uniqueId,
-                        EdidManufacturerId = deviceName.edidManufactureId,
+                        //edidManufactureId is a little-endian read of EDID bytes 8-9, which hold a
+                        //big-endian value; swap so it matches the transports' (data[8] << 8) | data[9] form
+                        EdidManufacturerId = (ushort)((deviceName.edidManufactureId >> 8) | (deviceName.edidManufactureId << 8)),
                         EdidProductCode = deviceName.edidProductCodeId,
                         ConnectorType = MapOutputTechnology(deviceName.outputTechnology)
                     });
