@@ -14,18 +14,21 @@ namespace SimpleKVM.Displays.win.I2C
         delegate int NvAPI_GPU_GetConnectedDisplayIds_Delegate(IntPtr gpuHandle, [In, Out] NV_GPU_DISPLAYIDS[]? displayIds, ref int displayIdCount, int flags);
         delegate int NvAPI_I2CWrite_Delegate(IntPtr gpuHandle, ref NV_I2C_INFO_V3 i2cInfo);
         delegate int NvAPI_GPU_GetEDID_Delegate(IntPtr gpuHandle, int displayId, ref NV_EDID edid);
+        delegate int NvAPI_SYS_GetGpuAndOutputIdFromDisplayId_Delegate(uint displayId, out IntPtr gpuHandle, out uint outputId);
 
         NvAPI_Initialize_Delegate? _NvAPI_Initialize;
         NvAPI_EnumPhysicalGPUs_Delegate? _NvAPI_EnumPhysicalGPUs;
         NvAPI_GPU_GetConnectedDisplayIds_Delegate? _NvAPI_GPU_GetConnectedDisplayIds;
         NvAPI_I2CWrite_Delegate? _NvAPI_I2CWrite;
         NvAPI_GPU_GetEDID_Delegate? _NvAPI_GPU_GetEDID;
+        NvAPI_SYS_GetGpuAndOutputIdFromDisplayId_Delegate? _NvAPI_SYS_GetGpuAndOutputIdFromDisplayId;
 
         const uint NVAPI_INITIALIZE = 0x0150E828;
         const uint NVAPI_ENUMPHYSICALGPUS = 0xE5AC921F;
         const uint NVAPI_GPU_GETCONNECTEDDISPLAYIDS = 0x0078DBA2;
         const uint NVAPI_I2CWRITE = 0xE812EB07;
         const uint NVAPI_GPU_GETEDID = 0x37D32E69;
+        const uint NVAPI_SYS_GETGPUANDOUTPUTIDFROMDISPLAYID = 0x112BA1A5;
 
         delegate IntPtr NvAPI_QueryInterface_Delegate(uint id);
         NvAPI_QueryInterface_Delegate? _queryInterface;
@@ -49,10 +52,11 @@ namespace SimpleKVM.Displays.win.I2C
                 _NvAPI_GPU_GetConnectedDisplayIds = GetNvDelegate<NvAPI_GPU_GetConnectedDisplayIds_Delegate>(NVAPI_GPU_GETCONNECTEDDISPLAYIDS);
                 _NvAPI_I2CWrite = GetNvDelegate<NvAPI_I2CWrite_Delegate>(NVAPI_I2CWRITE);
                 _NvAPI_GPU_GetEDID = GetNvDelegate<NvAPI_GPU_GetEDID_Delegate>(NVAPI_GPU_GETEDID);
+                _NvAPI_SYS_GetGpuAndOutputIdFromDisplayId = GetNvDelegate<NvAPI_SYS_GetGpuAndOutputIdFromDisplayId_Delegate>(NVAPI_SYS_GETGPUANDOUTPUTIDFROMDISPLAYID);
 
                 if (_NvAPI_Initialize == null || _NvAPI_EnumPhysicalGPUs == null ||
                     _NvAPI_GPU_GetConnectedDisplayIds == null || _NvAPI_I2CWrite == null ||
-                    _NvAPI_GPU_GetEDID == null)
+                    _NvAPI_GPU_GetEDID == null || _NvAPI_SYS_GetGpuAndOutputIdFromDisplayId == null)
                     return;
 
                 int result = _NvAPI_Initialize();
@@ -107,11 +111,17 @@ namespace SimpleKVM.Displays.win.I2C
                             var display = displayIds[d];
                             if (!display.isConnected) continue;
 
-                            var edid = ReadEdid(gpu, display.displayId);
+                            //NvAPI_GPU_GetEDID and NvAPI_I2CWrite take the legacy single-bit output id,
+                            //not the display id from NvAPI_GPU_GetConnectedDisplayIds
+                            _NvAPI_SYS_GetGpuAndOutputIdFromDisplayId!((uint)display.displayId, out _, out uint outputId);
+
+                            var edid = ReadEdid(gpu, (int)outputId);
+                            if (edid.ManufacturerId == 0)
+                                edid = ReadEdid(gpu, display.displayId);
 
                             result.Add(new I2CDisplayInfo
                             {
-                                VendorDisplayHandle = new NvDisplayHandle(gpu, display.displayId),
+                                VendorDisplayHandle = new NvDisplayHandle(gpu, display.displayId, outputId),
                                 EdidManufacturerId = edid.ManufacturerId,
                                 EdidProductCode = edid.ProductCode,
                                 EdidSerial = edid.Serial,
@@ -162,12 +172,13 @@ namespace SimpleKVM.Displays.win.I2C
         public bool SetVcp(object displayHandle, byte sourceAddress, byte vcpCode, uint value)
         {
             if (!_initialized || displayHandle is not NvDisplayHandle handle) return false;
+            if (handle.OutputId == 0) return false;
 
             byte[] msg = DdcCiMessage.BuildSetVcp(sourceAddress, vcpCode, value);
 
             var i2cInfo = new NV_I2C_INFO_V3();
             i2cInfo.version = NV_I2C_INFO_V3_VER;
-            i2cInfo.displayMask = (uint)handle.DisplayId;   //NvAPI_I2CWrite takes the display id directly, not a shifted bit
+            i2cInfo.displayMask = handle.OutputId;  //the legacy single-bit output id, as returned by NvAPI_GetAssociatedDisplayOutputId
             i2cInfo.bIsDDCPort = true;
             i2cInfo.i2cDevAddress = DdcCiMessage.DestinationAddress;
             i2cInfo.i2cSpeed = NVAPI_I2C_SPEED_DEPRECATED;
@@ -207,12 +218,13 @@ namespace SimpleKVM.Displays.win.I2C
 
         static ConnectorType MapConnectorType(int nvConnector)
         {
+            //NV_MONITOR_CONN_TYPE
             return nvConnector switch
             {
-                0 => ConnectorType.VGA,
-                2 or 3 or 32 or 33 => ConnectorType.DVI,
-                12 or 13 => ConnectorType.HDMI,
-                16 or 17 => ConnectorType.DisplayPort,
+                1 => ConnectorType.VGA,
+                4 => ConnectorType.HDMI,
+                5 => ConnectorType.DVI,
+                7 => ConnectorType.DisplayPort,
                 _ => ConnectorType.Unknown
             };
         }
@@ -231,7 +243,7 @@ namespace SimpleKVM.Displays.win.I2C
             public int displayId;
             public uint flags;
 
-            public bool isConnected => (flags & 0x04) != 0;
+            public bool isConnected => (flags & 0x40) != 0;    //bit 6; bit 2 is isActive
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -241,6 +253,8 @@ namespace SimpleKVM.Displays.win.I2C
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
             public byte[] edidData;
             public int edidSize;
+            public uint edidId;     //NV_EDID_V3 has these two extra fields; without them the size-encoded
+            public uint offset;     //version is wrong and NvAPI rejects the struct
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -262,9 +276,10 @@ namespace SimpleKVM.Displays.win.I2C
         }
     }
 
-    public class NvDisplayHandle(IntPtr gpuHandle, int displayId)
+    public class NvDisplayHandle(IntPtr gpuHandle, int displayId, uint outputId)
     {
         public IntPtr GpuHandle { get; } = gpuHandle;
         public int DisplayId { get; } = displayId;
+        public uint OutputId { get; } = outputId;
     }
 }
