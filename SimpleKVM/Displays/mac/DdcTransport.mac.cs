@@ -103,9 +103,9 @@ namespace SimpleKVM.Displays.mac
 
         /// <summary>
         /// Reads the MCCS capabilities string via chunked 0xF3 requests. Returns null when the
-        /// monitor doesn't answer them (common); callers fall back to EDID + probing.
+        /// monitor doesn't answer them; callers fall back to EDID + probing.
         /// </summary>
-        public string? ReadCapabilitiesString()
+        public string? ReadCapabilitiesString(Action<string>? log = null)
         {
             var result = new StringBuilder();
             int offset = 0;
@@ -114,56 +114,82 @@ namespace SimpleKVM.Displays.mac
             {
                 for (int fragment = 0; fragment < 64; fragment++)   //hard cap against a looping monitor
                 {
-                    byte[] request = [0x83, 0xF3, (byte)(offset >> 8), (byte)(offset & 0xFF), 0];
-                    request[4] = (byte)(0x6E ^ request[0] ^ request[1] ^ request[2] ^ request[3]);
+                    bool frameFound = false;
 
-                    bool writeOk = true;
-                    for (int i = 0; i < 2; i++)
+                    for (int attempt = 0; attempt < 3 && !frameFound; attempt++)
                     {
-                        Thread.Sleep(10);
-                        if (IOKitNative.AVServiceWriteI2C(AvService, ChipAddress, DataAddress, request) != 0)
+                        byte[] request = [0x83, 0xF3, (byte)(offset >> 8), (byte)(offset & 0xFF), 0];
+                        request[4] = (byte)(0x6E ^ request[0] ^ request[1] ^ request[2] ^ request[3]);
+
+                        bool writeOk = true;
+                        for (int i = 0; i < 2; i++)
                         {
-                            writeOk = false;
+                            Thread.Sleep(10);
+                            if (IOKitNative.AVServiceWriteI2C(AvService, ChipAddress, DataAddress, request) != 0)
+                            {
+                                writeOk = false;
+                                break;
+                            }
+                        }
+
+                        if (!writeOk)
+                        {
+                            log?.Invoke($"offset {offset}: write failed (attempt {attempt + 1})");
+                            Thread.Sleep(100);
+                            continue;
+                        }
+
+                        Thread.Sleep(50);
+
+                        //Fragments are up to 32 data bytes plus framing, and the DCP can prepend
+                        //stale bytes, so read generously and scan for a checksum-valid frame
+                        var reply = new byte[96];
+                        if (IOKitNative.AVServiceReadI2C(AvService, ChipAddress, DataAddress, reply) != 0)
+                        {
+                            log?.Invoke($"offset {offset}: read failed (attempt {attempt + 1})");
+                            Thread.Sleep(100);
+                            continue;
+                        }
+
+                        //Reply frame: [0x6E][len|0x80][0xE3][offH][offL][fragment bytes...][chk]
+                        for (int start = 0; start + 7 <= reply.Length; start++)
+                        {
+                            if (reply[start] != 0x6E || (reply[start + 1] & 0x80) == 0 || reply[start + 2] != 0xE3) continue;
+
+                            int len = reply[start + 1] & 0x7F;          //bytes after the length byte, excluding checksum
+                            if (len < 3 || start + 2 + len >= reply.Length) continue;
+
+                            byte checksum = 0x50;
+                            for (int i = start; i < start + 2 + len; i++) checksum ^= reply[i];
+                            if (checksum != reply[start + 2 + len]) continue;
+
+                            int replyOffset = (reply[start + 3] << 8) | reply[start + 4];
+                            if (replyOffset != offset) continue;
+
+                            int fragmentLength = len - 3;
+                            if (fragmentLength == 0)
+                            {
+                                log?.Invoke($"offset {offset}: end of string");
+                                return result.Length > 0 ? result.ToString() : null;
+                            }
+
+                            for (int i = 0; i < fragmentLength; i++)
+                            {
+                                var b = reply[start + 5 + i];
+                                if (b != 0) result.Append((char)b);     //some monitors NUL-pad the string
+                            }
+
+                            log?.Invoke($"offset {offset}: +{fragmentLength} bytes (frame at {start})");
+                            offset += fragmentLength;
+                            frameFound = true;
                             break;
                         }
-                    }
-                    if (!writeOk) return null;
 
-                    Thread.Sleep(50);
-
-                    var reply = new byte[48];
-                    if (IOKitNative.AVServiceReadI2C(AvService, ChipAddress, DataAddress, reply) != 0) return null;
-
-                    //Reply frame: [0x6E][len|0x80][0xE3][offH][offL][fragment bytes...][chk]
-                    bool frameFound = false;
-                    for (int start = 0; start + 7 <= reply.Length; start++)
-                    {
-                        if (reply[start] != 0x6E || (reply[start + 1] & 0x80) == 0 || reply[start + 2] != 0xE3) continue;
-
-                        int len = reply[start + 1] & 0x7F;          //bytes after the length byte, excluding checksum
-                        if (len < 3 || start + 2 + len >= reply.Length) continue;
-
-                        byte checksum = 0x50;
-                        for (int i = start; i < start + 2 + len; i++) checksum ^= reply[i];
-                        if (checksum != reply[start + 2 + len]) continue;
-
-                        int replyOffset = (reply[start + 3] << 8) | reply[start + 4];
-                        if (replyOffset != offset) continue;
-
-                        int fragmentLength = len - 3;
-                        if (fragmentLength == 0)
+                        if (!frameFound)
                         {
-                            return result.Length > 0 ? result.ToString() : null;
+                            log?.Invoke($"offset {offset}: no valid frame (attempt {attempt + 1}), raw: {string.Join(" ", reply.Select(b => b.ToString("X2")))}");
+                            Thread.Sleep(100);
                         }
-
-                        for (int i = 0; i < fragmentLength; i++)
-                        {
-                            result.Append((char)reply[start + 5 + i]);
-                        }
-
-                        offset += fragmentLength;
-                        frameFound = true;
-                        break;
                     }
 
                     if (!frameFound) return null;

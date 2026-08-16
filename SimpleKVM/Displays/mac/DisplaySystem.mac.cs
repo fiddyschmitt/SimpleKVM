@@ -113,12 +113,17 @@ namespace SimpleKVM.Displays.mac
                 model = EdidModelName(edid) ?? model;
             }
 
-            var caps = display.Transport?.ReadCapabilitiesString();
+            Action<string>? ddcDebug = Environment.GetEnvironmentVariable("SIMPLEKVM_DDC_DEBUG") == "1"
+                                        ? msg => Console.Error.WriteLine($"[caps] {msg}")
+                                        : null;
+            var caps = display.Transport?.ReadCapabilitiesString(ddcDebug);
             if (caps != null)
             {
                 var parsed = CapabilitiesParser.Parse(caps);
 
-                if (!string.IsNullOrEmpty(parsed.Model))
+                //The EDID display name (e.g. "S240HL") is usually more specific than the
+                //capabilities model (often just the brand), so only fill a gap here
+                if (!string.IsNullOrEmpty(parsed.Model) && model == "Unknown")
                     model = parsed.Model;
 
                 if (sources == null && parsed.VcpFeatures.TryGetValue(0x60, out var inputSources))

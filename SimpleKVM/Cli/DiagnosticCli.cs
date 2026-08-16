@@ -72,6 +72,9 @@ namespace SimpleKVM.Cli
                 case "--set-startup" when args.Length >= 2:
                     return SetStartup(args[1]);
 
+                case "--get-caps" when args.Length >= 2:
+                    return GetCaps(int.Parse(args[1]));
+
                 default:
                     Console.WriteLine("""
                         SimpleKVM diagnostic commands:
@@ -200,6 +203,39 @@ namespace SimpleKVM.Cli
                 Thread.Sleep(Timeout.Infinite);
             }
 #endif
+        }
+
+        static int GetCaps(int monitorNumber)
+        {
+#if !WINDOWS
+            if (OperatingSystem.IsMacOS())
+            {
+                var monitors = DisplaySystem.GetMonitors();
+                if (monitors[monitorNumber - 1] is not Displays.mac.Monitor mon || mon.Transport == null)
+                {
+                    Console.WriteLine("No DDC transport for that monitor.");
+                    return 1;
+                }
+
+                var caps = mon.Transport.ReadCapabilitiesString(Console.WriteLine);
+                if (caps == null)
+                {
+                    Console.WriteLine("No capabilities string.");
+                    return 1;
+                }
+
+                Console.WriteLine($"Capabilities ({caps.Length} chars, last bytes {string.Join(" ", caps[^Math.Min(3, caps.Length)..].Select(c => ((int)c).ToString("X2")))}): {caps}");
+
+                var parsed = CapabilitiesParser.Parse(caps);
+                Console.WriteLine($"Parsed model: {parsed.Model ?? "(none)"}, MCCS {parsed.MccsVersion ?? "(none)"}");
+                Console.WriteLine(parsed.VcpFeatures.TryGetValue(0x60, out var inputs)
+                    ? $"VCP 0x60 sources: {string.Join(" ", inputs.Select(b => $"0x{b:X2}"))}"
+                    : "VCP 0x60 not found in parsed features");
+                return 0;
+            }
+#endif
+            Console.WriteLine("--get-caps is only available on macOS (Windows reads capabilities via Dxva2).");
+            return 1;
         }
 
         static int SetStartup(string mode)
