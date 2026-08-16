@@ -129,6 +129,14 @@ namespace SimpleKVM.Cli
         {
             var monitors = DisplaySystem.GetMonitors();
             var mon = monitors[monitorNumber - 1];
+
+            var current = mon.GetCurrentSource();
+            if (current > 0 && current == sourceId && !Configuration.AppSettingsManager.Current.ForceInputChange)
+            {
+                Console.WriteLine($"Monitor [{monitorNumber}] {mon.Model} is already on source 0x{sourceId:X2}; nothing to do.");
+                return 0;
+            }
+
             Console.WriteLine($"Switching monitor [{monitorNumber}] {mon.Model} to source 0x{sourceId:X2}...");
             bool ok = mon.SetSource(sourceId);
             Console.WriteLine(ok ? "OK" : "FAILED");
