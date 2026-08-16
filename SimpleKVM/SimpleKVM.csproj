@@ -5,6 +5,7 @@
     <TargetFrameworks>net10.0-windows7.0;net10.0</TargetFrameworks>
     <UseWindowsForms Condition="$(TargetFramework.Contains('-windows'))">true</UseWindowsForms>
     <Nullable>enable</Nullable>
+    <Version>2.3.2</Version>
     <ApplicationIcon>iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -16,9 +17,6 @@
        mac\ folders and *.mac.cs files compile on the plain TFM and are selected at runtime by PlatformServices. -->
   <ItemGroup Condition="!$(TargetFramework.Contains('-windows'))">
     <Compile Remove="**\win\**\*.cs;**\*.win.cs" />
-    <!-- The WinForms UI is excluded off-Windows until it is replaced by the cross-platform UI -->
-    <Compile Remove="GUI\**\*.cs;Form1.cs;Form1.Designer.cs" />
-    <EmbeddedResource Remove="GUI\**\*.resx;Form1.resx" />
   </ItemGroup>
 
   <ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
@@ -26,6 +24,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AvaloniaResource Include="iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 

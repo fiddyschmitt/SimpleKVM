@@ -1,7 +1,7 @@
+using Avalonia;
 using System;
 #if WINDOWS
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 #endif
 
 namespace SimpleKVM
@@ -29,16 +29,16 @@ namespace SimpleKVM
                 return Cli.DiagnosticCli.Run(args);
             }
 
-#if WINDOWS
-            Application.SetHighDpiMode(HighDpiMode.SystemAware);
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
             return 0;
-#else
-            Console.WriteLine("SimpleKVM does not have a GUI on this platform yet. Run with --help style arguments; see --list-monitors.");
-            return Cli.DiagnosticCli.Run(["--help"]);
-#endif
+        }
+
+        public static AppBuilder BuildAvaloniaApp()
+        {
+            return AppBuilder
+                    .Configure<Ui.App>()
+                    .UsePlatformDetect()
+                    .LogToTrace();
         }
     }
 }

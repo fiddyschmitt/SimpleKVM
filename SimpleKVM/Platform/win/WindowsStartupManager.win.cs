@@ -1,46 +1,21 @@
-using SimpleKVM.Configuration;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
-namespace SimpleKVM.GUI
+namespace SimpleKVM.Platform.win
 {
-    public partial class SettingsForm : Form
+    /// <summary>
+    /// Run-at-startup via a shortcut in the user's Startup folder, created through the
+    /// WScript.Shell COM object (no extra package needed for .lnk writing).
+    /// </summary>
+    public class WindowsStartupManager : IStartupManager
     {
         static readonly string StartupFolder = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
         static readonly string ShortcutPath = Path.Combine(StartupFolder, "SimpleKVM.lnk");
 
-        public SettingsForm()
-        {
-            InitializeComponent();
+        static string ExecutablePath => Environment.ProcessPath ?? throw new InvalidOperationException("Cannot determine the executable path");
 
-            chkRunAtStartup.Checked = IsStartupShortcutValid();
-            chkForceInputChange.Checked = AppSettingsManager.Current.ForceInputChange;
-            chkFollowSourceChanges.Checked = AppSettingsManager.Current.FollowSourceChanges;
-        }
-
-        private void BtnOK_Click(object? sender, EventArgs e)
-        {
-            try
-            {
-                ApplyStartupSetting(chkRunAtStartup.Checked);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Failed to update startup shortcut:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            AppSettingsManager.Current.ForceInputChange = chkForceInputChange.Checked;
-            AppSettingsManager.Current.FollowSourceChanges = chkFollowSourceChanges.Checked;
-            AppSettingsManager.Save();
-
-            DialogResult = DialogResult.OK;
-            Close();
-        }
-
-        static bool IsStartupShortcutValid()
+        public bool IsEnabled()
         {
             if (!File.Exists(ShortcutPath)) return false;
 
@@ -56,7 +31,7 @@ namespace SimpleKVM.GUI
                     try
                     {
                         string targetPath = shortcut.TargetPath;
-                        return string.Equals(targetPath, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase);
+                        return string.Equals(targetPath, ExecutablePath, StringComparison.OrdinalIgnoreCase);
                     }
                     finally
                     {
@@ -74,9 +49,9 @@ namespace SimpleKVM.GUI
             }
         }
 
-        static void ApplyStartupSetting(bool enable)
+        public void SetEnabled(bool enabled)
         {
-            if (enable)
+            if (enabled)
             {
                 CreateStartupShortcut();
             }
@@ -95,7 +70,7 @@ namespace SimpleKVM.GUI
                 var shortcut = shell.CreateShortcut(ShortcutPath);
                 try
                 {
-                    shortcut.TargetPath = Application.ExecutablePath;
+                    shortcut.TargetPath = ExecutablePath;
                     shortcut.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory;
                     shortcut.WindowStyle = 7; // WshWindowStyle.Minimized
                     shortcut.Save();

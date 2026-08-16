@@ -9,7 +9,7 @@ namespace SimpleKVM.Platform.win
         public IDisplayPlatform Displays { get; } = new WindowsDisplayPlatform();
         public IHotkeyBackend Hotkeys { get; } = new WindowsHotkeys();
         public IIdleProvider Idle { get; } = new WindowsIdle();
-        public IStartupManager? Startup => null;    //moves here from SettingsForm together with the UI port
+        public IStartupManager? Startup { get; } = new WindowsStartupManager();
 
         USB.USBSystem? usb;
         public USB.USBSystem Usb => usb ??= new USB.win.USBSystem();
