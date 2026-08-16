@@ -1,0 +1,2 @@
+# Shell scripts must stay LF or bash on macOS/Linux rejects them
+*.sh text eol=lf
