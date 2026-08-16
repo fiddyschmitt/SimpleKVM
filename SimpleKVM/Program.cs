@@ -38,6 +38,13 @@ namespace SimpleKVM
             return AppBuilder
                     .Configure<Ui.App>()
                     .UsePlatformDetect()
+                    .With(new MacOSPlatformOptions
+                    {
+                        //Menu-bar agent: no Dock icon or Cmd+Tab entry. Avalonia otherwise forces
+                        //the regular activation policy and overrides LSUIElement in the plist.
+                        ShowInDock = false,
+                        DisableDefaultApplicationMenuItems = true
+                    })
                     .LogToTrace();
         }
     }

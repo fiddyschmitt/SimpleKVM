@@ -51,11 +51,11 @@ namespace SimpleKVM.Ui
 
                 trayIcon.Clicked += (s, e) => RestoreMainWindow(mainWindow);
 
-                var openItem = new NativeMenuItem("Open");
+                var openItem = new NativeMenuItem(OperatingSystem.IsMacOS() ? "Open Simple KVM" : "Open");
                 openItem.Click += (s, e) => RestoreMainWindow(mainWindow);
 
-                var exitItem = new NativeMenuItem("Exit");
-                exitItem.Click += (s, e) => mainWindow.Close();
+                var exitItem = new NativeMenuItem(OperatingSystem.IsMacOS() ? "Quit Simple KVM" : "Exit");
+                exitItem.Click += (s, e) => mainWindow.Quit();
 
                 trayIcon.Menu = [openItem, new NativeMenuItemSeparator(), exitItem];
 
@@ -67,6 +67,13 @@ namespace SimpleKVM.Ui
                     trayIcon.IsVisible = false;
                     trayIcon.Dispose();
                 };
+
+                //As a menu-bar agent the app has no Dock icon and the window can't be reached
+                //once closed except through the menu-bar icon, so keep running in the background
+                if (OperatingSystem.IsMacOS())
+                {
+                    desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                }
             }
 
             base.OnFrameworkInitializationCompleted();

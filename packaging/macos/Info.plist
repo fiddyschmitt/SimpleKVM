@@ -20,6 +20,9 @@
 	<string>SimpleKVM.icns</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<!-- Menu-bar agent: no Dock icon or Cmd+Tab entry; the app lives in its menu-bar icon -->
+	<key>LSUIElement</key>
+	<true/>
 	<key>LSMinimumSystemVersion</key>
 	<string>12.0</string>
 	<key>NSPrincipalClass</key>

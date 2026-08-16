@@ -442,10 +442,25 @@ namespace SimpleKVM.Ui
             Width = Math.Min(neededWidth, maxWidth);
         }
 
+        bool quitting;
+
+        /// <summary>
+        /// Shuts the app down for real. On macOS the app is a menu-bar agent, so the window's
+        /// close button merely hides it; only the menu-bar "Quit" item comes through here.
+        /// </summary>
+        public void Quit()
+        {
+            quitting = true;
+            Close();
+
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.Shutdown();
+            }
+        }
+
         void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
         {
-            sourceFollowWatcher?.Stop();
-
             //Preserve the order the user sees (including any column sort), like the old
             //ListView did, so the next start lists the rules the same way
             var orderedRules = rulesView.Cast<RuleRow>().Select(row => row.Rule).ToList();
@@ -455,6 +470,17 @@ namespace SimpleKVM.Ui
             }
 
             RuleStore.Save();
+
+            //On macOS the app keeps running as a menu-bar agent; the close button just hides
+            //the window (Cmd+W behaviour). Quit is only via the menu-bar icon.
+            if (OperatingSystem.IsMacOS() && !quitting)
+            {
+                e.Cancel = true;
+                Hide();
+                return;
+            }
+
+            sourceFollowWatcher?.Stop();
         }
     }
 
