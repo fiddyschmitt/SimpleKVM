@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using SimpleKVM.Configuration;
 using SimpleKVM.Rules;
 using SimpleKVM.USB;
@@ -162,6 +164,29 @@ namespace SimpleKVM.Ui
                     await EditRule(null, null, selected);
                 }
             };
+
+            //Clicking the empty area below the rows clears the selection, like the old ListView.
+            //Registered on the window: the grid's rows presenter swallows presses on empty space
+            //before they'd reach a grid-level handler.
+            AddHandler(PointerPressedEvent, (s, e) =>
+            {
+                if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+
+                var position = e.GetPosition(grid);
+                if (position.X < 0 || position.Y < 0 || position.X > grid.Bounds.Width || position.Y > grid.Bounds.Height) return;
+
+                var hit = grid.GetVisualsAt(position).ToList();
+
+                bool hitRowOrChrome = hit.Any(v =>
+                    v.FindAncestorOfType<DataGridRow>(includeSelf: true) != null ||
+                    v.FindAncestorOfType<DataGridColumnHeader>(includeSelf: true) != null ||
+                    v.FindAncestorOfType<ScrollBar>(includeSelf: true) != null);
+
+                if (!hitRowOrChrome)
+                {
+                    grid.SelectedItem = null;
+                }
+            }, RoutingStrategies.Tunnel, handledEventsToo: true);
 
             grid.ContextMenu = BuildContextMenu();
 
