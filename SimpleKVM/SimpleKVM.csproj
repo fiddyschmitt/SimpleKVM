@@ -1,30 +1,35 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows7.0</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
+    <TargetFrameworks>net10.0-windows7.0;net10.0</TargetFrameworks>
+    <UseWindowsForms Condition="$(TargetFramework.Contains('-windows'))">true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ApplicationIcon>iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget Condition="$(TargetFramework.Contains('-windows'))">x64</PlatformTarget>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="Displays\win\MonitorController.original.cs" />
+  <!-- Windows-only sources live in win\ folders or *.win.cs files; they only compile on the -windows TFM.
+       mac\ folders and *.mac.cs files compile on the plain TFM and are selected at runtime by PlatformServices. -->
+  <ItemGroup Condition="!$(TargetFramework.Contains('-windows'))">
+    <Compile Remove="**\win\**\*.cs;**\*.win.cs" />
+    <!-- The WinForms UI is excluded off-Windows until it is replaced by the cross-platform UI -->
+    <Compile Remove="GUI\**\*.cs;Form1.cs;Form1.Designer.cs" />
+    <EmbeddedResource Remove="GUI\**\*.resx;Form1.resx" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Displays\linux\" />
-    <Folder Include="Displays\mac\" />
-    <Folder Include="USB\linux\" />
-    <Folder Include="USB\mac\" />
+  <ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
+    <Compile Remove="**\mac\**\*.cs;**\*.mac.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
     <PackageReference Include="System.Management" Version="10.0.7" />
   </ItemGroup>
 

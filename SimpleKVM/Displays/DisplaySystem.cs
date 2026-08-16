@@ -1,8 +1,5 @@
-﻿using System;
+using SimpleKVM.Platform;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SimpleKVM.Displays
 {
@@ -10,27 +7,12 @@ namespace SimpleKVM.Displays
     {
         public static IList<Monitor> GetMonitors()
         {
-            List<Monitor>? result = null;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                result = win.DisplaySystem.GetMonitors()
-                                .Cast<Monitor>()
-                                .ToList();
-            }
-
-            result ??= [];
-            return result;
+            return PlatformServices.Current.Displays.GetMonitors();
         }
 
         public static Dictionary<string, int> GetCurrentSources()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return win.DisplaySystem.GetCurrentSources();
-            }
-
-            return [];
+            return PlatformServices.Current.Displays.GetCurrentSources();
         }
     }
 }

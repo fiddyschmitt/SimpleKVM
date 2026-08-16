@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using SimpleKVM.Displays.win.I2C;
+using SimpleKVM.Displays.I2C;
 
 namespace SimpleKVM.Displays.win
 {

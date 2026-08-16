@@ -3,7 +3,6 @@ using SimpleKVM.Rules.Triggers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.DirectoryServices;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -88,26 +87,21 @@ namespace SimpleKVM.GUI.Triggers
             bool hotkeyAvailable = true;
 
 
-            try
+            //check if the hotkey is in use by another application
+            if (!Input.HotkeySystem.IsAvailable(textBox1.Text))
             {
-                //check if the hotkey is in use
-                var hotkey = new Hotkey(textBox1.Text, null);
-                hotkey.UnregisterHotkey();
-
-                //check if another rule already uses this hotkey
-                bool hotkeyInUseByAnotherRule = Form1
-                                                    .Rules
-                                                    .Where(rule => rule != RuleBeingEdited)
-                                                    .Select(rule => rule.Trigger)
-                                                    .OfType<HotkeyTrigger>()
-                                                    .Any(trigger => trigger.HotkeyAsString.Equals(textBox1.Text));
-
-                if (hotkeyInUseByAnotherRule)
-                {
-                    hotkeyAvailable = false;
-                }
+                hotkeyAvailable = false;
             }
-            catch
+
+            //check if another rule already uses this hotkey
+            bool hotkeyInUseByAnotherRule = RuleStore
+                                                .Rules
+                                                .Where(rule => rule != RuleBeingEdited)
+                                                .Select(rule => rule.Trigger)
+                                                .OfType<HotkeyTrigger>()
+                                                .Any(trigger => trigger.HotkeyAsString.Equals(textBox1.Text));
+
+            if (hotkeyInUseByAnotherRule)
             {
                 hotkeyAvailable = false;
             }

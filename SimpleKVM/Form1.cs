@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using SimpleKVM.Configuration;
-using SimpleKVM.Displays.win;
+using SimpleKVM.Displays;
 using SimpleKVM.GUI;
 using SimpleKVM.GUI.Rules;
 using SimpleKVM.GUI.Triggers;
@@ -30,27 +30,17 @@ namespace SimpleKVM
         ListViewEx<Rule>? ruleListview;
         const string ProgramName = "Simple KVM";
         const string Version = "2.3.2";
-        public static List<Rule> Rules { get; protected set; } = [];
-        static readonly string RulesFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "rules.json");
-        static readonly string ConfigFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
-
-        public static Config? Config { get; protected set; }
 
         readonly Task initMonitorList;
 
         public Form1()
         {
-            //DisplaySystem_2_experiments.GetMonitors();
-
-            //var hk = new ChooseHotkey();
-            //hk.Show();
-
             InitializeComponent();
             Text = $"{ProgramName} {Version}";
 
             InitialiseSystemTray();
 
-            LoadConfig();
+            ConfigManager.Load();
             AppSettingsManager.Load();
 
             initMonitorList = Task.Factory.StartNew(() =>
@@ -60,9 +50,9 @@ namespace SimpleKVM
 
             InitializeRuleListView();
 
-            LoadRules();
+            RuleStore.Load();
 
-            Rules.ForEach(rule =>
+            RuleStore.Rules.ForEach(rule =>
             {
                 ruleListview?.Add(rule);
 
@@ -77,7 +67,7 @@ namespace SimpleKVM
 
             usbSystem = USBSystem.INSTANCE;
 
-            sourceFollowWatcher = new SourceFollowWatcher(() => Rules);
+            sourceFollowWatcher = new SourceFollowWatcher(() => RuleStore.Rules);
             ApplyFollowSourceSetting();
         }
 
@@ -175,7 +165,7 @@ namespace SimpleKVM
                         if (rule != null)
                         {
                             rule.StopMonitoring();
-                            Rules.Remove(rule);
+                            RuleStore.Rules.Remove(rule);
                             ruleListview?.Remove(rule);
                         }
                     });
@@ -236,7 +226,7 @@ namespace SimpleKVM
             if (usbSystem == null) return;
 
             //pause the rules which are current running
-            var paused = Rules
+            var paused = RuleStore.Rules
                             .Where(rule => rule.Status == EnumRuleStatus.Running || rule.Status == EnumRuleStatus.Error)
                             .Select(rule =>
                             {
@@ -303,7 +293,7 @@ namespace SimpleKVM
                         ruleListview?.Add(newRule);
 
                         newRule.Triggered += Rule_Triggered;
-                        Rules.Add(newRule);
+                        RuleStore.Rules.Add(newRule);
 
                         newRule.StartMonitoring();
                     }
@@ -369,68 +359,9 @@ namespace SimpleKVM
             contextMenu.Show(btnNewRule, new Point(btnNewRule.Width, (int)(btnNewRule.Height / 2d)));
         }
 
-        private static void LoadConfig()
-        {
-            //var exampleConfig = new Config()
-            //{
-            //    Overrides = new()
-            //    {
-            //        MonitorOverrides =
-            //            [
-            //                new MonitorOverride()
-            //                {
-            //                    MonitorNumber = 1,
-            //                    Sources =
-            //                    [
-            //                        new Source()
-            //                        {
-            //                            SourceName = "DP1",
-            //                            SourceId = 15
-            //                        },
-            //                        new Source()
-            //                        {
-            //                            SourceName = "HDMI1",
-            //                            SourceId = 5
-            //                        },
-            //                        new Source()
-            //                        {
-            //                            SourceName = "HDMI2",
-            //                            SourceId = 6
-            //                        }
-            //                    ]
-            //                }
-            //            ]
-            //    }
-            //};
-            //var exampleConfigJson = JsonConvert.SerializeObject(exampleConfig, Formatting.Indented);
-            //File.WriteAllText(ConfigFilename, exampleConfigJson);
-
-            if (File.Exists(ConfigFilename))
-            {
-                try
-                {
-                    var configText = File.ReadAllText(ConfigFilename);
-                    Config = JsonConvert.DeserializeObject<Config>(configText);
-                }
-                catch { }
-            }
-        }
-
-        private static void LoadRules()
-        {
-            if (File.Exists(RulesFilename))
-            {
-                var rulesJson = File.ReadAllText(RulesFilename);
-                var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? [];
-                Rules.AddRange(loadedRules);
-            }
-        }
-
         private static void SaveRules()
         {
-            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-            var rulesJson = JsonConvert.SerializeObject(Rules, Formatting.Indented, settings);
-            Extensions.WriteTextFile(RulesFilename, rulesJson);
+            RuleStore.Save();
         }
 
         private void Rule_Triggered(object? sender, EventArgs e)
@@ -473,7 +404,7 @@ namespace SimpleKVM
             if (ruleListview == null) return;
 
             //preserve the order
-            Rules = ruleListview.GetItems();
+            RuleStore.Rules = ruleListview.GetItems();
 
             SaveRules();
         }

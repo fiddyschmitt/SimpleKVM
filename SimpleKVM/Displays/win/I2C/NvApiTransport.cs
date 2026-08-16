@@ -1,3 +1,4 @@
+using SimpleKVM.Displays.I2C;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;

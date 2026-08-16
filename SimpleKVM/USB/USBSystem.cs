@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
+using SimpleKVM.Platform;
+using System;
 
 namespace SimpleKVM.USB
 {
@@ -13,20 +11,18 @@ namespace SimpleKVM.USB
             UsbEvent?.Invoke(this, e);
         }
 
-        static USBSystem? usbSystem = null;
         public static USBSystem? INSTANCE
         {
             get
             {
-                if (usbSystem == null)
+                try
                 {
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        usbSystem = new win.USBSystem();
-                    }
+                    return PlatformServices.Current.Usb;
                 }
-
-                return usbSystem;
+                catch (PlatformNotSupportedException)
+                {
+                    return null;
+                }
             }
         }
     }

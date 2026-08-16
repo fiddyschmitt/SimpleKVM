@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace SimpleKVM.Displays.win
+namespace SimpleKVM.Displays
 {
     public class ParsedCapabilities
     {

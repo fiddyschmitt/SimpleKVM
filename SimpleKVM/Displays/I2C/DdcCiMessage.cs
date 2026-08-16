@@ -1,4 +1,4 @@
-namespace SimpleKVM.Displays.win.I2C
+namespace SimpleKVM.Displays.I2C
 {
     public static class DdcCiMessage
     {

@@ -1,7 +1,7 @@
 ﻿using DDCKVMService;
 using Newtonsoft.Json;
 using SimpleKVM.Configuration;
-using SimpleKVM.Displays.win.I2C;
+using SimpleKVM.Displays.I2C;
 using System;
 using System.Collections.Generic;
 using System.Threading;

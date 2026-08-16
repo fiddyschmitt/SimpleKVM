@@ -1,12 +1,11 @@
 using Newtonsoft.Json;
-using System;
 using System.IO;
 
 namespace SimpleKVM.Configuration
 {
     public static class AppSettingsManager
     {
-        static readonly string SettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+        static readonly string SettingsPath = AppPaths.SettingsFile;
 
         public static AppSettings Current { get; private set; } = new();
 

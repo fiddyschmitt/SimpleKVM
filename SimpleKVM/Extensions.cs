@@ -4,12 +4,8 @@ using System.Diagnostics;
 using System.Text;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
-using System.Xml.Serialization;
 using System.IO;
 using Newtonsoft.Json;
-using System.Xml;
-using static DDCKVMService.MonitorController;
 
 namespace SimpleKVM
 {
@@ -62,51 +58,6 @@ namespace SimpleKVM
             if (string.IsNullOrEmpty(sb.ToString())) return "0 minutes";
 
             return sb.ToString().Trim();
-        }
-
-        public static ColumnHeader? GetColumnByName(this ListView listView, string columnName)
-        {
-            var result = listView
-                            .Columns
-                            .Cast<ColumnHeader>()
-                            .FirstOrDefault(col => col.Text.Equals(columnName));
-
-            return result;
-        }
-
-        public static int ScreenIndex(this Screen screen)
-        {
-            var result = Screen
-                            .AllScreens
-                            .OrderBy(scr => scr.Bounds.Left)
-                            .ThenBy(scr => scr.Bounds.Top)
-                            .ThenBy(scr => scr.DeviceName)
-                            .Select((scr, index) => new
-                            {
-                                Screen = scr,
-                                Index = index
-                            })
-                            .Where(scr => scr.Screen.DeviceName.Equals(screen.DeviceName))
-                            .Select(scr => scr.Index)
-                            .First();
-
-            result++;
-
-            return result;
-        }
-
-        public static string GetUniqueId(this Screen screen)
-        {
-            var str = $"{screen.Bounds.Left},{screen.Bounds.Top},{screen.Bounds.Right},{screen.Bounds.Bottom}";
-            var strMD5 = str.CreateMD5();
-            return strMD5;
-        }
-
-        public static string GetUniqueId(this MONITORINFOEX monitorInfo)
-        {
-            var str = $"{monitorInfo.Monitor.Left},{monitorInfo.Monitor.Top},{monitorInfo.Monitor.Right},{monitorInfo.Monitor.Bottom}";
-            var strMD5 = str.CreateMD5();
-            return strMD5;
         }
 
         public static string CreateMD5(this string input)

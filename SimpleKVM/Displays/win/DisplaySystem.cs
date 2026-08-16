@@ -1,7 +1,7 @@
 using DDCKVMService;
 using SimpleKVM.Configuration;
+using SimpleKVM.Displays.I2C;
 using SimpleKVM.Displays.win.I2C;
-using SimpleKVM.GUI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,8 +66,8 @@ namespace SimpleKVM.Displays.win
                     MonitorOverride? monitorOverride = null;
                     if (monitorNumber.HasValue)
                     {
-                        monitorOverride = Form1
-                                    .Config?
+                        monitorOverride = ConfigManager
+                                    .Current?
                                     .Overrides?
                                     .MonitorOverrides?
                                     .FirstOrDefault(ovr => ovr.MonitorNumber == monitorNumber);
@@ -97,7 +97,7 @@ namespace SimpleKVM.Displays.win
                         if (sources == null && parsed.VcpFeatures.TryGetValue(0x60, out var inputSources))
                         {
                             sources = inputSources
-                                        .Select(sourceId => ((int)sourceId, UcSelectMonitorSource.SourceIdToName(sourceId)))
+                                        .Select(sourceId => ((int)sourceId, VcpSourceNames.SourceIdToName(sourceId)))
                                         .ToList();
                         }
                     }

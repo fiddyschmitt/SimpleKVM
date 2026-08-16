@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace SimpleKVM.Displays.win.I2C
+namespace SimpleKVM.Displays.I2C
 {
     public enum ConnectorType
     {

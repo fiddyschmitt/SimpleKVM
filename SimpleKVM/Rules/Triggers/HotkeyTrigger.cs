@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Forms;
+using SimpleKVM.Input;
+using System;
 
 namespace SimpleKVM.Rules.Triggers
 {
@@ -20,19 +18,17 @@ namespace SimpleKVM.Rules.Triggers
             return result;
         }
 
+        IDisposable? registration;
+
         public override void StartMonitoring()
         {
-            hotkey = new Hotkey(HotkeyAsString, () =>
-            {
-                RaiseTriggered();
-            });
+            registration = HotkeySystem.Register(HotkeyAsString, RaiseTriggered);
         }
-
-        Hotkey? hotkey;
 
         public override void StopMonitoring()
         {
-            hotkey?.UnregisterHotkey();
+            registration?.Dispose();
+            registration = null;
         }
     }
 }
