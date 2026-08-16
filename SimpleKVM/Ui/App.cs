@@ -61,8 +61,8 @@ namespace SimpleKVM.Ui
 
         static void RestoreMainWindow(Window mainWindow)
         {
+            mainWindow.WindowState = WindowState.Normal;    //deminiaturize before showing
             mainWindow.Show();
-            mainWindow.WindowState = WindowState.Normal;
             mainWindow.Activate();
         }
 

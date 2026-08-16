@@ -95,14 +95,19 @@ namespace SimpleKVM.Ui
             statsTimer.Tick += (s, e) => RefreshRows();
             statsTimer.Start();
 
-            //Minimizing hides the window; the tray icon brings it back (matching the old behavior)
-            PropertyChanged += (s, e) =>
+            //On Windows, minimizing hides the window and the tray icon brings it back (matching
+            //the old behavior). On macOS the window must minimize to the Dock natively — hiding
+            //it mid-minimize leaves it blank when restored.
+            if (OperatingSystem.IsWindows())
             {
-                if (e.Property == WindowStateProperty && WindowState == WindowState.Minimized)
+                PropertyChanged += (s, e) =>
                 {
-                    Hide();
-                }
-            };
+                    if (e.Property == WindowStateProperty && WindowState == WindowState.Minimized)
+                    {
+                        Hide();
+                    }
+                };
+            }
 
             Closing += MainWindow_Closing;
 
