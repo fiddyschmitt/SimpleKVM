@@ -74,6 +74,20 @@ namespace SimpleKVM.Ui
                 {
                     desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 }
+
+                //Launching the app again while it's running (Finder, Spotlight, a Desktop
+                //shortcut) arrives as a "reopen" activation; show the window in response, as
+                //macOS users expect. Nothing else has to be done for the first launch.
+                if (TryGetFeature(typeof(IActivatableLifetime)) is IActivatableLifetime activatable)
+                {
+                    activatable.Activated += (s, e) =>
+                    {
+                        if (e.Kind == ActivationKind.Reopen)
+                        {
+                            RestoreMainWindow(mainWindow);
+                        }
+                    };
+                }
             }
 
             base.OnFrameworkInitializationCompleted();
