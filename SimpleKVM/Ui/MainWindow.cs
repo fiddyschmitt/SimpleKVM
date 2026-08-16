@@ -101,6 +101,9 @@ namespace SimpleKVM.Ui
             };
 
             Closing += MainWindow_Closing;
+
+            //Grow the window so every column is in view on startup
+            Opened += (s, e) => Dispatcher.UIThread.Post(FitWidthToColumns, DispatcherPriority.Background);
         }
 
         static string GetVersion()
@@ -138,7 +141,7 @@ namespace SimpleKVM.Ui
             {
                 Header = "Run count",
                 Binding = new Binding(nameof(RuleRow.RunCountText)),
-                Width = new DataGridLength(1, DataGridLengthUnitType.Star),
+                Width = DataGridLength.Auto,
                 CustomSortComparer = RuleRow.CompareBy(row => row.RunCount)
             });
 
@@ -386,6 +389,23 @@ namespace SimpleKVM.Ui
             {
                 row.Refresh();
             }
+        }
+
+        void FitWidthToColumns()
+        {
+            //Runs after the first layout pass, when the auto-sized columns know their widths.
+            //+60 covers the grid margins, a vertical scrollbar and some breathing room.
+            var neededWidth = rulesGrid.Columns.Sum(column => column.ActualWidth) + 60;
+            if (neededWidth <= Width) return;
+
+            double maxWidth = 1400;
+            var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+            if (screen != null && RenderScaling > 0)
+            {
+                maxWidth = screen.WorkingArea.Width / RenderScaling * 0.9;
+            }
+
+            Width = Math.Min(neededWidth, maxWidth);
         }
 
         void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
