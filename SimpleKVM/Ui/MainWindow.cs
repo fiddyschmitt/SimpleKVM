@@ -26,6 +26,7 @@ namespace SimpleKVM.Ui
         readonly Task initMonitorList;
         readonly DataGrid rulesGrid;
         readonly ObservableCollection<RuleRow> ruleRows = [];
+        readonly Avalonia.Collections.DataGridCollectionView rulesView;
         readonly DispatcherTimer statsTimer;
 
         public MainWindow()
@@ -34,6 +35,9 @@ namespace SimpleKVM.Ui
             Icon = App.LoadIcon();
             Width = 720;
             Height = 360;
+
+            //An explicit collection view lets the closing handler read back the sorted order
+            rulesView = new Avalonia.Collections.DataGridCollectionView(ruleRows);
 
             ConfigManager.Load();
             AppSettingsManager.Load();
@@ -124,7 +128,7 @@ namespace SimpleKVM.Ui
                 CanUserResizeColumns = true,
                 CanUserSortColumns = true,
                 SelectionMode = DataGridSelectionMode.Extended,
-                ItemsSource = ruleRows
+                ItemsSource = rulesView
             };
 
             grid.Columns.Add(new DataGridTextColumn { Header = "Name", Binding = new Binding(nameof(RuleRow.Name)), Width = DataGridLength.Auto });
@@ -411,6 +415,15 @@ namespace SimpleKVM.Ui
         void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
         {
             sourceFollowWatcher?.Stop();
+
+            //Preserve the order the user sees (including any column sort), like the old
+            //ListView did, so the next start lists the rules the same way
+            var orderedRules = rulesView.Cast<RuleRow>().Select(row => row.Rule).ToList();
+            if (orderedRules.Count == RuleStore.Rules.Count)
+            {
+                RuleStore.Rules = orderedRules;
+            }
+
             RuleStore.Save();
         }
     }
