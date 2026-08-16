@@ -11,7 +11,7 @@ Using this program and a cheap USB Switch (see below), you can achieve the same 
 Releases can be found over in the [releases](https://github.com/fiddyschmitt/SimpleKVM/releases/latest) section.
 
 - **Windows**: download `SimpleKVM.exe` and run it.
-- **macOS** (Apple Silicon): download `SimpleKVM-macos-arm64.zip`, unzip it, and drag `SimpleKVM.app` to Applications. Because the app isn't notarized, the first launch needs a right-click → Open (or `xattr -dr com.apple.quarantine SimpleKVM.app`).
+- **macOS** (Apple Silicon): download `SimpleKVM-macos-arm64.zip`, unzip it, and drag `SimpleKVM.app` to Applications. Because the app isn't notarized, macOS blocks the first launch: open System Settings → Privacy & Security, scroll down to the message saying SimpleKVM was blocked, and click "Open Anyway" (one time only). Terminal alternative: `xattr -dr com.apple.quarantine /Applications/SimpleKVM.app`.
 
 ## What you need
 
