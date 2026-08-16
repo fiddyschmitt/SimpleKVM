@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Shapes;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using System;
 
@@ -20,6 +22,17 @@ namespace SimpleKVM.Ui
             Styles.Add(new StyleInclude(new Uri("avares://SimpleKVM"))
             {
                 Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml")
+            });
+
+            //The rule list selects whole rows; hide the DataGrid's per-cell "current" outline and
+            //focus border so a click highlights only the row, like the old ListView
+            Styles.Add(new Style(x => x.OfType<DataGridCell>().Class(":current").Template().OfType<Rectangle>().Name("CurrencyVisual"))
+            {
+                Setters = { new Setter(Visual.IsVisibleProperty, false) }
+            });
+            Styles.Add(new Style(x => x.OfType<DataGridCell>().Class(":focus").Template().OfType<Grid>().Name("FocusVisual"))
+            {
+                Setters = { new Setter(Visual.IsVisibleProperty, false) }
             });
         }
 
