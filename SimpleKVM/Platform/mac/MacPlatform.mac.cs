@@ -10,7 +10,7 @@ namespace SimpleKVM.Platform.mac
         public IDisplayPlatform Displays { get; } = new MacDisplayPlatform();
         public IHotkeyBackend Hotkeys { get; } = new Input.mac.MacHotkeys();
         public IIdleProvider Idle { get; } = new Utilities.mac.MacIdle();
-        public IStartupManager? Startup => null;    //LaunchAgent support arrives with packaging
+        public IStartupManager? Startup { get; } = new MacStartupManager();
 
         USB.USBSystem? usb;
         public USB.USBSystem Usb => usb ??= new USB.mac.USBSystem();

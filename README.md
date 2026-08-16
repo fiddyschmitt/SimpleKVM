@@ -9,7 +9,9 @@ Using this program and a cheap USB Switch (see below), you can achieve the same 
 
 ## Where to download
 Releases can be found over in the [releases](https://github.com/fiddyschmitt/SimpleKVM/releases/latest) section.
-(Currenly only for Windows)
+
+- **Windows**: download `SimpleKVM.exe` and run it.
+- **macOS** (Apple Silicon): download `SimpleKVM-macos-arm64.zip`, unzip it, and drag `SimpleKVM.app` to Applications. Because the app isn't notarized, the first launch needs a right-click → Open (or `xattr -dr com.apple.quarantine SimpleKVM.app`).
 
 ## What you need
 
@@ -66,6 +68,8 @@ Yes
 ## Run at startup
 1. Click the settings button
 2. Tick 'Run at Startup'
+
+On Windows this creates a shortcut in the Startup folder; on macOS it creates a LaunchAgent in `~/Library/LaunchAgents`.
 
 ## Thanks to
 This program was inspired by [haimgel's display-switch program](https://github.com/haimgel/display-switch).

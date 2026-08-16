@@ -69,6 +69,9 @@ namespace SimpleKVM.Cli
                 case "--verify-rules" when args.Length >= 2:
                     return VerifyRules(args[1]);
 
+                case "--set-startup" when args.Length >= 2:
+                    return SetStartup(args[1]);
+
                 default:
                     Console.WriteLine("""
                         SimpleKVM diagnostic commands:
@@ -80,6 +83,7 @@ namespace SimpleKVM.Cli
                           --watch-idle                print system idle time every second
                           --test-hotkey "<gesture>"   register a hotkey (e.g. "Ctrl+Alt+F1") and wait
                           --verify-rules <file>       parse a rules.json and print its rules
+                          --set-startup on|off|status control the run-at-startup registration
                         """);
                     return 1;
             }
@@ -196,6 +200,29 @@ namespace SimpleKVM.Cli
                 Thread.Sleep(Timeout.Infinite);
             }
 #endif
+        }
+
+        static int SetStartup(string mode)
+        {
+            var startup = PlatformServices.Current.Startup;
+            if (startup == null)
+            {
+                Console.WriteLine("Run-at-startup is not supported on this platform.");
+                return 1;
+            }
+
+            switch (mode.ToLowerInvariant())
+            {
+                case "on": startup.SetEnabled(true); break;
+                case "off": startup.SetEnabled(false); break;
+                case "status": break;
+                default:
+                    Console.WriteLine("Expected on, off or status.");
+                    return 1;
+            }
+
+            Console.WriteLine($"Run at startup: {(startup.IsEnabled() ? "enabled" : "disabled")}");
+            return 0;
         }
 
         static int VerifyRules(string filename)
