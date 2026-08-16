@@ -188,8 +188,8 @@ namespace SimpleKVM.Cli
 #else
             if (OperatingSystem.IsMacOS())
             {
-                //Hotkey callbacks on macOS arrive via the thread's CFRunLoop
-                Platform.mac.CoreFoundationRunLoop.RunForever();
+                //A console process must pump the Carbon event queue for hotkey events to arrive
+                Input.mac.MacHotkeys.RunEventLoop();
             }
             else
             {

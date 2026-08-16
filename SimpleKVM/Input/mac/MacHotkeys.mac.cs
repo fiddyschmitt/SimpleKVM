@@ -39,10 +39,13 @@ namespace SimpleKVM.Input.mac
         static extern int UnregisterEventHotKey(IntPtr hotKeyRef);
 
         [DllImport(Carbon)]
-        static extern IntPtr GetEventDispatcherTarget();
+        static extern IntPtr GetApplicationEventTarget();
 
         [DllImport(Carbon)]
         static extern int InstallEventHandler(IntPtr target, EventHandlerProc handler, uint numTypes, EventTypeSpec[] typeList, IntPtr userData, out IntPtr handlerRef);
+
+        [DllImport(Carbon)]
+        static extern void RunApplicationEventLoop();
 
         [DllImport(Carbon)]
         static extern int GetEventParameter(IntPtr theEvent, uint name, uint desiredType, IntPtr outActualType, uint bufferSize, IntPtr outActualSize, out EventHotKeyID data);
@@ -83,7 +86,7 @@ namespace SimpleKVM.Input.mac
 
                 var hotKeyId = new EventHotKeyID { signature = HotkeySignature, id = nextId++ };
 
-                int status = RegisterEventHotKey(keyCode, modifiers, hotKeyId, GetEventDispatcherTarget(), 0, out IntPtr hotKeyRef);
+                int status = RegisterEventHotKey(keyCode, modifiers, hotKeyId, GetApplicationEventTarget(), 0, out IntPtr hotKeyRef);
                 if (status != 0) throw new Exception($"Could not register hotkey: {gesture} (status {status})");
 
                 actionsById[hotKeyId.id] = action;
@@ -99,8 +102,18 @@ namespace SimpleKVM.Input.mac
             keepAliveHandler = HandleHotkeyEvent;
             EventTypeSpec[] eventTypes = [new() { eventClass = kEventClassKeyboard, eventKind = kEventHotKeyPressed }];
 
-            InstallEventHandler(GetEventDispatcherTarget(), keepAliveHandler, 1, eventTypes, IntPtr.Zero, out _);
+            InstallEventHandler(GetApplicationEventTarget(), keepAliveHandler, 1, eventTypes, IntPtr.Zero, out _);
             handlerInstalled = true;
+        }
+
+        /// <summary>
+        /// Pumps Carbon events forever. In a plain console process CFRunLoopRun alone never
+        /// dispatches hotkey events — the Carbon event queue must be run. A Cocoa/Avalonia app
+        /// doesn't need this; its NSApplication run loop dispatches Carbon events itself.
+        /// </summary>
+        public static void RunEventLoop()
+        {
+            RunApplicationEventLoop();
         }
 
         static int HandleHotkeyEvent(IntPtr nextHandler, IntPtr theEvent, IntPtr userData)
