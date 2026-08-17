@@ -12,7 +12,10 @@ namespace SimpleKVM
 #if WINDOWS
         [DllImport("kernel32.dll")]
         static extern bool AttachConsole(int dwProcessId);
+        [DllImport("kernel32.dll")]
+        static extern IntPtr GetStdHandle(int nStdHandle);
         const int ATTACH_PARENT_PROCESS = -1;
+        const int STD_OUTPUT_HANDLE = -11;
 #endif
 
         /// <summary>
@@ -35,8 +38,15 @@ namespace SimpleKVM
             if (args.Length > 0)
             {
 #if WINDOWS
-                //WinExe apps have no console; borrow the parent shell's so diagnostics print
-                AttachConsole(ATTACH_PARENT_PROCESS);
+                //WinExe apps have no console. When stdout is redirected to a file or pipe the
+                //inherited handle already works, so leave it alone; otherwise borrow the parent
+                //shell's console so diagnostics print interactively.
+                if (GetStdHandle(STD_OUTPUT_HANDLE) == IntPtr.Zero)
+                {
+                    AttachConsole(ATTACH_PARENT_PROCESS);
+                    Console.SetOut(new System.IO.StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
+                    Console.SetError(new System.IO.StreamWriter(Console.OpenStandardError()) { AutoFlush = true });
+                }
 #endif
                 return Cli.DiagnosticCli.Run(args);
             }
