@@ -54,6 +54,7 @@ namespace SimpleKVM.Platform.mac
                 	<key>ProgramArguments</key>
                 	<array>
                 		<string>{ExecutablePath}</string>
+                		<string>{Program.StartMinimizedArg}</string>
                 	</array>
                 	<key>RunAtLoad</key>
                 	<true/>

@@ -1,5 +1,6 @@
 using Avalonia;
 using System;
+using System.Linq;
 #if WINDOWS
 using System.Runtime.InteropServices;
 #endif
@@ -17,9 +18,20 @@ namespace SimpleKVM
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
+        /// <summary>
+        /// Passed by the run-at-startup registration so the app starts in the background
+        /// (tray / menu bar only) instead of showing its window.
+        /// </summary>
+        public const string StartMinimizedArg = "--minimized";
+
+        public static bool StartMinimized { get; private set; }
+
         [STAThread]
         static int Main(string[] args)
         {
+            StartMinimized = args.Contains(StartMinimizedArg);
+            args = args.Where(arg => arg != StartMinimizedArg).ToArray();
+
             if (args.Length > 0)
             {
 #if WINDOWS

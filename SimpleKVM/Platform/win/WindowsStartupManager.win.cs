@@ -31,7 +31,18 @@ namespace SimpleKVM.Platform.win
                     try
                     {
                         string targetPath = shortcut.TargetPath;
-                        return string.Equals(targetPath, ExecutablePath, StringComparison.OrdinalIgnoreCase);
+                        if (!string.Equals(targetPath, ExecutablePath, StringComparison.OrdinalIgnoreCase)) return false;
+
+                        //Shortcuts made before the start-minimized argument existed relied on a
+                        //window-style hint the app no longer honours; upgrade them in place
+                        string arguments = shortcut.Arguments ?? "";
+                        if (!arguments.Contains(Program.StartMinimizedArg))
+                        {
+                            shortcut.Arguments = Program.StartMinimizedArg;
+                            shortcut.Save();
+                        }
+
+                        return true;
                     }
                     finally
                     {
@@ -71,8 +82,8 @@ namespace SimpleKVM.Platform.win
                 try
                 {
                     shortcut.TargetPath = ExecutablePath;
+                    shortcut.Arguments = Program.StartMinimizedArg;
                     shortcut.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory;
-                    shortcut.WindowStyle = 7; // WshWindowStyle.Minimized
                     shortcut.Save();
                 }
                 finally

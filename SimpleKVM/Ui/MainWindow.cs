@@ -481,6 +481,18 @@ namespace SimpleKVM.Ui
             }
 
             sourceFollowWatcher?.Stop();
+
+            //On Windows closing the window exits the app. When the app was started minimized the
+            //lifetime runs in explicit-shutdown mode (so it survives without a main window), so
+            //the shutdown has to be requested here.
+            if (!quitting)
+            {
+                quitting = true;
+                if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    desktop.Shutdown();
+                }
+            }
         }
     }
 

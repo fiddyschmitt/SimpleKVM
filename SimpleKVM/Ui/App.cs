@@ -41,7 +41,22 @@ namespace SimpleKVM.Ui
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 var mainWindow = new MainWindow();
-                desktop.MainWindow = mainWindow;
+
+                //Refreshes an existing run-at-startup registration to the current format
+                //(e.g. adds the start-minimized argument to a shortcut made by an older version)
+                try { Platform.PlatformServices.Current.Startup?.IsEnabled(); } catch { }
+
+                //When launched at login the app should sit in the tray / menu bar without
+                //showing its window. Not assigning MainWindow keeps the lifetime from showing
+                //it; the tray icon and (on Windows) ShutdownMode keep the app alive.
+                if (Program.StartMinimized)
+                {
+                    desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                }
+                else
+                {
+                    desktop.MainWindow = mainWindow;
+                }
 
                 trayIcon = new TrayIcon
                 {
