@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Windows: self-contained, single-file, trimmed  ->  publish\SimpleKVM.exe
-    macOS:   self-contained, single-file, trimmed  ->  publish\SimpleKVM-osx-arm64.zip
+    macOS:   self-contained, single-file, trimmed  ->  publish\SimpleKVM-macos-arm64.zip
              (the zip contains SimpleKVM.app, assembled and ad-hoc signed on the Mac)
 
     Each artifact is smoke-tested after it is built: the Windows exe and the Mac
@@ -116,7 +116,7 @@ if (-not $SkipMac -and $MacHost) {
     ssh -o BatchMode=yes $MacHost "( $macCommands ) 2>&1"
     if ($LASTEXITCODE -ne 0) { throw "osx-arm64 packaging or smoke test failed on $MacHost" }
 
-    scp -q "${MacHost}:$remote/SimpleKVM-macos-arm64.zip" (Join-Path $publishDir "SimpleKVM-osx-arm64.zip")
+    scp -q "${MacHost}:$remote/SimpleKVM-macos-arm64.zip" (Join-Path $publishDir "SimpleKVM-macos-arm64.zip")
     if ($LASTEXITCODE -ne 0) { throw "could not fetch the mac zip" }
 
     Remove-Item $macOut -Recurse -Force
