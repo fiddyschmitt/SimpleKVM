@@ -20,7 +20,9 @@ ICO="$REPO_ROOT/SimpleKVM/iconfinder_Communication_pc_computer_sharing_6588768_w
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp "$SCRIPT_DIR/../packaging/macos/Info.plist" "$APP/Contents/Info.plist"
+# Stamp the app version from the csproj so there is a single source of truth
+VERSION="$(sed -n 's|.*<Version>\(.*\)</Version>.*|\1|p' "$REPO_ROOT/SimpleKVM/SimpleKVM.csproj" | head -1)"
+sed "s|@VERSION@|${VERSION:-0.0.0}|g" "$SCRIPT_DIR/../packaging/macos/Info.plist" > "$APP/Contents/Info.plist"
 cp -R "$PUBLISH_DIR/." "$APP/Contents/MacOS/"
 chmod +x "$APP/Contents/MacOS/SimpleKVM"
 

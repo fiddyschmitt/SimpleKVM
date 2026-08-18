@@ -9,9 +9,9 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.fiddyschmitt.simplekvm</string>
 	<key>CFBundleVersion</key>
-	<string>2.3.2</string>
+	<string>@VERSION@</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.3.2</string>
+	<string>@VERSION@</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleExecutable</key>
