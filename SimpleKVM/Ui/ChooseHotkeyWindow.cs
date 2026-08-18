@@ -85,7 +85,7 @@ namespace SimpleKVM.Ui
             if (e.KeyModifiers.HasFlag(KeyModifiers.Control)) parts.Add("Ctrl");
             if (e.KeyModifiers.HasFlag(KeyModifiers.Alt)) parts.Add("Alt");
             if (e.KeyModifiers.HasFlag(KeyModifiers.Shift)) parts.Add("Shift");
-            parts.Add(e.Key.ToString());    //Avalonia's Key names match the stored WinForms-style names (D1, NumPad1, OemMinus, ...)
+            parts.Add(e.Key.ToString());    //Avalonia's Key names match the vocabulary rules.json stores (D1, NumPad1, OemMinus, ...)
 
             hotkeyBox.Text = string.Join("+", parts);
 

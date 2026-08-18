@@ -17,7 +17,7 @@ namespace SimpleKVM.Input
         public bool Shift { get; private set; }
         public bool Win { get; private set; }
 
-        /// <summary>The non-modifier key, named as in the WinForms Keys enum (F1, A, D1, NumPad1, OemMinus, ...).</summary>
+        /// <summary>The non-modifier key. Names follow the .NET Keys enum vocabulary (F1, A, D1, NumPad1, OemMinus, ...) that rules.json has always stored.</summary>
         public string KeyName { get; private set; } = "";
 
         public static HotkeyGesture Parse(string hotkeyAsString)

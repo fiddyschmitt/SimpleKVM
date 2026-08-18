@@ -13,8 +13,7 @@ namespace SimpleKVM.Ui.Controls
 {
     /// <summary>
     /// Draws every screen as a scaled rectangle (numbered like the OS numbers them) with a
-    /// source-selection dropdown inside each. Replaces the old GDI+ monitor drawer and the
-    /// combo-positioning logic that sat on top of it.
+    /// source-selection dropdown inside each.
     /// </summary>
     public class MonitorLayoutView : UserControl, IValidate, IActionCreator
     {

@@ -149,7 +149,7 @@ namespace SimpleKVM.Input.mac
         }
 
         /// <summary>
-        /// WinForms Keys enum names (the stored hotkey string contract) to Carbon virtual key codes
+        /// Stored hotkey key names (the .NET Keys enum vocabulary rules.json uses) to Carbon virtual key codes
         /// (ANSI layout).
         /// </summary>
         static readonly Dictionary<string, uint> KeyNameToCarbonKeyCode = new(StringComparer.OrdinalIgnoreCase)

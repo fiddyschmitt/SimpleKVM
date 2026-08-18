@@ -25,7 +25,7 @@ namespace SimpleKVM.Ui
             });
 
             //The rule list selects whole rows; hide the DataGrid's per-cell "current" outline and
-            //focus border so a click highlights only the row, like the old ListView
+            //focus border so a click highlights only the row
             Styles.Add(new Style(x => x.OfType<DataGridCell>().Class(":current").Template().OfType<Rectangle>().Name("CurrencyVisual"))
             {
                 Setters = { new Setter(Visual.IsVisibleProperty, false) }

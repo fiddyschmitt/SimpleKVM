@@ -1,48 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.IO;
 using Newtonsoft.Json;
+using System;
+using System.IO;
+using System.Text;
 
 namespace SimpleKVM
 {
-    public static partial class Extensions
+    public static class Extensions
     {
-        public static string StartAndReadStdout(this ProcessStartInfo psi)
-        {
-            psi.RedirectStandardOutput = true;
-            psi.UseShellExecute = false;
-            psi.WindowStyle = ProcessWindowStyle.Hidden;
-
-            var process = Process.Start(psi);
-
-            if (process == null) return string.Empty;
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-
-            return output;
-        }
-
-        public static string[] SplitAndKeep(this string input, string seperator)
-        {
-            var result = input
-                    .Split([seperator], StringSplitOptions.None)
-                    .Skip(1)
-                    .Select(block => $"{seperator}{block}")
-                    .ToArray();
-
-            return result;
-        }
-
-        public static string RemoveNonPrintable(this string input)
-        {
-            var result = NonPrintableRegex().Replace(input, string.Empty);
-            return result;
-        }
-
         public static string ToPrettyFormat(this TimeSpan span)
         {
             if (span == TimeSpan.Zero) return "0 minutes";
@@ -68,53 +32,13 @@ namespace SimpleKVM
             return Convert.ToHexString(hashBytes);
         }
 
-        public static T Next<T>(this T src) where T : struct
+        /// <summary>The next value of an enum, wrapping around to the first.</summary>
+        public static T Next<T>(this T src) where T : struct, Enum
         {
-            if (!typeof(T).IsEnum) throw new ArgumentException(String.Format("Argument {0} is not an Enum", typeof(T).FullName));
-
-            T[] Arr = (T[])Enum.GetValues(src.GetType());
-            int j = Array.IndexOf<T>(Arr, src) + 1;
-            return (Arr.Length == j) ? Arr[0] : Arr[j];
+            T[] values = Enum.GetValues<T>();
+            int next = Array.IndexOf(values, src) + 1;
+            return values.Length == next ? values[0] : values[next];
         }
-
-        /*
-        public static string? SerializeToXml<T>(this T obj)
-        {
-            if (obj is System.Collections.IEnumerable)
-            {
-                throw new Exception("XML must have a single root node, so this IEnumerable object cannot be serialized.");
-            }
-
-            if (obj == null) return "";
-
-            var json = obj.SerializeToJson();
-            var xmlDoc = JsonConvert.DeserializeXmlNode(json, "root");
-
-            if (xmlDoc == null) return "";
-
-
-            StringWriter sw = new StringWriter();
-            xmlDoc.Save(sw);
-            var result = sw.ToString();
-
-            return result;
-        }
-        */
-
-        /*
-        public static T? DeserializeXml<T>(this string xml) where T : class
-        {
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml(xml);
-            doc.RemoveChild(doc.FirstChild);
-
-            string json = JsonConvert.SerializeXmlNode(doc, Newtonsoft.Json.Formatting.Indented);
-
-            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-            var result = JsonConvert.DeserializeObject<T>(json, settings);
-            return result;
-        }
-        */
 
         public static T? DeserializJson<T>(this string json) where T : class
         {
@@ -124,14 +48,6 @@ namespace SimpleKVM
                 SerializationBinder = Configuration.SafeSerializationBinder.Instance
             };
             var result = JsonConvert.DeserializeObject<T>(json, settings);
-            return result;
-        }
-
-        public static string SerializeToJson(this object obj)
-        {
-            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
-
-            string result = JsonConvert.SerializeObject(obj, Newtonsoft.Json.Formatting.Indented, settings);
             return result;
         }
 
@@ -145,14 +61,5 @@ namespace SimpleKVM
 
             File.WriteAllText(filename, content);
         }
-
-        public static string ToString(this IEnumerable<string> list, string separator)
-        {
-            string result = string.Join(separator, list);
-            return result;
-        }
-
-        [GeneratedRegex(@"\p{C}+")]
-        private static partial Regex NonPrintableRegex();
     }
 }
