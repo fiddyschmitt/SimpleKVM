@@ -2,9 +2,11 @@ using SimpleKVM.Displays.I2C;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace SimpleKVM.Displays.win.I2C
 {
+    [SupportedOSPlatform("windows6.1")]
     public class NvApiTransport : II2CTransport
     {
         bool _initialized;

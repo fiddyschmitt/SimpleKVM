@@ -3,9 +3,7 @@
     Builds the release artifacts for a SimpleKVM release into .\publish.
 
 .DESCRIPTION
-    Windows: self-contained, single-file           ->  publish\SimpleKVM.exe
-             (not trimmed: the SDK refuses to trim anything referencing Windows Forms,
-             which the Windows build still uses for its hotkey and screen helpers)
+    Windows: self-contained, single-file, trimmed  ->  publish\SimpleKVM.exe
     macOS:   self-contained, single-file, trimmed  ->  publish\SimpleKVM-osx-arm64.zip
              (the zip contains SimpleKVM.app, assembled and ad-hoc signed on the Mac)
 
@@ -30,7 +28,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot   = Split-Path -Parent $PSScriptRoot
 $project    = Join-Path $repoRoot "SimpleKVM\SimpleKVM.csproj"
 $publishDir = Join-Path $repoRoot "publish"
-$rulesFile  = Join-Path $repoRoot "SimpleKVM\bin\Debug\net10.0-windows7.0\rules.json"
+$rulesFile  = Join-Path $repoRoot "SimpleKVM\bin\Debug\net10.0\rules.json"
 
 $version = ([xml](Get-Content $project)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
 Write-Host "SimpleKVM $version" -ForegroundColor Cyan
@@ -55,7 +53,7 @@ function Publish-Rid {
 
 # ---------------------------------------------------------------- Windows
 $winOut = Join-Path $publishDir "_win-x64"
-Publish-Rid -Framework "net10.0-windows7.0" -Rid "win-x64" -OutDir $winOut -Trim $false
+Publish-Rid -Framework "net10.0" -Rid "win-x64" -OutDir $winOut -Trim $true
 
 $winExe = Join-Path $winOut "SimpleKVM.exe"
 if (-not (Test-Path $winExe)) { throw "win-x64 publish produced no SimpleKVM.exe" }
@@ -101,6 +99,7 @@ if (-not $SkipMac -and $MacHost) {
     scp -q (Join-Path $repoRoot "scripts\package-macos.sh") "${MacHost}:$remote/scripts/"
     scp -q (Join-Path $repoRoot "packaging\macos\Info.plist") "${MacHost}:$remote/packaging/macos/"
     scp -q (Join-Path $repoRoot "SimpleKVM\iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico") "${MacHost}:$remote/SimpleKVM/"
+    scp -q $project "${MacHost}:$remote/SimpleKVM/"    # the packager stamps the bundle version from the csproj
     if (Test-Path $rulesFile) { scp -q $rulesFile "${MacHost}:$remote/rules.json" }
 
     #Passed as one command line rather than piped to stdin: Windows PowerShell adds a BOM to

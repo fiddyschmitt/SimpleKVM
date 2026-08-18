@@ -3,63 +3,32 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Windows.Forms;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.Input.KeyboardAndMouse;
+using Windows.Win32.UI.WindowsAndMessaging;
+using System.Runtime.Versioning;
 
 namespace SimpleKVM.Platform.win
 {
     /// <summary>
     /// System-wide hotkeys via RegisterHotKey. WM_HOTKEY is posted to the thread that owns the
-    /// registration window, so a dedicated background thread runs a classic message loop for a
-    /// hidden form — independent of whatever framework (WinForms, Avalonia) drives the UI thread.
+    /// registration window, so a dedicated background thread runs a message loop for a
+    /// message-only window — independent of whatever framework drives the UI thread.
     /// </summary>
+    [SupportedOSPlatform("windows6.1")]
     public class WindowsHotkeys : IHotkeyBackend
     {
-        [DllImport("user32.dll")]
-        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
-        [DllImport("user32.dll")]
-        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        static readonly object pumpLock = new();
+        static HotkeyPump? pump;
 
-        //Win32 MOD_* values
-        [Flags]
-        enum Modifiers : uint
-        {
-            Alt = 1,
-            Control = 2,
-            Shift = 4,
-            Win = 8
-        }
-
-        static readonly object sinkLock = new();
-        static HotkeySink? sink;
-
-        static HotkeySink Sink
+        static HotkeyPump Pump
         {
             get
             {
-                lock (sinkLock)
+                lock (pumpLock)
                 {
-                    if (sink != null) return sink;
-
-                    using var ready = new ManualResetEventSlim();
-                    HotkeySink? created = null;
-
-                    var pumpThread = new Thread(() =>
-                    {
-                        created = new HotkeySink();
-                        _ = created.Handle;     //force handle creation on this thread, so it owns the message queue
-                        ready.Set();
-                        Application.Run();
-                    })
-                    {
-                        IsBackground = true,
-                        Name = "Hotkey message pump"
-                    };
-                    pumpThread.SetApartmentState(ApartmentState.STA);
-                    pumpThread.Start();
-
-                    ready.Wait();
-                    sink = created!;
-                    return sink;
+                    return pump ??= HotkeyPump.Start();
                 }
             }
         }
@@ -67,46 +36,35 @@ namespace SimpleKVM.Platform.win
         public IDisposable Register(HotkeyGesture gesture, Action action)
         {
             var modifiers = ToModifiers(gesture);
-            var key = ToKey(gesture.KeyName);
-            var sink = Sink;
+            var virtualKey = WindowsKeyNames.ToVirtualKey(gesture.KeyName)
+                                ?? throw new Exception($"Could not parse hotkey key: {gesture.KeyName}");
 
-            int hotkeyId = HotkeySink.GenerateUniqueHotkeyId();
+            var pump = Pump;
+            int hotkeyId = HotkeyPump.GenerateUniqueHotkeyId();
 
-            bool registered = (bool)sink.Invoke(() =>
+            bool registered = pump.Invoke(() =>
             {
-                if (!RegisterHotKey(sink.Handle, hotkeyId, (uint)modifiers, (uint)key)) return false;
-                sink.HotkeyActions[(modifiers, key)] = action;
+                if (!PInvoke.RegisterHotKey(pump.Handle, hotkeyId, modifiers, virtualKey)) return false;
+                pump.Actions[hotkeyId] = action;
                 return true;
             });
 
             if (!registered) throw new Exception($"Could not register hotkey: {gesture}");
 
-            return new Registration(sink, hotkeyId, modifiers, key);
+            return new Registration(pump, hotkeyId);
         }
 
-        static Modifiers ToModifiers(HotkeyGesture gesture)
+        static HOT_KEY_MODIFIERS ToModifiers(HotkeyGesture gesture)
         {
-            var result = new Modifiers();
-            if (gesture.Alt) result |= Modifiers.Alt;
-            if (gesture.Ctrl) result |= Modifiers.Control;
-            if (gesture.Shift) result |= Modifiers.Shift;
-            if (gesture.Win) result |= Modifiers.Win;
+            HOT_KEY_MODIFIERS result = 0;
+            if (gesture.Alt) result |= HOT_KEY_MODIFIERS.MOD_ALT;
+            if (gesture.Ctrl) result |= HOT_KEY_MODIFIERS.MOD_CONTROL;
+            if (gesture.Shift) result |= HOT_KEY_MODIFIERS.MOD_SHIFT;
+            if (gesture.Win) result |= HOT_KEY_MODIFIERS.MOD_WIN;
             return result;
         }
 
-        static Keys ToKey(string keyName)
-        {
-            if (Enum.TryParse<Keys>(keyName, ignoreCase: true, out var key)) return key;
-
-            //KeysConverter historically produced the stored strings, so it can parse anything
-            //it emitted that isn't a plain enum name
-            var converted = new KeysConverter().ConvertFromString(keyName) as Keys?;
-            if (converted != null) return converted.Value & ~Keys.Modifiers;
-
-            throw new Exception($"Could not parse hotkey key: {keyName}");
-        }
-
-        sealed class Registration(HotkeySink sink, int hotkeyId, Modifiers modifiers, Keys key) : IDisposable
+        sealed class Registration(HotkeyPump pump, int hotkeyId) : IDisposable
         {
             bool disposed;
 
@@ -115,52 +73,174 @@ namespace SimpleKVM.Platform.win
                 if (disposed) return;
                 disposed = true;
 
-                sink.BeginInvoke(() =>
+                pump.Invoke(() =>
                 {
-                    sink.HotkeyActions.Remove((modifiers, key));
-                    UnregisterHotKey(sink.Handle, hotkeyId);
+                    pump.Actions.Remove(hotkeyId);
+                    PInvoke.UnregisterHotKey(pump.Handle, hotkeyId);
+                    return true;
                 });
             }
         }
 
         /// <summary>
-        /// An invisible form whose WndProc receives WM_HOTKEY for every registration. A form
-        /// rather than a bare NativeWindow so registrations can be marshalled onto the pump
-        /// thread with Invoke.
+        /// Owns a message-only window on a dedicated thread and pumps its messages. Work that must
+        /// happen on that thread (RegisterHotKey binds to the calling thread) is posted to it via
+        /// Invoke and run from the message loop.
         /// </summary>
-        sealed class HotkeySink : Form
+        sealed unsafe class HotkeyPump
         {
-            private static readonly int WM_HOTKEY = 0x0312;
-            private static int nextHotkeyId = 0;
+            const uint WM_INVOKE = PInvoke.WM_USER + 1;
+            static int nextHotkeyId = 0;
+
+            //Kept alive for the life of the process: Win32 holds a raw pointer to it
+            static readonly WNDPROC windowProc = WindowProc;
+            static readonly Dictionary<HWND, HotkeyPump> pumps = [];
+
+            readonly Queue<(Func<bool> Work, ManualResetEventSlim Done, bool[] Result)> invokeQueue = new();
+            readonly uint threadId;
+
+            public HWND Handle { get; private set; }
+            public Dictionary<int, Action> Actions { get; } = [];
+
+            HotkeyPump(uint threadId)
+            {
+                this.threadId = threadId;
+            }
 
             public static int GenerateUniqueHotkeyId()
             {
                 return Interlocked.Increment(ref nextHotkeyId);
             }
 
-            public HotkeySink()
+            public static HotkeyPump Start()
             {
-                ShowInTaskbar = false;
-                //The form is never shown; only its handle and message queue are used
+                HotkeyPump? created = null;
+                using var ready = new ManualResetEventSlim();
+
+                var thread = new Thread(() =>
+                {
+                    created = new HotkeyPump(PInvoke.GetCurrentThreadId());
+                    created.CreateMessageWindow();
+                    ready.Set();
+                    created.RunMessageLoop();
+                })
+                {
+                    IsBackground = true,
+                    Name = "Hotkey message pump"
+                };
+                thread.Start();
+
+                ready.Wait();
+                return created!;
             }
 
-            protected override void WndProc(ref Message m)
+            /// <summary>Runs work on the pump thread and waits for it.</summary>
+            public bool Invoke(Func<bool> work)
             {
-                base.WndProc(ref m);
+                if (PInvoke.GetCurrentThreadId() == threadId) return work();
 
-                if (m.Msg == WM_HOTKEY)
+                using var done = new ManualResetEventSlim();
+                var result = new bool[1];
+
+                lock (invokeQueue)
                 {
-                    var key = (Keys)(((int)m.LParam >> 16) & 0xFFFF);
-                    var modifiers = (Modifiers)((int)m.LParam & 0xFFFF);
+                    invokeQueue.Enqueue((work, done, result));
+                }
+                PInvoke.PostMessage(Handle, WM_INVOKE, default, default);
 
-                    if (HotkeyActions.TryGetValue((modifiers, key), out Action? action))
+                done.Wait();
+                return result[0];
+            }
+
+            void CreateMessageWindow()
+            {
+                fixed (char* className = "SimpleKVMHotkeyWindow")
+                {
+                    var wndClass = new WNDCLASSEXW
                     {
-                        action();
-                    }
+                        cbSize = (uint)Marshal.SizeOf<WNDCLASSEXW>(),
+                        lpfnWndProc = windowProc,
+                        hInstance = (HINSTANCE)PInvoke.GetModuleHandle((PCWSTR)null),
+                        lpszClassName = className
+                    };
+                    PInvoke.RegisterClassEx(wndClass);   //idempotent: a second registration just fails harmlessly
+
+                    Handle = PInvoke.CreateWindowEx(
+                        0, className, className, 0,
+                        0, 0, 0, 0,
+                        HWND.HWND_MESSAGE, HMENU.Null, wndClass.hInstance, null);
+                }
+
+                if (Handle.IsNull) throw new Exception("Could not create the hotkey message window");
+
+                lock (pumps)
+                {
+                    pumps[Handle] = this;
                 }
             }
 
-            public readonly Dictionary<(Modifiers, Keys), Action> HotkeyActions = [];
+            void RunMessageLoop()
+            {
+                while (PInvoke.GetMessage(out MSG msg, HWND.Null, 0, 0))
+                {
+                    PInvoke.TranslateMessage(msg);
+                    PInvoke.DispatchMessage(msg);
+                }
+            }
+
+            static LRESULT WindowProc(HWND hwnd, uint msg, WPARAM wParam, LPARAM lParam)
+            {
+                HotkeyPump? pump;
+                lock (pumps)
+                {
+                    pumps.TryGetValue(hwnd, out pump);
+                }
+
+                if (pump != null)
+                {
+                    switch (msg)
+                    {
+                        case PInvoke.WM_HOTKEY:
+                            if (pump.Actions.TryGetValue((int)wParam.Value, out var action))
+                            {
+                                action();
+                            }
+                            return (LRESULT)0;
+
+                        case WM_INVOKE:
+                            pump.DrainInvokeQueue();
+                            return (LRESULT)0;
+                    }
+                }
+
+                return PInvoke.DefWindowProc(hwnd, msg, wParam, lParam);
+            }
+
+            void DrainInvokeQueue()
+            {
+                while (true)
+                {
+                    (Func<bool> Work, ManualResetEventSlim Done, bool[] Result) item;
+                    lock (invokeQueue)
+                    {
+                        if (invokeQueue.Count == 0) return;
+                        item = invokeQueue.Dequeue();
+                    }
+
+                    try
+                    {
+                        item.Result[0] = item.Work();
+                    }
+                    catch
+                    {
+                        item.Result[0] = false;
+                    }
+                    finally
+                    {
+                        item.Done.Set();
+                    }
+                }
+            }
         }
     }
 }

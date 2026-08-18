@@ -4,9 +4,11 @@ using System.Management;
 using System.Text;
 using System.Linq;
 using System.Diagnostics;
+using System.Runtime.Versioning;
 
 namespace SimpleKVM.USB.win
 {
+    [SupportedOSPlatform("windows6.1")]
     public class USBSystem : USB.USBSystem
     {
         public USBSystem()

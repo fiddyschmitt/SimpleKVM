@@ -1,14 +1,15 @@
-using DDCKVMService;
 using SimpleKVM.Configuration;
 using SimpleKVM.Displays.I2C;
 using SimpleKVM.Displays.win.I2C;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
+using SimpleKVM.Platform.win;
+using System.Runtime.Versioning;
 
 namespace SimpleKVM.Displays.win
 {
+    [SupportedOSPlatform("windows6.1")]
     public static class DisplaySystem
     {
         static readonly object cacheLock = new();
@@ -34,7 +35,7 @@ namespace SimpleKVM.Displays.win
             else
             {
                 //confirm all screens are in the cache
-                var allScreens = Screen.AllScreens.Select(screen => screen.GetUniqueId());
+                var allScreens = WindowsScreens.All().Select(screen => screen.UniqueId);
                 var allMonitors = cachedMonitorList.Select(mon => mon.MonitorUniqueId);
 
                 refreshRequired = allMonitors.Except(allScreens).Any() || allScreens.Except(allMonitors).Any();
@@ -57,12 +58,13 @@ namespace SimpleKVM.Displays.win
                 }
 
                 cachedMonitorList = [];
+                var screens = WindowsScreens.All();
                 MonitorController.EnumMonitors(mon =>
                 {
                     List<(int SourceId, string SourceName)>? sources = null;
 
                     //First we'll check the config file, to see if the user has specified a custom list of sources for this monitor
-                    var monitorNumber = Screen.AllScreens.FirstOrDefault(s => s.GetUniqueId() == mon.UniqueId)?.ScreenIndex();
+                    var monitorNumber = screens.FirstOrDefault(s => s.UniqueId == mon.UniqueId)?.ScreenNumber(screens);
                     MonitorOverride? monitorOverride = null;
                     if (monitorNumber.HasValue)
                     {

@@ -1,13 +1,12 @@
-﻿using SimpleKVM;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Runtime.Versioning;
 
-#pragma warning disable IDE0130 // Namespace does not match folder structure
-namespace DDCKVMService
-#pragma warning restore IDE0130 // Namespace does not match folder structure
+namespace SimpleKVM.Displays.win
 {
+    [SupportedOSPlatform("windows6.1")]
     public static class MonitorController
     {
         private delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr dwData);
@@ -139,7 +138,8 @@ namespace DDCKVMService
 
                         if (GetMonitorInfo(hMonitor, ref mi))
                         {
-                            action.Invoke((hMonitor, mon, mi.GetUniqueId()));
+                            var uniqueId = SimpleKVM.Displays.MonitorIdentity.FromBounds(mi.Monitor.Left, mi.Monitor.Top, mi.Monitor.Right, mi.Monitor.Bottom);
+                            action.Invoke((hMonitor, mon, uniqueId));
                         }
                     }
 

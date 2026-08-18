@@ -39,12 +39,10 @@ namespace SimpleKVM.Cli
             switch (args[0].ToLowerInvariant())
             {
                 case "--probe-ddc":
-#if !WINDOWS
                     if (OperatingSystem.IsMacOS())
                     {
                         return Displays.mac.DdcProbe.Run();
                     }
-#endif
                     Console.WriteLine("--probe-ddc is only available on macOS.");
                     return 1;
 
@@ -190,9 +188,6 @@ namespace SimpleKVM.Cli
 
         static void RunEventLoopForever()
         {
-#if WINDOWS
-            System.Windows.Forms.Application.Run();
-#else
             if (OperatingSystem.IsMacOS())
             {
                 //A console process must pump the Carbon event queue for hotkey events to arrive
@@ -200,14 +195,13 @@ namespace SimpleKVM.Cli
             }
             else
             {
+                //Windows hotkeys are pumped on their own thread; this thread only has to stay alive
                 Thread.Sleep(Timeout.Infinite);
             }
-#endif
         }
 
         static int GetCaps(int monitorNumber)
         {
-#if !WINDOWS
             if (OperatingSystem.IsMacOS())
             {
                 var monitors = DisplaySystem.GetMonitors();
@@ -233,7 +227,6 @@ namespace SimpleKVM.Cli
                     : "VCP 0x60 not found in parsed features");
                 return 0;
             }
-#endif
             Console.WriteLine("--get-caps is only available on macOS (Windows reads capabilities via Dxva2).");
             return 1;
         }

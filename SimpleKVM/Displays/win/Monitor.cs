@@ -1,13 +1,14 @@
-﻿using DDCKVMService;
 using Newtonsoft.Json;
 using SimpleKVM.Configuration;
 using SimpleKVM.Displays.I2C;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Runtime.Versioning;
 
 namespace SimpleKVM.Displays.win
 {
+    [SupportedOSPlatform("windows6.1")]
     public class Monitor : Displays.Monitor
     {
         [JsonIgnore]

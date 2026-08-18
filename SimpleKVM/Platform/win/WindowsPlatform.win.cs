@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
+using System.Runtime.Versioning;
 
 namespace SimpleKVM.Platform.win
 {
+    [SupportedOSPlatform("windows6.1")]
     public class WindowsPlatform : IPlatform
     {
         public IDisplayPlatform Displays { get; } = new WindowsDisplayPlatform();
@@ -15,6 +16,7 @@ namespace SimpleKVM.Platform.win
         public USB.USBSystem Usb => usb ??= new USB.win.USBSystem();
     }
 
+    [SupportedOSPlatform("windows6.1")]
     class WindowsDisplayPlatform : IDisplayPlatform
     {
         public IList<SimpleKVM.Displays.Monitor> GetMonitors()
@@ -32,9 +34,9 @@ namespace SimpleKVM.Platform.win
 
         public List<ScreenRect> GetScreenBounds()
         {
-            return Screen
-                    .AllScreens
-                    .Select(screen => new ScreenRect(screen.Bounds.Left, screen.Bounds.Top, screen.Bounds.Right, screen.Bounds.Bottom))
+            return WindowsScreens
+                    .All()
+                    .Select(screen => new ScreenRect(screen.Left, screen.Top, screen.Right, screen.Bottom))
                     .ToList();
         }
     }

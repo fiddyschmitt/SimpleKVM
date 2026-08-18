@@ -1,0 +1,34 @@
+// Win32 functions and types projected by CsWin32 (Microsoft.Windows.CsWin32) into the
+// Windows.Win32 namespace. One name per line; the generator emits only what is listed.
+
+// Screens (replaces System.Windows.Forms.Screen)
+EnumDisplayMonitors
+GetMonitorInfo
+MONITORINFOEXW
+
+// Hotkeys: a message-only window plus its message loop (replaces the WinForms NativeWindow)
+RegisterHotKey
+UnregisterHotKey
+RegisterClassEx
+CreateWindowEx
+DefWindowProc
+GetMessage
+TranslateMessage
+DispatchMessage
+PostMessage
+DestroyWindow
+GetModuleHandle
+HWND_MESSAGE
+WM_HOTKEY
+WM_QUIT
+HOT_KEY_MODIFIERS
+
+// Console handling for the diagnostic CLI
+AttachConsole
+GetStdHandle
+ATTACH_PARENT_PROCESS
+
+// Idle time
+GetLastInputInfo
+GetCurrentThreadId
+WM_USER

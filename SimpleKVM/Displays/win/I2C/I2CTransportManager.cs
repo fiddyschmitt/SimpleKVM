@@ -1,9 +1,11 @@
 using SimpleKVM.Displays.I2C;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Versioning;
 
 namespace SimpleKVM.Displays.win.I2C
 {
+    [SupportedOSPlatform("windows6.1")]
     public static class I2CTransportManager
     {
         static readonly object _lock = new();

@@ -13,11 +13,8 @@ namespace SimpleKVM.Platform
 
         static IPlatform Create()
         {
-#if WINDOWS
-            if (OperatingSystem.IsWindows()) return new win.WindowsPlatform();
-#else
+            if (OperatingSystem.IsWindowsVersionAtLeast(6, 1)) return new win.WindowsPlatform();
             if (OperatingSystem.IsMacOS()) return new mac.MacPlatform();
-#endif
             throw new PlatformNotSupportedException("SimpleKVM does not support this operating system yet.");
         }
     }

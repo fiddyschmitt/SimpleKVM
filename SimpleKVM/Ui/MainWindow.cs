@@ -97,8 +97,8 @@ namespace SimpleKVM.Ui
             statsTimer.Tick += (s, e) => RefreshRows();
             statsTimer.Start();
 
-            //On Windows, minimizing hides the window and the tray icon brings it back (matching
-            //the old behavior). On macOS the window must minimize to the Dock natively — hiding
+            //On Windows, minimizing hides the window and the tray icon brings it back.
+            //On macOS the window must minimize to the Dock natively — hiding
             //it mid-minimize leaves it blank when restored.
             if (OperatingSystem.IsWindows())
             {
@@ -138,20 +138,20 @@ namespace SimpleKVM.Ui
                 ItemsSource = rulesView
             };
 
-            grid.Columns.Add(new DataGridTextColumn { Header = "Name", Binding = new Binding(nameof(RuleRow.Name)), Width = DataGridLength.Auto });
-            grid.Columns.Add(new DataGridTextColumn { Header = "Trigger", Binding = new Binding(nameof(RuleRow.TriggerText)), Width = DataGridLength.Auto });
-            grid.Columns.Add(new DataGridTextColumn { Header = "Status", Binding = new Binding(nameof(RuleRow.StatusText)), Width = DataGridLength.Auto });
+            grid.Columns.Add(new DataGridTextColumn { Header = "Name", Binding = CompiledBinding.Create((RuleRow row) => row.Name), Width = DataGridLength.Auto });
+            grid.Columns.Add(new DataGridTextColumn { Header = "Trigger", Binding = CompiledBinding.Create((RuleRow row) => row.TriggerText), Width = DataGridLength.Auto });
+            grid.Columns.Add(new DataGridTextColumn { Header = "Status", Binding = CompiledBinding.Create((RuleRow row) => row.StatusText), Width = DataGridLength.Auto });
             grid.Columns.Add(new DataGridTextColumn
             {
                 Header = "Last run",
-                Binding = new Binding(nameof(RuleRow.LastRunText)),
+                Binding = CompiledBinding.Create((RuleRow row) => row.LastRunText),
                 Width = DataGridLength.Auto,
                 CustomSortComparer = RuleRow.CompareBy(row => row.LastRun)
             });
             grid.Columns.Add(new DataGridTextColumn
             {
                 Header = "Run count",
-                Binding = new Binding(nameof(RuleRow.RunCountText)),
+                Binding = CompiledBinding.Create((RuleRow row) => row.RunCountText),
                 Width = DataGridLength.Auto,
                 CustomSortComparer = RuleRow.CompareBy(row => row.RunCount)
             });
@@ -165,7 +165,7 @@ namespace SimpleKVM.Ui
                 }
             };
 
-            //Clicking the empty area below the rows clears the selection, like the old ListView.
+            //Clicking the empty area below the rows clears the selection.
             //Registered on the window: the grid's rows presenter swallows presses on empty space
             //before they'd reach a grid-level handler.
             AddHandler(PointerPressedEvent, (s, e) =>
@@ -461,8 +461,8 @@ namespace SimpleKVM.Ui
 
         void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
         {
-            //Preserve the order the user sees (including any column sort), like the old
-            //ListView did, so the next start lists the rules the same way
+            //Preserve the order the user sees (including any column sort), so the next
+            //start lists the rules the same way
             var orderedRules = rulesView.Cast<RuleRow>().Select(row => row.Rule).ToList();
             if (orderedRules.Count == RuleStore.Rules.Count)
             {
@@ -498,7 +498,7 @@ namespace SimpleKVM.Ui
 
     /// <summary>
     /// Bindable wrapper of a Rule for the DataGrid; Refresh() raises change notifications
-    /// only for values that actually changed (the old ListView did the same diffing).
+    /// only for values that actually changed.
     /// </summary>
     public class RuleRow(Rule rule) : INotifyPropertyChanged
     {

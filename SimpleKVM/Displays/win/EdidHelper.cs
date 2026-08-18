@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 using SimpleKVM.Displays.I2C;
+using SimpleKVM.Platform.win;
+using System.Runtime.Versioning;
 
 namespace SimpleKVM.Displays.win
 {
@@ -16,6 +17,7 @@ namespace SimpleKVM.Displays.win
         public ConnectorType ConnectorType { get; set; }
     }
 
+    [SupportedOSPlatform("windows6.1")]
     public static class EdidHelper
     {
         public static List<EdidDisplayInfo> GetDisplayEdidInfo()
@@ -33,6 +35,8 @@ namespace SimpleKVM.Displays.win
                 error = QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS,
                     ref pathCount, paths, ref modeCount, modes, IntPtr.Zero);
                 if (error != 0) return result;
+
+                var screens = WindowsScreens.All();
 
                 foreach (var path in paths.Take((int)pathCount))
                 {
@@ -53,11 +57,10 @@ namespace SimpleKVM.Displays.win
                         if (sourceMode.infoType == DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE)
                         {
                             var pos = sourceMode.sourceMode.position;
-                            var screen = Screen.AllScreens.FirstOrDefault(s =>
-                                s.Bounds.Left == pos.x && s.Bounds.Top == pos.y);
+                            var screen = screens.FirstOrDefault(s => s.Left == pos.x && s.Top == pos.y);
                             if (screen != null)
                             {
-                                uniqueId = screen.GetUniqueId();
+                                uniqueId = screen.UniqueId;
                             }
                         }
                     }
