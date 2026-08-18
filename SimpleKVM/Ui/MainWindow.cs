@@ -115,6 +115,13 @@ namespace SimpleKVM.Ui
 
             //Grow the window so every column is in view on startup
             Opened += (s, e) => Dispatcher.UIThread.Post(FitWidthToColumns, DispatcherPriority.Background);
+
+            //Test hook: SIMPLEKVM_OPEN_EDITOR=1 opens the new-hotkey-rule editor straight away, so the
+            //editor's controls can be exercised by UI automation without scripting the flyout
+            if (Environment.GetEnvironmentVariable("SIMPLEKVM_OPEN_EDITOR") == "1")
+            {
+                Opened += async (s, e) => await EditRule(EnumTriggerType.Hotkey, EnumActionType.SelectMonitorSource, null);
+            }
         }
 
         static string GetVersion()

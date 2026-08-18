@@ -118,21 +118,36 @@ namespace SimpleKVM.Ui.Controls
                 var uniqueId = Displays.MonitorIdentity.FromBounds(screen.Left, screen.Top, screen.Right, screen.Bottom);
                 var monitor = monitors.FirstOrDefault(m => m.MonitorUniqueId == uniqueId);
 
-                if (monitor != null)
-                {
-                    var combo = BuildSourceCombo(monitor);
-                    combo.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
-                    combo.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom;
-                    combo.Margin = new Thickness(2, 0, 2, 6);
-                    container.Children.Add(combo);
-                }
-
                 var border = new Border
                 {
                     BorderBrush = Brushes.Gray,
                     BorderThickness = new Thickness(1),
+                    Background = Brushes.Transparent,   //so right-clicks on the empty area of the rectangle hit-test
                     Child = container
                 };
+
+                if (monitor != null)
+                {
+                    var monitorEntry = BuildSourceCombo(monitor);
+                    var combo = monitorEntry.ComboBox;
+                    combo.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+                    combo.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom;
+                    combo.Margin = new Thickness(2, 0, 2, 6);
+                    container.Children.Add(combo);
+
+                    //A per-monitor delay is set from the monitor's right-click menu and shown on the rectangle
+                    var delayLabel = new TextBlock
+                    {
+                        FontSize = 12,
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        Foreground = Brushes.Gray
+                    };
+                    container.Children.Add(delayLabel);
+                    UpdateDelayLabel(delayLabel, monitorEntry);
+
+                    border.ContextMenu = BuildMonitorContextMenu(monitorEntry, delayLabel);
+                }
 
                 Canvas.SetLeft(border, rect.X);
                 Canvas.SetTop(border, rect.Y);
@@ -143,11 +158,48 @@ namespace SimpleKVM.Ui.Controls
             canvas.Height = maxBottom + Pad;
         }
 
-        ComboBox BuildSourceCombo(Displays.Monitor monitor)
+        static void UpdateDelayLabel(TextBlock label, MonitorComboEntry entry)
+        {
+            label.Text = entry.DelaySeconds > 0 ? $"delay {entry.DelaySeconds} s" : "";
+        }
+
+        ContextMenu BuildMonitorContextMenu(MonitorComboEntry entry, TextBlock delayLabel)
+        {
+            var setDelayItem = new MenuItem();
+            setDelayItem.Click += async (s, e) =>
+            {
+                if (TopLevel.GetTopLevel(this) is not Window owner) return;
+
+                var dialog = new SetRuleDelayWindow
+                {
+                    Title = "Set monitor delay",
+                    Prompt = "Wait this many extra seconds before switching\nthis monitor (on top of the rule's delay):",
+                    DelaySeconds = entry.DelaySeconds
+                };
+
+                if (await dialog.ShowDialog<bool>(owner))
+                {
+                    entry.DelaySeconds = dialog.DelaySeconds;
+                    UpdateDelayLabel(delayLabel, entry);
+                }
+            };
+
+            var menu = new ContextMenu();
+            menu.Items.Add(setDelayItem);
+            menu.Opening += (s, e) =>
+            {
+                setDelayItem.Header = entry.DelaySeconds > 0 ? $"Set delay ({entry.DelaySeconds} s)..." : "Set delay...";
+            };
+
+            return menu;
+        }
+
+        MonitorComboEntry BuildSourceCombo(Displays.Monitor monitor)
         {
             var currentSource = monitor.GetCurrentSource();
 
             int sourceIdToSelect;
+            int delaySeconds = 0;
             if (ruleToEdit == null)
             {
                 sourceIdToSelect = currentSource;
@@ -159,6 +211,7 @@ namespace SimpleKVM.Ui.Controls
                     .OfType<SetMonitorSourceAction>()
                     .FirstOrDefault(a => a.Monitor.MonitorUniqueId.Equals(monitor.MonitorUniqueId));
                 sourceIdToSelect = setMonitorAction?.SetMonitorSourceIdTo ?? -1;
+                delaySeconds = setMonitorAction?.DelaySeconds ?? 0;
             }
 
             var items = monitor
@@ -186,9 +239,10 @@ namespace SimpleKVM.Ui.Controls
                 SelectedIndex = selectedIndex
             };
 
-            monitorCombos.Add(new MonitorComboEntry(monitor, combo, sourceIdToSelect));
+            var entry = new MonitorComboEntry(monitor, combo, sourceIdToSelect, delaySeconds);
+            monitorCombos.Add(entry);
 
-            return combo;
+            return entry;
         }
 
         public List<ValidationResult> ValidateData()
@@ -202,7 +256,10 @@ namespace SimpleKVM.Ui.Controls
                 .Select(entry =>
                 {
                     var selectedSourceId = (entry.ComboBox.SelectedItem as SourceItem)?.SourceId ?? entry.OriginalSourceId;
-                    return (IAction)new SetMonitorSourceAction(entry.Monitor, selectedSourceId);
+                    return (IAction)new SetMonitorSourceAction(entry.Monitor, selectedSourceId)
+                    {
+                        DelaySeconds = entry.DelaySeconds
+                    };
                 })
                 .ToList();
         }
@@ -212,6 +269,14 @@ namespace SimpleKVM.Ui.Controls
             public override string ToString() => SourceName;
         }
 
-        record MonitorComboEntry(Displays.Monitor Monitor, ComboBox ComboBox, int OriginalSourceId);
+        class MonitorComboEntry(Displays.Monitor monitor, ComboBox comboBox, int originalSourceId, int delaySeconds)
+        {
+            public Displays.Monitor Monitor { get; } = monitor;
+            public ComboBox ComboBox { get; } = comboBox;
+            public int OriginalSourceId { get; } = originalSourceId;
+
+            /// <summary>Per-monitor delay, editable from the monitor's right-click menu.</summary>
+            public int DelaySeconds { get; set; } = delaySeconds;
+        }
     }
 }

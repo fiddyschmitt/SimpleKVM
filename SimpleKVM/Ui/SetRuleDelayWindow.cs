@@ -6,11 +6,19 @@ namespace SimpleKVM.Ui
     public class SetRuleDelayWindow : Window
     {
         readonly NumericUpDown nudDelay;
+        readonly TextBlock promptText;
 
         public int DelaySeconds
         {
             get => (int)(nudDelay.Value ?? 0);
             set => nudDelay.Value = value;
+        }
+
+        /// <summary>The explanatory text above the field; defaults to the per-rule wording.</summary>
+        public string Prompt
+        {
+            get => promptText.Text ?? "";
+            set => promptText.Text = value;
         }
 
         public SetRuleDelayWindow()
@@ -51,10 +59,11 @@ namespace SimpleKVM.Ui
                 Margin = new Thickness(12),
                 Spacing = 10
             };
-            layout.Children.Add(new TextBlock
+            promptText = new TextBlock
             {
                 Text = "Wait this many seconds after the trigger fires\nbefore running the actions:"
-            });
+            };
+            layout.Children.Add(promptText);
             layout.Children.Add(nudDelay);
             layout.Children.Add(buttonRow);
 

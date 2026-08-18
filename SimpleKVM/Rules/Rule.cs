@@ -3,6 +3,7 @@ using SimpleKVM.Rules.Actions;
 using SimpleKVM.Rules.Triggers;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using IAction = SimpleKVM.Rules.Actions.IAction;
 
@@ -63,16 +64,14 @@ namespace SimpleKVM.Rules
             if (DelaySeconds > 0)
                 System.Threading.Thread.Sleep(DelaySeconds * 1000);
 
-            bool wasRun = false;
-            Actions
-                .ForEach(action =>
-                {
-                    if (action.Run())
-                    {
-                        wasRun = true;
-                    }
+            //Actions run concurrently so that a per-action delay (see SetMonitorSourceAction.DelaySeconds)
+            //is an offset from this moment rather than being added onto the actions before it: a monitor
+            //set to wait 5 s switches 5 s after the rule fires, whatever the other monitors are doing.
+            var results = System.Threading.Tasks.Task.WhenAll(
+                Actions.Select(action => System.Threading.Tasks.Task.Run(action.Run)))
+                .GetAwaiter().GetResult();
 
-                });
+            bool wasRun = results.Any(ran => ran);
 
             if (wasRun)
             {

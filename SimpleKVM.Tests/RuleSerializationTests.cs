@@ -110,3 +110,61 @@ public class RuleSerializationTests
         Assert.ThrowsAny<JsonException>(() => malicious.DeserializJson<List<Rule>>());
     }
 }
+
+public class MonitorDelaySerializationTests
+{
+    [Fact]
+    public void Per_monitor_delay_round_trips_through_rules_json()
+    {
+        // Written the way RuleStore.Save writes it (a real per-OS Monitor $type), then read back
+        // through the SafeSerializationBinder path RuleStore.Load uses.
+        const string json = """
+        [{
+          "Trigger": { "$type": "SimpleKVM.Rules.Triggers.HotkeyTrigger, SimpleKVM", "HotkeyAsString": "Win+F1" },
+          "Actions": [{
+            "$type": "SimpleKVM.Rules.Actions.SetMonitorSourceAction, SimpleKVM",
+            "Monitor": { "$type": "SimpleKVM.Displays.win.Monitor, SimpleKVM", "MonitorUniqueId": "ABC123" },
+            "SetMonitorSourceIdTo": 17,
+            "DelaySeconds": 5
+          }],
+          "Name": "r"
+        }]
+        """;
+
+        var loaded = json.DeserializJson<List<Rule>>();
+
+        var action = Assert.IsType<SetMonitorSourceAction>(Assert.Single(Assert.Single(loaded!).Actions));
+        Assert.Equal(5, action.DelaySeconds);
+        Assert.Equal(17, action.SetMonitorSourceIdTo);
+
+        // and it survives being written out again
+        var rewritten = JsonConvert.SerializeObject(loaded, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto });
+        Assert.Contains("\"DelaySeconds\": 5", rewritten.Replace("\"DelaySeconds\":5", "\"DelaySeconds\": 5"));
+    }
+    [Fact]
+    public void A_rules_json_written_before_monitor_delays_existed_loads_with_delay_zero()
+    {
+        // The pre-2.5 format: no DelaySeconds on the action at all.
+        const string legacy = """
+        [
+          {
+            "Trigger": { "$type": "SimpleKVM.Rules.Triggers.HotkeyTrigger, SimpleKVM", "HotkeyAsString": "Win+F1" },
+            "Actions": [
+              {
+                "$type": "SimpleKVM.Rules.Actions.SetMonitorSourceAction, SimpleKVM",
+                "Monitor": { "$type": "SimpleKVM.Displays.win.Monitor, SimpleKVM", "MonitorUniqueId": "ABC123" },
+                "SetMonitorSourceIdTo": 17
+              }
+            ],
+            "Name": "r"
+          }
+        ]
+        """;
+
+        var loaded = legacy.DeserializJson<List<Rule>>();
+
+        var action = Assert.IsType<SetMonitorSourceAction>(Assert.Single(Assert.Single(loaded!).Actions));
+        Assert.Equal(0, action.DelaySeconds);
+    }
+
+}
