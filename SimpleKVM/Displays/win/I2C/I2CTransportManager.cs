@@ -51,24 +51,12 @@ namespace SimpleKVM.Displays.win.I2C
 
                 var unmatched = vendorDisplays.ToList();
 
+                //Windows' DisplayConfig data carries no EDID serial number, so matching goes by
+                //manufacturer + product code, narrowed by connector type, then enumeration order
                 foreach (var winDisplay in windowsDisplays)
                 {
-                    // Layer 1: manufacturer + product + serial
+                    // Layer 1: manufacturer + product + connector type
                     var candidates = unmatched.Where(v =>
-                        v.Info.EdidManufacturerId == winDisplay.EdidManufacturerId &&
-                        v.Info.EdidProductCode == winDisplay.EdidProductCode &&
-                        v.Info.EdidSerial != 0 &&
-                        v.Info.EdidSerial == GetEdidSerial(winDisplay)).ToList();
-
-                    if (candidates.Count == 1)
-                    {
-                        Assign(winDisplay.UniqueId, candidates[0]);
-                        unmatched.Remove(candidates[0]);
-                        continue;
-                    }
-
-                    // Layer 2: manufacturer + product + connector type
-                    candidates = unmatched.Where(v =>
                         v.Info.EdidManufacturerId == winDisplay.EdidManufacturerId &&
                         v.Info.EdidProductCode == winDisplay.EdidProductCode &&
                         v.Info.ConnectorType == winDisplay.ConnectorType &&
@@ -81,7 +69,7 @@ namespace SimpleKVM.Displays.win.I2C
                         continue;
                     }
 
-                    // Layer 3: manufacturer + product, sequential fallback
+                    // Layer 2: manufacturer + product, sequential fallback
                     candidates = unmatched.Where(v =>
                         v.Info.EdidManufacturerId == winDisplay.EdidManufacturerId &&
                         v.Info.EdidProductCode == winDisplay.EdidProductCode).ToList();
@@ -100,7 +88,6 @@ namespace SimpleKVM.Displays.win.I2C
             _displayMap[uniqueId] = (match.Transport, match.Info.VendorDisplayHandle);
         }
 
-        static uint GetEdidSerial(EdidDisplayInfo _) => 0;
 
         public static (II2CTransport Transport, object DisplayHandle)? GetTransportForDisplay(string uniqueId)
         {
