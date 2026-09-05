@@ -11,11 +11,29 @@ namespace SimpleKVM.USB.win
     [SupportedOSPlatform("windows6.1")]
     public class USBSystem : USB.USBSystem
     {
+        readonly List<ManagementEventWatcher> watchers = [];
+
         public USBSystem()
         {
-            WatchDeviceClass("Win32_USBHub");
-            WatchDeviceClass("Win32_PointingDevice");
-            WatchDeviceClass("Win32_Keyboard");
+            //Each class is watched independently: one WMI class failing to register shouldn't
+            //cost the others. Only when none could be started is the watcher unusable.
+            var failures = new List<string>();
+            foreach (var deviceClass in new[] { "Win32_USBHub", "Win32_PointingDevice", "Win32_Keyboard" })
+            {
+                try
+                {
+                    WatchDeviceClass(deviceClass);
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{deviceClass}: {ex.Message}");
+                }
+            }
+
+            if (watchers.Count == 0)
+            {
+                throw new InvalidOperationException($"WMI device watching could not be started ({string.Join("; ", failures)})");
+            }
 
             //WatchDeviceClass("Win32_USBController");
 
@@ -33,11 +51,13 @@ namespace SimpleKVM.USB.win
             var insertWatcher = new ManagementEventWatcher(insertQuery);
             insertWatcher.EventArrived += (sender, e) => PropogateEvent(e, deviceClass, EnumUsbEvent.Inserted);
             insertWatcher.Start();
+            watchers.Add(insertWatcher);
 
             var removeQuery = new WqlEventQuery($"SELECT * FROM __InstanceDeletionEvent WITHIN 2 WHERE TargetInstance ISA '{deviceClass}'");
             var removeWatcher = new ManagementEventWatcher(removeQuery);
             removeWatcher.EventArrived += (sender, e) => PropogateEvent(e, deviceClass, EnumUsbEvent.Removed);
             removeWatcher.Start();
+            watchers.Add(removeWatcher);
         }
 
         void PropogateEvent(EventArrivedEventArgs e, string deviceClass, EnumUsbEvent eventType)

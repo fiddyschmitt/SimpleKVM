@@ -11,17 +11,40 @@ namespace SimpleKVM.USB
             UsbEvent?.Invoke(this, e);
         }
 
+        static readonly object instanceLock = new();
+        static USBSystem? instance;
+
+        /// <summary>
+        /// Why the USB watcher could not be started (no backend for this OS, or on Windows a
+        /// broken WMI service), or null while it is running or has not been needed yet.
+        /// </summary>
+        public static string? InitializationError { get; private set; }
+
+        /// <summary>
+        /// The platform's USB watcher, or null when it could not be started; see
+        /// <see cref="InitializationError"/>. A failure is remembered rather than retried on every
+        /// access, and never takes the app down: hotkey and idle rules keep working without it.
+        /// </summary>
         public static USBSystem? INSTANCE
         {
             get
             {
-                try
+                lock (instanceLock)
                 {
-                    return PlatformServices.Current.Usb;
-                }
-                catch (PlatformNotSupportedException)
-                {
-                    return null;
+                    if (instance != null) return instance;
+                    if (InitializationError != null) return null;
+
+                    try
+                    {
+                        instance = PlatformServices.Current.Usb;
+                        return instance;
+                    }
+                    catch (Exception ex)
+                    {
+                        InitializationError = ex.Message;
+                        Console.WriteLine($"USB device watching is unavailable: {ex}");
+                        return null;
+                    }
                 }
             }
         }

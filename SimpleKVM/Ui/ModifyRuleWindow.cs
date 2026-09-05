@@ -22,7 +22,7 @@ namespace SimpleKVM.Ui
 
         public Rule? RuleToEdit { get; }
 
-        public ModifyRuleWindow(USBSystem usbSystem, string title, Rule ruleToEdit)
+        public ModifyRuleWindow(USBSystem? usbSystem, string title, Rule ruleToEdit)
             : this(usbSystem, title, TriggerTypeOf(ruleToEdit), ActionTypeOf(ruleToEdit), ruleToEdit)
         {
         }
@@ -42,7 +42,7 @@ namespace SimpleKVM.Ui
             return EnumActionType.SelectMonitorSource;
         }
 
-        public ModifyRuleWindow(USBSystem usbSystem, string title, EnumTriggerType triggerType, EnumActionType actionType, Rule? ruleToEdit)
+        public ModifyRuleWindow(USBSystem? usbSystem, string title, EnumTriggerType triggerType, EnumActionType actionType, Rule? ruleToEdit)
         {
             Title = title;
             Icon = App.LoadIcon();

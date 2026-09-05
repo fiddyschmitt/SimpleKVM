@@ -335,8 +335,6 @@ namespace SimpleKVM.Ui
 
         public async Task EditRule(EnumTriggerType? triggerType, EnumActionType? actionType, Rule? rule)
         {
-            if (usbSystem == null) return;
-
             //pause the rules which are currently running
             var paused = RuleStore.Rules
                             .Where(r => r.Status == EnumRuleStatus.Running || r.Status == EnumRuleStatus.Error)

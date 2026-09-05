@@ -10,13 +10,13 @@ namespace SimpleKVM.Ui.Controls
     {
         readonly HyperlinkButton deviceLink;
         readonly HyperlinkButton verbLink;
-        readonly USBSystem usbSystem;
+        readonly USBSystem? usbSystem;
         readonly IValueChangedListener? valueChangedListener;
 
         USBDevice? usbDeviceSelectedByUser;
         EnumUsbEvent usbVerb = EnumUsbEvent.Inserted;
 
-        public UsbTriggerView(USBSystem usbSystem, IValueChangedListener? valueChangedListener, Rule? ruleToEdit)
+        public UsbTriggerView(USBSystem? usbSystem, IValueChangedListener? valueChangedListener, Rule? ruleToEdit)
         {
             this.usbSystem = usbSystem;
             this.valueChangedListener = valueChangedListener;
@@ -34,6 +34,14 @@ namespace SimpleKVM.Ui.Controls
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
             };
             deviceLink.Click += async (s, e) => await ShowUsbChooser();
+
+            if (usbSystem == null)
+            {
+                //No watcher (e.g. WMI is broken on this machine): the rule can still be edited,
+                //but no device can be picked and the trigger won't fire
+                deviceLink.IsEnabled = false;
+                ToolTip.SetTip(deviceLink, UnavailableMessage);
+            }
 
             verbLink = new HyperlinkButton
             {
@@ -67,8 +75,11 @@ namespace SimpleKVM.Ui.Controls
             verbLink.Content = usbVerb.ToString().ToLower();
         }
 
+        static string UnavailableMessage => $"USB device watching is unavailable on this computer: {USBSystem.InitializationError}";
+
         async System.Threading.Tasks.Task ShowUsbChooser()
         {
+            if (usbSystem == null) return;
             if (TopLevel.GetTopLevel(this) is not Window owner) return;
 
             var chooser = new ChooseUsbWindow(usbSystem);
@@ -88,7 +99,10 @@ namespace SimpleKVM.Ui.Controls
         {
             var result = new List<ValidationResult>();
 
-            if (usbDeviceSelectedByUser == null) result.Add(new ValidationResult(deviceLink, "Please choose a USB device"));
+            if (usbDeviceSelectedByUser == null)
+            {
+                result.Add(new ValidationResult(deviceLink, usbSystem == null ? UnavailableMessage : "Please choose a USB device"));
+            }
 
             return result;
         }
