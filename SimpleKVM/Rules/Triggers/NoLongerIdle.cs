@@ -1,7 +1,5 @@
-﻿using SimpleKVM.Utilities;
+using SimpleKVM.Utilities;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,6 +7,15 @@ namespace SimpleKVM.Rules.Triggers
 {
     public class NoLongerIdle : Trigger
     {
+        /// <summary>
+        /// How long the user must have been idle for their next input to count as "no longer
+        /// idle". Without it any input that lands between two polls makes the sampled idle time
+        /// drop, and the rule fires many times a second during ordinary use.
+        /// </summary>
+        public static readonly TimeSpan IdleThreshold = TimeSpan.FromSeconds(1);
+
+        static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
+
         public override string GetTriggerAsFriendlyString()
         {
             var result = $"when no longer idle";
@@ -20,31 +27,53 @@ namespace SimpleKVM.Rules.Triggers
 
         public override void StartMonitoring()
         {
-            monitorIdleTimeToken = new CancellationTokenSource();
+            StopMonitoring();
 
-            TimeSpan? lastIdleTime = null;
+            var cancellation = new CancellationTokenSource();
+            monitorIdleTimeToken = cancellation;
+
             monitorIdleTime = Task.Factory.StartNew(() =>
             {
-                while (!monitorIdleTimeToken.IsCancellationRequested)
-                {
-                    var idleTime = IdleUtility.GetIdleTimeSpan();
+                TimeSpan? lastIdleTime = null;
 
-                    if (lastIdleTime > idleTime)
+                while (!cancellation.IsCancellationRequested)
+                {
+                    try
                     {
-                        RaiseTriggered();
+                        var idleTime = IdleUtility.GetIdleTimeSpan();
+
+                        if (ShouldFire(lastIdleTime, idleTime))
+                        {
+                            RaiseTriggered();
+                        }
+
+                        lastIdleTime = idleTime;
+                    }
+                    catch (Exception ex)
+                    {
+                        //A failed idle read must not end the watch
+                        Console.WriteLine($"Idle watch: {ex.Message}");
                     }
 
-                    lastIdleTime = idleTime;
-
-                    Thread.Sleep(100);
+                    cancellation.Token.WaitHandle.WaitOne(PollInterval);
                 }
-            });
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>True when the user was idle for at least the threshold and has now provided input.</summary>
+        public static bool ShouldFire(TimeSpan? previousIdleTime, TimeSpan idleTime)
+        {
+            return previousIdleTime >= IdleThreshold && idleTime < previousIdleTime;
         }
 
         public override void StopMonitoring()
         {
             monitorIdleTimeToken?.Cancel();
-            monitorIdleTime?.Wait();
+            monitorIdleTimeToken = null;
+
+            //Bounded: a late trigger from a loop still winding down is filtered by the rule's status
+            monitorIdleTime?.Wait(PollInterval * 2);
+            monitorIdleTime = null;
         }
     }
 }
