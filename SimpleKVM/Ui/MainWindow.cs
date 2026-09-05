@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SimpleKVM.Configuration;
@@ -30,6 +31,7 @@ namespace SimpleKVM.Ui
         readonly ObservableCollection<RuleRow> ruleRows = [];
         readonly Avalonia.Collections.DataGridCollectionView rulesView;
         readonly DispatcherTimer statsTimer;
+        readonly TextBlock saveErrorText;
 
         public MainWindow()
         {
@@ -65,6 +67,17 @@ namespace SimpleKVM.Ui
             };
             buttonRow.Children.Add(btnNewRule);
             buttonRow.Children.Add(btnSettings);
+
+            //Rules are saved after every trigger; a save that keeps failing (read-only folder) is
+            //reported here rather than crashing the app
+            saveErrorText = new TextBlock
+            {
+                Foreground = Brushes.Red,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                IsVisible = false
+            };
+            buttonRow.Children.Add(saveErrorText);
 
             var layout = new DockPanel();
             DockPanel.SetDock(buttonRow, Dock.Bottom);
@@ -429,6 +442,13 @@ namespace SimpleKVM.Ui
             foreach (var row in ruleRows)
             {
                 row.Refresh();
+            }
+
+            var saveError = RuleStore.LastSaveError;
+            if (saveErrorText.Text != saveError)
+            {
+                saveErrorText.Text = saveError;
+                saveErrorText.IsVisible = saveError != null;
             }
         }
 

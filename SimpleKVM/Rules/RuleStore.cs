@@ -37,11 +37,26 @@ namespace SimpleKVM.Rules
             }
         }
 
+        /// <summary>Why the last save failed, or null when it succeeded. Shown by the main window.</summary>
+        public static string? LastSaveError { get; private set; }
+
         public static void Save()
         {
-            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-            var rulesJson = JsonConvert.SerializeObject(Rules, Formatting.Indented, settings);
-            Extensions.WriteTextFile(AppPaths.RulesFile, rulesJson);
+            try
+            {
+                var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+                var rulesJson = JsonConvert.SerializeObject(Rules, Formatting.Indented, settings);
+                Extensions.WriteTextFile(AppPaths.RulesFile, rulesJson);
+                LastSaveError = null;
+            }
+            catch (Exception ex)
+            {
+                //Saving runs after every rule trigger and must never take the app down; it is
+                //retried on the next change. The usual cause is the exe sitting in a folder the
+                //user can't write to, such as Program Files.
+                LastSaveError = $"Could not save {AppPaths.RulesFile}: {ex.Message}";
+                Console.WriteLine(LastSaveError);
+            }
         }
     }
 }

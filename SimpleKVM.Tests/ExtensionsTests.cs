@@ -21,6 +21,24 @@ public class ExtensionsTests
     }
 
     [Fact]
+    public void WriteTextFile_replaces_the_file_in_place_and_leaves_no_temporary_behind()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"simplekvm-{Guid.NewGuid():N}.json");
+        try
+        {
+            Extensions.WriteTextFile(path, "one");
+            Extensions.WriteTextFile(path, "two");
+
+            Assert.Equal("two", File.ReadAllText(path));
+            Assert.False(File.Exists(path + ".tmp"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Next_advances_through_enum_values()
     {
         Assert.Equal(EnumRuleStatus.Stopped, EnumRuleStatus.Running.Next());

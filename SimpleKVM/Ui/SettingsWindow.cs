@@ -106,7 +106,17 @@ namespace SimpleKVM.Ui
 
             AppSettingsManager.Current.ForceInputChange = chkForceInputChange.IsChecked == true;
             AppSettingsManager.Current.FollowSourceChanges = chkFollowSourceChanges.IsChecked == true;
-            AppSettingsManager.Save();
+
+            try
+            {
+                AppSettingsManager.Save();
+            }
+            catch (Exception ex)
+            {
+                errorText.Text = $"Failed to save the settings: {ex.Message}";
+                errorText.IsVisible = true;
+                return;
+            }
 
             Close(true);
         }

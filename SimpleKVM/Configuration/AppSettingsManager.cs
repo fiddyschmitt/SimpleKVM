@@ -27,7 +27,7 @@ namespace SimpleKVM.Configuration
         public static void Save()
         {
             var json = JsonConvert.SerializeObject(Current, Formatting.Indented);
-            File.WriteAllText(SettingsPath, json);
+            Extensions.WriteTextFile(SettingsPath, json);
         }
     }
 }

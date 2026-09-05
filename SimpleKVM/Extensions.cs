@@ -51,6 +51,10 @@ namespace SimpleKVM
             return result;
         }
 
+        /// <summary>
+        /// Writes the file only when its content changed, through a temporary file that replaces
+        /// the original in one step, so a crash mid-write can't leave a half-written file behind.
+        /// </summary>
         public static void WriteTextFile(string filename, string content)
         {
             if (File.Exists(filename) && File.ReadAllText(filename) == content)
@@ -59,7 +63,9 @@ namespace SimpleKVM
                 return;
             }
 
-            File.WriteAllText(filename, content);
+            var tempFilename = filename + ".tmp";
+            File.WriteAllText(tempFilename, content);
+            File.Move(tempFilename, filename, overwrite: true);
         }
     }
 }
