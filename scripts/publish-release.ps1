@@ -33,6 +33,10 @@ $rulesFile  = Join-Path $repoRoot "SimpleKVM\bin\Debug\net10.0\rules.json"
 $version = ([xml](Get-Content $project)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
 Write-Host "SimpleKVM $version" -ForegroundColor Cyan
 
+Write-Host "`n== unit tests ==" -ForegroundColor Cyan
+dotnet test (Join-Path $repoRoot "SimpleKVM.Tests\SimpleKVM.Tests.csproj") -c Release --nologo -v q
+if ($LASTEXITCODE -ne 0) { throw "the unit tests failed; nothing was published" }
+
 New-Item -ItemType Directory -Force $publishDir | Out-Null
 Get-ChildItem $publishDir | Remove-Item -Recurse -Force
 
