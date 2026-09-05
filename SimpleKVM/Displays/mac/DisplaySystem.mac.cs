@@ -83,12 +83,15 @@ namespace SimpleKVM.Displays.mac
 
         record DisplayInfo(uint DisplayId, int Left, int Top, int Right, int Bottom, string UniqueId, int MonitorNumber, DdcTransport? Transport);
 
-        /// <summary>The external displays as CoreGraphics lays them out, without DDC transports.</summary>
+        /// <summary>
+        /// The external displays as CoreGraphics lays them out, without DDC transports. Monitor
+        /// numbers count every screen, the built-in one included, so they match the numbers in
+        /// the rule editor's layout and the MonitorOverrides in config.json (as on Windows).
+        /// </summary>
         static List<DisplayInfo> EnumerateExternalDisplays()
         {
             return CoreGraphicsNative
                     .GetActiveDisplays()
-                    .Where(id => !CoreGraphicsNative.CGDisplayIsBuiltin(id))
                     .Select(id =>
                     {
                         var bounds = CoreGraphicsNative.CGDisplayBounds(id);
@@ -96,14 +99,17 @@ namespace SimpleKVM.Displays.mac
                         int top = (int)Math.Round(bounds.Y);
                         int right = (int)Math.Round(bounds.X + bounds.Width);
                         int bottom = (int)Math.Round(bounds.Y + bounds.Height);
-                        return (id, left, top, right, bottom);
+                        bool builtin = CoreGraphicsNative.CGDisplayIsBuiltin(id);
+                        return (id, left, top, right, bottom, builtin);
                     })
                     .OrderBy(d => d.left)
                     .ThenBy(d => d.top)
-                    .Select((d, index) => new DisplayInfo(
-                        d.id, d.left, d.top, d.right, d.bottom,
-                        MonitorIdentity.FromBounds(d.left, d.top, d.right, d.bottom),
-                        index + 1,
+                    .Select((d, index) => (Display: d, Number: index + 1))
+                    .Where(entry => !entry.Display.builtin)
+                    .Select(entry => new DisplayInfo(
+                        entry.Display.id, entry.Display.left, entry.Display.top, entry.Display.right, entry.Display.bottom,
+                        MonitorIdentity.FromBounds(entry.Display.left, entry.Display.top, entry.Display.right, entry.Display.bottom),
+                        entry.Number,
                         Transport: null))
                     .ToList();
         }
