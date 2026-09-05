@@ -17,7 +17,9 @@ namespace SimpleKVM.Displays.win.I2C
         delegate int ADL2_Adapter_NumberOfAdapters_Get_Delegate(IntPtr context, out int numAdapters);
         delegate int ADL2_Adapter_Active_Get_Delegate(IntPtr context, int adapterIndex, out int status);
         delegate int ADL2_Display_DisplayInfo_Get_Delegate(IntPtr context, int adapterIndex, out int numDisplays, out IntPtr displayInfoArray, int forceDetect);
-        delegate int ADL2_Display_DDCBlockAccess_Get_Delegate(IntPtr context, int adapterIndex, int displayIndex, int commandIndex, int sendMsgLen, byte[] sendMsgBuf, out int recvMsgLen, byte[] recvMsgBuf);
+        //int ADL2_Display_DDCBlockAccess_Get(context, iAdapterIndex, iDisplayIndex, iOption, iCommandIndex, iSendMsgLen, lpucSendMsgBuf, lpRecvMsgLen, lpucRecvMsgBuf)
+        //lpRecvMsgLen is in/out: the receive buffer's size going in, the bytes received coming out
+        delegate int ADL2_Display_DDCBlockAccess_Get_Delegate(IntPtr context, int adapterIndex, int displayIndex, int option, int commandIndex, int sendMsgLen, byte[] sendMsgBuf, ref int recvMsgLen, byte[]? recvMsgBuf);
         delegate IntPtr ADL_Main_Memory_Alloc_Delegate(int size);
 
         ADL2_Main_Control_Create_Delegate? _ADL2_Main_Control_Create;
@@ -141,12 +143,13 @@ namespace SimpleKVM.Displays.win.I2C
             {
                 var sendBuf = new byte[] { 0xA0, 0x00 };
                 var recvBuf = new byte[128];
+                int recvLen = recvBuf.Length;
 
-                int status = _ADL2_Display_DDCBlockAccess_Get!(_context, adapterIndex, displayIndex, 0, sendBuf.Length, sendBuf, out _, recvBuf);
+                int status = _ADL2_Display_DDCBlockAccess_Get!(_context, adapterIndex, displayIndex, 0, 0, sendBuf.Length, sendBuf, ref recvLen, recvBuf);
                 if (status != 0)
                     return (0, 0, 0);
 
-                if (recvBuf.Length < 18 || recvBuf[0] != 0x00 || recvBuf[1] != 0xFF)
+                if (recvLen < 18 || recvBuf[0] != 0x00 || recvBuf[1] != 0xFF)
                     return (0, 0, 0);
 
                 ushort mfg = (ushort)((recvBuf[8] << 8) | recvBuf[9]);
@@ -171,8 +174,9 @@ namespace SimpleKVM.Displays.win.I2C
             sendBuf[0] = DdcCiMessage.DestinationAddress;
             Array.Copy(msg, 0, sendBuf, 1, msg.Length);
 
-            var recvBuf = new byte[1];
-            int status = _ADL2_Display_DDCBlockAccess_Get!(_context, handle.AdapterIndex, handle.DisplayIndex, 0, sendBuf.Length, sendBuf, out _, recvBuf);
+            //Write only: nothing is read back, as in AMD's DDCBlockAccess sample
+            int recvLen = 0;
+            int status = _ADL2_Display_DDCBlockAccess_Get!(_context, handle.AdapterIndex, handle.DisplayIndex, 0, 0, sendBuf.Length, sendBuf, ref recvLen, null);
             return status == 0;
         }
 
