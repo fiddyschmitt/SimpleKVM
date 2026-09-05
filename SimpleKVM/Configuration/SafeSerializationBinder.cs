@@ -1,5 +1,9 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using SimpleKVM.Rules;
+using SimpleKVM.Rules.Actions;
+using SimpleKVM.Rules.Triggers;
+using SimpleKVM.USB;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,14 +12,33 @@ namespace SimpleKVM.Configuration
 {
     /// <summary>
     /// TypeNameHandling lets json files name arbitrary types to instantiate, which is a well-known
-    /// remote-code-execution vector. This binder only resolves $type entries to types from this
-    /// assembly (and collections of them).
+    /// remote-code-execution vector. This binder only resolves $type entries to the handful of
+    /// types rules.json actually persists (and collections of them).
     /// </summary>
     public sealed class SafeSerializationBinder : ISerializationBinder
     {
         public static readonly SafeSerializationBinder Instance = new();
 
         static readonly DefaultSerializationBinder defaultBinder = new();
+
+        /// <summary>
+        /// Every type a rules.json may name. A new trigger, action or monitor type has to be
+        /// added here, or files containing it refuse to load (the binder tests pin this).
+        /// </summary>
+        static readonly HashSet<Type> persistedTypes =
+        [
+            typeof(Rule),
+            typeof(Trigger),
+            typeof(HotkeyTrigger),
+            typeof(USBTrigger),
+            typeof(NoLongerIdle),
+            typeof(USBDevice),
+            typeof(IAction),
+            typeof(SetMonitorSourceAction),
+            typeof(Displays.Monitor),
+            typeof(Displays.win.Monitor),
+            typeof(Displays.mac.Monitor),
+        ];
 
         /// <summary>
         /// rules.json names the concrete per-OS Monitor type it was written with; when a file
@@ -34,14 +57,25 @@ namespace SimpleKVM.Configuration
                 typeName = mappedTypeName;
             }
 
+            //Refuse foreign names before resolving them: resolving loads whatever assembly the file names
+            if (!typeName.StartsWith("SimpleKVM.", StringComparison.Ordinal) && !typeName.StartsWith("System.", StringComparison.Ordinal))
+            {
+                throw Refuse(typeName);
+            }
+
             var type = defaultBinder.BindToType(assemblyName, typeName);
 
             if (!IsAllowed(type))
             {
-                throw new JsonSerializationException($"Refusing to deserialize type: {typeName}");
+                throw Refuse(typeName);
             }
 
             return type;
+        }
+
+        static JsonSerializationException Refuse(string typeName)
+        {
+            return new JsonSerializationException($"Refusing to deserialize type: {typeName}");
         }
 
         public void BindToName(Type serializedType, out string? assemblyName, out string? typeName)
@@ -59,7 +93,7 @@ namespace SimpleKVM.Configuration
                         && type.GetGenericArguments().All(IsAllowed);
             }
 
-            return type.Assembly == typeof(SafeSerializationBinder).Assembly
+            return persistedTypes.Contains(type)
                     || type.IsPrimitive
                     || type == typeof(string)
                     || type == typeof(DateTime);

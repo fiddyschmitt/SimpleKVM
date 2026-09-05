@@ -28,6 +28,35 @@ public class SafeSerializationBinderTests
         Assert.Contains("Refusing to deserialize", ex.Message);
     }
 
+    [Fact]
+    public void Rejects_a_type_from_the_app_assembly_that_rules_never_persist()
+    {
+        // Being in our assembly isn't enough: only the persisted rule, trigger, action and
+        // monitor types may be named. AppSettings is ours but never appears in rules.json.
+        var t = typeof(AppSettings);
+        var ex = Assert.Throws<JsonSerializationException>(
+            () => Binder.BindToType(t.Assembly.GetName().Name, t.FullName!));
+        Assert.Contains("Refusing to deserialize", ex.Message);
+    }
+
+    [Fact]
+    public void Rejects_a_foreign_type_without_trying_to_resolve_it()
+    {
+        // The assembly doesn't exist: if the binder loaded it before checking the name, this
+        // would surface as a FileNotFoundException rather than a refusal.
+        var ex = Assert.Throws<JsonSerializationException>(
+            () => Binder.BindToType("Evil.Assembly", "Evil.Payload"));
+        Assert.Contains("Refusing to deserialize", ex.Message);
+    }
+
+    [Fact]
+    public void Allows_a_list_of_a_persisted_type()
+    {
+        var t = typeof(List<Rule>);
+        var bound = Binder.BindToType(t.Assembly.GetName().Name, t.FullName!);
+        Assert.Equal(t, bound);
+    }
+
     [Theory]
     [InlineData("System.Int32")]
     [InlineData("System.String")]
