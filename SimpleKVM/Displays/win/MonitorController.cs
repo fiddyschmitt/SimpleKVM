@@ -1,20 +1,16 @@
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Runtime.Versioning;
+using System.Text;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Gdi;
 
 namespace SimpleKVM.Displays.win
 {
     [SupportedOSPlatform("windows6.1")]
     public static class MonitorController
     {
-        private delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr dwData);
-
-        [DllImport("user32.dll")]
-        private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip,
-            MonitorEnumDelegate lpfnEnum, IntPtr dwData);
-
         [DllImport("Dxva2.dll")]
         private static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(
             IntPtr hMonitor,
@@ -63,15 +59,6 @@ namespace SimpleKVM.Displays.win
             out uint pdwMaximumValue
         );
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct Rect
-        {
-            public int left;
-            public int top;
-            public int right;
-            public int bottom;
-        }
-
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public struct PHYSICAL_MONITOR
         {
@@ -110,66 +97,49 @@ namespace SimpleKVM.Displays.win
             }
         }
 
-        public static void EnumMonitors(Action<(IntPtr hMonitor, PHYSICAL_MONITOR PhysicalMonitor, string UniqueId)> action)
+        /// <summary>
+        /// Calls <paramref name="action"/> for every physical monitor of every screen, with the
+        /// screen's geometry-based id. The physical monitor handle is only valid inside the callback.
+        /// </summary>
+        public static unsafe void EnumMonitors(Action<(IntPtr hMonitor, PHYSICAL_MONITOR PhysicalMonitor, string UniqueId)> action)
         {
-            // Iterate monitors and retrieve their physical monitor instances
-            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
-                (hMonitor, hdcMonitor, ref lprcMonitor, dwData) =>
+            PInvoke.EnumDisplayMonitors(HDC.Null, (RECT*)null, (hMonitor, hdc, rect, lparam) =>
+            {
+                if (!GetNumberOfPhysicalMonitorsFromHMONITOR((IntPtr)hMonitor.Value, out uint arrSize))
                 {
-                    var supported = GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out uint arrSize);
-                    if (!supported)
-                    {
-                        return true;
-                    }
+                    return true;
+                }
 
-                    var arr = new PHYSICAL_MONITOR[arrSize];
-                    supported = GetPhysicalMonitorsFromHMONITOR(hMonitor, arrSize, arr);
-                    if (!supported)
-                    {
-                        return true;
-                    }
+                var arr = new PHYSICAL_MONITOR[arrSize];
+                if (!GetPhysicalMonitorsFromHMONITOR((IntPtr)hMonitor.Value, arrSize, arr))
+                {
+                    return true;
+                }
 
-                    foreach (var mon in arr)
+                try
+                {
+                    var info = new MONITORINFOEXW();
+                    info.monitorInfo.cbSize = (uint)sizeof(MONITORINFOEXW);
+
+                    if (PInvoke.GetMonitorInfo(hMonitor, (MONITORINFO*)&info))
                     {
-                        var mi = new MONITORINFOEX
+                        var bounds = info.monitorInfo.rcMonitor;
+                        var uniqueId = MonitorIdentity.FromBounds(bounds.left, bounds.top, bounds.right, bounds.bottom);
+
+                        foreach (var mon in arr)
                         {
-                            Size = Marshal.SizeOf<MONITORINFOEX>()
-                        };
-
-                        if (GetMonitorInfo(hMonitor, ref mi))
-                        {
-                            var uniqueId = SimpleKVM.Displays.MonitorIdentity.FromBounds(mi.Monitor.Left, mi.Monitor.Top, mi.Monitor.Right, mi.Monitor.Bottom);
-                            action.Invoke((hMonitor, mon, uniqueId));
+                            action.Invoke(((IntPtr)hMonitor.Value, mon, uniqueId));
                         }
                     }
-
+                }
+                finally
+                {
+                    //Released even when the callback throws, otherwise the handles leak
                     DestroyPhysicalMonitors((uint)arr.Length, arr);
+                }
 
-                    return true;
-                }, IntPtr.Zero);
+                return true;
+            }, default);
         }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct MONITORINFOEX
-        {
-            public int Size;
-            public RECT Monitor;
-            public RECT WorkArea;
-            public uint Flags;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-            public string DeviceName;
-        }
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
     }
 }
