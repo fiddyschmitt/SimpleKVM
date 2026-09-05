@@ -176,10 +176,13 @@ namespace SimpleKVM.Input.mac
             ["Home"] = 115, ["End"] = 119, ["PageUp"] = 116, ["PageDown"] = 121,
             ["Space"] = 49, ["Tab"] = 48, ["Return"] = 36, ["Enter"] = 36, ["Escape"] = 53,
             ["Back"] = 51, ["Delete"] = 117,
+            //Avalonia's Key.ToString() picks one name per aliased pair (Oem4 for the [ key,
+            //OemQuestion for /, ...), so both spellings of every OEM key are listed
             ["OemMinus"] = 27, ["Oemplus"] = 24, ["Oemcomma"] = 43, ["OemPeriod"] = 47,
-            ["OemQuestion"] = 44, ["OemSemicolon"] = 41, ["Oem1"] = 41, ["OemQuotes"] = 39, ["Oem7"] = 39,
-            ["OemOpenBrackets"] = 33, ["OemCloseBrackets"] = 30, ["Oem5"] = 42, ["OemPipe"] = 42,
-            ["Oemtilde"] = 50, ["Oem3"] = 50,
+            ["OemQuestion"] = 44, ["Oem2"] = 44, ["OemSemicolon"] = 41, ["Oem1"] = 41, ["OemQuotes"] = 39, ["Oem7"] = 39,
+            ["OemOpenBrackets"] = 33, ["Oem4"] = 33, ["OemCloseBrackets"] = 30, ["Oem6"] = 30, ["Oem5"] = 42, ["OemPipe"] = 42,
+            ["Oemtilde"] = 50, ["Oem3"] = 50, ["OemBackslash"] = 10, ["Oem102"] = 10,     //ISO section key
+            ["F13"] = 105, ["F14"] = 107, ["F15"] = 113, ["F16"] = 106, ["F17"] = 64, ["F18"] = 79, ["F19"] = 80, ["F20"] = 90,
         };
     }
 }
