@@ -10,6 +10,12 @@ namespace SimpleKVM.Displays
             return PlatformServices.Current.Displays.GetMonitors();
         }
 
+        /// <summary>Drops the monitor cache so the next GetMonitors re-enumerates and re-probes every monitor.</summary>
+        public static void InvalidateMonitors()
+        {
+            PlatformServices.Current.Displays.InvalidateMonitors();
+        }
+
         public static Dictionary<string, int> GetCurrentSources()
         {
             return PlatformServices.Current.Displays.GetCurrentSources();

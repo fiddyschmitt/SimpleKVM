@@ -27,6 +27,11 @@ namespace SimpleKVM.Platform.win
                     .ToList();
         }
 
+        public void InvalidateMonitors()
+        {
+            SimpleKVM.Displays.win.DisplaySystem.InvalidateMonitors();
+        }
+
         public Dictionary<string, int> GetCurrentSources()
         {
             return SimpleKVM.Displays.win.DisplaySystem.GetCurrentSources();

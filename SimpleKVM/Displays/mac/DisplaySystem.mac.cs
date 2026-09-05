@@ -11,8 +11,18 @@ namespace SimpleKVM.Displays.mac
     [SupportedOSPlatform("macos")]
     public static class DisplaySystem
     {
+        /// <summary>
+        /// A monitor that answered no DDC/CI query when it was probed (off, showing another PC's
+        /// input, or simply without DDC/CI) is probed again so it picks up its source list once it
+        /// is back - but no more often than this, so a display that never answers doesn't turn
+        /// every GetMonitors call into a multi-second capabilities read.
+        /// </summary>
+        static readonly TimeSpan ProbeRetryInterval = TimeSpan.FromSeconds(30);
+
         static readonly object cacheLock = new();
+        static List<DisplayInfo>? cachedDisplays;
         static List<Monitor>? cachedMonitorList;
+        static DateTime lastProbe = DateTime.MinValue;
 
         public static IList<Monitor> GetMonitors()
         {
@@ -22,62 +32,92 @@ namespace SimpleKVM.Displays.mac
             }
         }
 
+        /// <summary>Drops the cache so the next GetMonitors re-enumerates and re-probes every monitor.</summary>
+        public static void InvalidateMonitors()
+        {
+            lock (cacheLock)
+            {
+                cachedDisplays = null;
+                cachedMonitorList = null;
+            }
+        }
+
         static List<Monitor> GetMonitorsUnsynchronized()
         {
-            var displays = EnumerateDisplays();
+            //CoreGraphics only, so cheap enough to run on every call
+            var displays = EnumerateExternalDisplays();
 
-            bool refreshRequired;
-            if (cachedMonitorList == null)
+            if (cachedDisplays == null || cachedMonitorList == null || LayoutChanged(displays))
             {
-                refreshRequired = true;
+                //The set of displays changed (a monitor was turned on or off, unplugged, or moved):
+                //everything is re-enumerated. Pairing displays with AV services creates IOAVService
+                //objects, so it only happens here. The previous cache's services are deliberately
+                //not released: a rule that is mid-run may still be talking through one of them, and
+                //layout changes are rare enough for the leak not to matter.
+                cachedDisplays = AttachTransports(displays);
+                cachedMonitorList = cachedDisplays.Select(BuildMonitor).ToList();
+                lastProbe = DateTime.Now;
             }
-            else
+            else if (cachedMonitorList.Any(mon => mon.ValidSources.Count == 0) && DateTime.Now - lastProbe >= ProbeRetryInterval)
             {
-                var allScreens = displays.Select(d => d.UniqueId);
-                var allMonitors = cachedMonitorList.Select(mon => mon.MonitorUniqueId);
-
-                refreshRequired = allMonitors.Except(allScreens).Any() || allScreens.Except(allMonitors).Any();
-                refreshRequired |= cachedMonitorList.Any(mon => mon.ValidSources.Count == 0);
-            }
-
-            if (cachedMonitorList == null || refreshRequired)
-            {
-                cachedMonitorList = displays.Select(BuildMonitor).ToList();
+                //Probe only the monitors that had no sources last time; the rest keep their cached state
+                var known = cachedDisplays;
+                cachedMonitorList = cachedMonitorList
+                                        .Select(mon => mon.ValidSources.Count > 0
+                                                        ? mon
+                                                        : BuildMonitor(known.First(d => d.UniqueId == mon.MonitorUniqueId)))
+                                        .ToList();
+                lastProbe = DateTime.Now;
             }
 
             return cachedMonitorList;
         }
 
+        static bool LayoutChanged(List<DisplayInfo> displays)
+        {
+            var current = displays.Select(d => d.UniqueId);
+            var cached = cachedDisplays!.Select(d => d.UniqueId);
+
+            return current.Except(cached).Any() || cached.Except(current).Any();
+        }
+
         record DisplayInfo(uint DisplayId, int Left, int Top, int Right, int Bottom, string UniqueId, int MonitorNumber, DdcTransport? Transport);
 
-        static List<DisplayInfo> EnumerateDisplays()
+        /// <summary>The external displays as CoreGraphics lays them out, without DDC transports.</summary>
+        static List<DisplayInfo> EnumerateExternalDisplays()
         {
-            var avServices = AVServiceMatcher.GetExternalAvServices();
-
-            var externals = CoreGraphicsNative
-                            .GetActiveDisplays()
-                            .Where(id => !CoreGraphicsNative.CGDisplayIsBuiltin(id))
-                            .Select(id =>
-                            {
-                                var bounds = CoreGraphicsNative.CGDisplayBounds(id);
-                                int left = (int)Math.Round(bounds.X);
-                                int top = (int)Math.Round(bounds.Y);
-                                int right = (int)Math.Round(bounds.X + bounds.Width);
-                                int bottom = (int)Math.Round(bounds.Y + bounds.Height);
-                                return (id, left, top, right, bottom);
-                            })
-                            .OrderBy(d => d.left)
-                            .ThenBy(d => d.top)
-                            .ToList();
-
-            //v1 pairing: external displays and external AV services in enumeration order.
-            //Correct for a single display; multi-monitor matching is a known follow-up.
-            return externals
+            return CoreGraphicsNative
+                    .GetActiveDisplays()
+                    .Where(id => !CoreGraphicsNative.CGDisplayIsBuiltin(id))
+                    .Select(id =>
+                    {
+                        var bounds = CoreGraphicsNative.CGDisplayBounds(id);
+                        int left = (int)Math.Round(bounds.X);
+                        int top = (int)Math.Round(bounds.Y);
+                        int right = (int)Math.Round(bounds.X + bounds.Width);
+                        int bottom = (int)Math.Round(bounds.Y + bounds.Height);
+                        return (id, left, top, right, bottom);
+                    })
+                    .OrderBy(d => d.left)
+                    .ThenBy(d => d.top)
                     .Select((d, index) => new DisplayInfo(
                         d.id, d.left, d.top, d.right, d.bottom,
                         MonitorIdentity.FromBounds(d.left, d.top, d.right, d.bottom),
                         index + 1,
-                        index < avServices.Count ? new DdcTransport(avServices[index]) : null))
+                        Transport: null))
+                    .ToList();
+        }
+
+        /// <summary>
+        /// v1 pairing: external displays and external AV services in enumeration order.
+        /// Correct for a single display; multi-monitor matching is a known follow-up.
+        /// </summary>
+        static List<DisplayInfo> AttachTransports(List<DisplayInfo> displays)
+        {
+            var avServices = AVServiceMatcher.GetExternalAvServices();
+
+            return displays
+                    .Select((d, index) => d with { Transport = index < avServices.Count ? new DdcTransport(avServices[index]) : null })
                     .ToList();
         }
 

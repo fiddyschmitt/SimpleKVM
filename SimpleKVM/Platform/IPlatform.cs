@@ -27,6 +27,9 @@ namespace SimpleKVM.Platform
     {
         IList<Displays.Monitor> GetMonitors();
 
+        /// <summary>Drops the monitor cache so the next GetMonitors re-enumerates and re-probes every monitor.</summary>
+        void InvalidateMonitors();
+
         /// <summary>Current VCP 0x60 value per MonitorUniqueId, in a single enumeration pass.</summary>
         Dictionary<string, int> GetCurrentSources();
 

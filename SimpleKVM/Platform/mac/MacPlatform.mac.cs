@@ -27,6 +27,11 @@ namespace SimpleKVM.Platform.mac
                     .ToList();
         }
 
+        public void InvalidateMonitors()
+        {
+            SimpleKVM.Displays.mac.DisplaySystem.InvalidateMonitors();
+        }
+
         public Dictionary<string, int> GetCurrentSources()
         {
             return SimpleKVM.Displays.mac.DisplaySystem.GetCurrentSources();

@@ -31,7 +31,13 @@ namespace SimpleKVM.Ui.Controls
             canvas = new Canvas();
 
             var btnRefresh = new Button { Content = "Refresh" };
-            btnRefresh.Click += (s, e) => Reload();
+            btnRefresh.Click += (s, e) =>
+            {
+                //A monitor that was off or on another PC when it was first probed has no source
+                //list yet; an explicit refresh probes everything again straight away
+                Displays.DisplaySystem.InvalidateMonitors();
+                Reload();
+            };
 
             var layout = new StackPanel { Spacing = 4 };
             layout.Children.Add(canvas);
