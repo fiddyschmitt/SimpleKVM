@@ -203,7 +203,9 @@ namespace SimpleKVM.Platform.win
                         case PInvoke.WM_HOTKEY:
                             if (pump.Actions.TryGetValue((int)wParam.Value, out var action))
                             {
-                                action();
+                                //An exception here would unwind through the native message dispatch
+                                try { action(); }
+                                catch (Exception ex) { Console.WriteLine($"Hotkey action failed: {ex}"); }
                             }
                             return (LRESULT)0;
 

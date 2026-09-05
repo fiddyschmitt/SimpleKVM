@@ -17,6 +17,15 @@ public class RuleRunTests
         public override void StopMonitoring() { }
     }
 
+    // A trigger the test fires by hand, the way a hotkey or USB backend would.
+    sealed class ManualTrigger : Trigger
+    {
+        public override string GetTriggerAsFriendlyString() => "manual";
+        public override void StartMonitoring() { }
+        public override void StopMonitoring() { }
+        public void Fire() => RaiseTriggered();
+    }
+
     // A stand-in action that records when it ran, optionally sleeping first like a monitor delay would.
     sealed class RecordingAction(int delayMs, bool result = true) : IAction
     {
@@ -99,6 +108,42 @@ public class RuleRunTests
 
         // If Run returned before the delayed action finished, RanAtMs would still be null here.
         Assert.NotNull(slow.RanAtMs);
+        Assert.Equal(1, rule.RunCount);
+    }
+
+    [Fact]
+    public void A_trigger_runs_the_rule_off_the_triggering_thread()
+    {
+        // Triggers fire on threads that must not block (hotkey pump, WMI/IOKit callbacks, the
+        // macOS main thread), so raising the trigger has to return before the run finishes.
+        var action = new RecordingAction(300);
+        var trigger = new ManualTrigger();
+        var rule = new Rule("r", trigger, [action]);
+        rule.StartMonitoring();
+
+        var fire = Stopwatch.StartNew();
+        trigger.Fire();
+        fire.Stop();
+
+        Assert.InRange(fire.ElapsedMilliseconds, 0, 150);
+        Assert.True(SpinWait.SpinUntil(() => rule.RunCount == 1, 3000), "the run never completed");
+        Assert.NotNull(action.RanAtMs);
+    }
+
+    [Fact]
+    public void A_trigger_that_fires_during_a_run_is_dropped_not_queued()
+    {
+        // A double hotkey press must not switch the monitors twice.
+        var action = new RecordingAction(300);
+        var trigger = new ManualTrigger();
+        var rule = new Rule("r", trigger, [action]);
+        rule.StartMonitoring();
+
+        trigger.Fire();
+        trigger.Fire();
+
+        Assert.True(SpinWait.SpinUntil(() => rule.RunCount == 1, 3000), "the run never completed");
+        Thread.Sleep(500);   // long enough for a queued second run to have finished, if there were one
         Assert.Equal(1, rule.RunCount);
     }
 }

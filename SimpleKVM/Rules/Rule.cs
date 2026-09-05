@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using IAction = SimpleKVM.Rules.Actions.IAction;
 
 namespace SimpleKVM.Rules
@@ -56,7 +58,36 @@ namespace SimpleKVM.Rules
         {
             if (Status != EnumRuleStatus.Running) return;
 
-            Run();
+            RunInBackground();
+        }
+
+        int runInFlight;   //1 while a background run is executing
+
+        /// <summary>
+        /// Runs the rule on the thread pool. Triggers fire on threads that must not block (the
+        /// hotkey message pump, the WMI and IOKit callback threads, the macOS main thread) and a
+        /// run sleeps for the rule's delay and then talks DDC/CI, so it never happens on them. A
+        /// trigger that fires again while a run is still in flight is dropped rather than queued.
+        /// </summary>
+        public void RunInBackground()
+        {
+            if (Interlocked.CompareExchange(ref runInFlight, 1, 0) != 0) return;
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    Run();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Rule '{Name}' failed: {ex}");
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref runInFlight, 0);
+                }
+            });
         }
 
         public void Run()

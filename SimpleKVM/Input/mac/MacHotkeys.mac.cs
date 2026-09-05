@@ -127,7 +127,10 @@ namespace SimpleKVM.Input.mac
                 actionsById.TryGetValue(hotKeyId.id, out action);
             }
 
-            action?.Invoke();
+            //An exception thrown through the Carbon callback frame terminates the process
+            try { action?.Invoke(); }
+            catch (Exception ex) { Console.WriteLine($"Hotkey action failed: {ex}"); }
+
             return 0;   //noErr
         }
 

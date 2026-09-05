@@ -247,7 +247,7 @@ namespace SimpleKVM.Ui
             runNowItem.Click += (s, e) =>
             {
                 var selected = SelectedRules().FirstOrDefault();
-                selected?.Run();
+                selected?.RunInBackground();   //not on the UI thread: the run sleeps for the rule's delay
             };
 
             var setDelayItem = new MenuItem { Header = "Set delay..." };
