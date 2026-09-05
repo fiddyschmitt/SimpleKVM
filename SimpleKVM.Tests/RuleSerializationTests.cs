@@ -8,7 +8,7 @@ using SimpleKVM.USB;
 namespace SimpleKVM.Tests;
 
 // Exercises the whole persistence path: TypeNameHandling.Auto (as RuleStore.Save writes it) plus
-// DeserializJson (as RuleStore.Load reads it, through SafeSerializationBinder).
+// DeserializeJson (as RuleStore.Load reads it, through SafeSerializationBinder).
 public class RuleSerializationTests
 {
     static string Save(List<Rule> rules) =>
@@ -27,7 +27,7 @@ public class RuleSerializationTests
             }
         };
 
-        var loaded = Save(original).DeserializJson<List<Rule>>();
+        var loaded = Save(original).DeserializeJson<List<Rule>>();
 
         var rule = Assert.Single(loaded!);
         Assert.Equal("Switch to this computer", rule.Name);
@@ -46,7 +46,7 @@ public class RuleSerializationTests
             new("Switch on dock", new USBTrigger(new USBDevice("VID_1234&PID_5678&SN_ABC", "IOUSBDevice"), EnumUsbEvent.Inserted), [])
         };
 
-        var loaded = Save(original).DeserializJson<List<Rule>>();
+        var loaded = Save(original).DeserializeJson<List<Rule>>();
 
         var trigger = Assert.IsType<USBTrigger>(Assert.Single(loaded!).Trigger);
         Assert.Equal("VID_1234&PID_5678&SN_ABC", trigger.UsbDevice.DeviceID);
@@ -83,7 +83,7 @@ public class RuleSerializationTests
     [Fact]
     public void A_real_rules_json_file_loads_with_its_monitor_action_intact()
     {
-        var loaded = RealRulesJson.DeserializJson<List<Rule>>();
+        var loaded = RealRulesJson.DeserializeJson<List<Rule>>();
 
         var rule = Assert.Single(loaded!);
         Assert.Equal("Switch to this computer", rule.Name);
@@ -107,7 +107,7 @@ public class RuleSerializationTests
         ]
         """;
 
-        Assert.ThrowsAny<JsonException>(() => malicious.DeserializJson<List<Rule>>());
+        Assert.ThrowsAny<JsonException>(() => malicious.DeserializeJson<List<Rule>>());
     }
 }
 
@@ -131,7 +131,7 @@ public class MonitorDelaySerializationTests
         }]
         """;
 
-        var loaded = json.DeserializJson<List<Rule>>();
+        var loaded = json.DeserializeJson<List<Rule>>();
 
         var action = Assert.IsType<SetMonitorSourceAction>(Assert.Single(Assert.Single(loaded!).Actions));
         Assert.Equal(5, action.DelaySeconds);
@@ -161,7 +161,7 @@ public class MonitorDelaySerializationTests
         ]
         """;
 
-        var loaded = legacy.DeserializJson<List<Rule>>();
+        var loaded = legacy.DeserializeJson<List<Rule>>();
 
         var action = Assert.IsType<SetMonitorSourceAction>(Assert.Single(Assert.Single(loaded!).Actions));
         Assert.Equal(0, action.DelaySeconds);

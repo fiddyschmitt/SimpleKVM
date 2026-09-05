@@ -17,7 +17,7 @@ namespace SimpleKVM.Rules
             try
             {
                 var rulesJson = File.ReadAllText(AppPaths.RulesFile);
-                var loadedRules = rulesJson?.DeserializJson<List<Rule>>() ?? [];
+                var loadedRules = rulesJson?.DeserializeJson<List<Rule>>() ?? [];
                 Rules.AddRange(loadedRules);
             }
             catch (Exception ex)

@@ -40,7 +40,7 @@ namespace SimpleKVM
             return values.Length == next ? values[0] : values[next];
         }
 
-        public static T? DeserializJson<T>(this string json) where T : class
+        public static T? DeserializeJson<T>(this string json) where T : class
         {
             var settings = new JsonSerializerSettings
             {

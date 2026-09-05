@@ -12,7 +12,7 @@ namespace SimpleKVM.Cli
     /// <summary>
     /// Headless diagnostic commands, shared by all platforms. They exercise the platform
     /// backends through the same facades the GUI uses, so they double as a regression
-    /// harness on Windows and as the only interface on macOS until the GUI is ported.
+    /// harness on both platforms and as the release script's smoke test.
     /// </summary>
     public static class DiagnosticCli
     {
@@ -85,6 +85,7 @@ namespace SimpleKVM.Cli
                           --test-hotkey "<gesture>"   register a hotkey (e.g. "Ctrl+Alt+F1") and wait
                           --verify-rules <file>       parse a rules.json and print its rules
                           --set-startup on|off|status control the run-at-startup registration
+                          --get-caps <n>              macOS: read and parse monitor n's capabilities string
                         """);
                     return 1;
             }
@@ -153,7 +154,7 @@ namespace SimpleKVM.Cli
             var usb = USB.USBSystem.INSTANCE;
             if (usb == null)
             {
-                Console.WriteLine("No USB backend on this platform.");
+                Console.WriteLine($"USB device watching is unavailable: {USB.USBSystem.InitializationError ?? "no backend on this platform"}");
                 return 1;
             }
 
@@ -257,7 +258,7 @@ namespace SimpleKVM.Cli
         static int VerifyRules(string filename)
         {
             var json = File.ReadAllText(filename);
-            var rules = json.DeserializJson<System.Collections.Generic.List<Rules.Rule>>() ?? [];
+            var rules = json.DeserializeJson<System.Collections.Generic.List<Rules.Rule>>() ?? [];
 
             Console.WriteLine($"Parsed {rules.Count} rule(s):");
             foreach (var rule in rules)
