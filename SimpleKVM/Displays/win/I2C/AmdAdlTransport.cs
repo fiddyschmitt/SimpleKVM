@@ -52,7 +52,7 @@ namespace SimpleKVM.Displays.win.I2C
                     _ADL2_Display_DDCBlockAccess_Get == null)
                     return;
 
-                int result = _ADL2_Main_Control_Create(ADLAllocMemory, 1, out _context);
+                int result = _ADL2_Main_Control_Create(allocCallback, 1, out _context);
                 if (result != 0) return;
 
                 _initialized = true;
@@ -70,6 +70,11 @@ namespace SimpleKVM.Displays.win.I2C
                 return null;
             return Marshal.GetDelegateForFunctionPointer<T>(ptr);
         }
+
+        //ADL keeps this callback's function pointer and calls it from later APIs
+        //(ADL2_Display_DisplayInfo_Get allocates its result through it), so the delegate must
+        //outlive the Create call or the GC collects it and the next allocation jumps to freed memory
+        static readonly ADL_Main_Memory_Alloc_Delegate allocCallback = ADLAllocMemory;
 
         static IntPtr ADLAllocMemory(int size)
         {
