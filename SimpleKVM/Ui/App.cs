@@ -12,12 +12,19 @@ namespace SimpleKVM.Ui
 {
     public class App : Application
     {
+        public const string ProgramName = "Simple KVM";
+
         public const string IconUri = "avares://SimpleKVM/iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico";
 
         TrayIcon? trayIcon;
 
         public override void Initialize()
         {
+            //On macOS Avalonia passes this to NSProcessInfo.setProcessName, which is what
+            //Activity Monitor, Force Quit and the application menu display; without it the
+            //process shows up as "Avalonia Application"
+            Name = ProgramName;
+
             Styles.Add(new FluentTheme());
             Styles.Add(new StyleInclude(new Uri("avares://SimpleKVM"))
             {

@@ -22,7 +22,6 @@ namespace SimpleKVM.Ui
 {
     public class MainWindow : Window
     {
-        const string ProgramName = "Simple KVM";
 
         readonly USBSystem? usbSystem;
         readonly SourceFollowWatcher? sourceFollowWatcher;
@@ -35,7 +34,7 @@ namespace SimpleKVM.Ui
 
         public MainWindow()
         {
-            Title = $"{ProgramName} {GetVersion()}";
+            Title = $"{App.ProgramName} {GetVersion()}";
             Icon = App.LoadIcon();
             Width = 720;
             Height = 360;
