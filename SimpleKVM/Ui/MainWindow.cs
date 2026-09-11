@@ -495,27 +495,37 @@ namespace SimpleKVM.Ui
 
             RuleStore.Save();
 
-            //On macOS the app keeps running as a menu-bar agent; the close button just hides
-            //the window (Cmd+W behaviour). Quit is only via the menu-bar icon.
-            if (OperatingSystem.IsMacOS() && !quitting)
+            //The OS is logging out or shutting down (macOS quit Apple event, Windows
+            //WM_QUERYENDSESSION, X11 session manager), or the app is quitting on its own: the
+            //window must close, or the OS reports the logout as cancelled by SimpleKVM. The
+            //lifetime is already shutting down, so there is nothing more to request here.
+            bool shuttingDown = quitting
+                                || e.CloseReason == WindowCloseReason.OSShutdown
+                                || e.CloseReason == WindowCloseReason.ApplicationShutdown;
+            if (shuttingDown)
+            {
+                sourceFollowWatcher?.Stop();
+                return;
+            }
+
+            //The user closed the window. On macOS the app keeps running as a menu-bar agent, so
+            //the close button just hides the window (Cmd+W behaviour); quitting is only via the
+            //menu-bar icon.
+            if (OperatingSystem.IsMacOS())
             {
                 e.Cancel = true;
                 Hide();
                 return;
             }
 
+            //On the other platforms closing the window exits the app. When the app was started
+            //minimized the lifetime runs in explicit-shutdown mode (so it survives without a main
+            //window), so the shutdown has to be requested here.
             sourceFollowWatcher?.Stop();
-
-            //On Windows closing the window exits the app. When the app was started minimized the
-            //lifetime runs in explicit-shutdown mode (so it survives without a main window), so
-            //the shutdown has to be requested here.
-            if (!quitting)
+            quitting = true;
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
             {
-                quitting = true;
-                if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-                {
-                    desktop.Shutdown();
-                }
+                desktop.Shutdown();
             }
         }
     }
