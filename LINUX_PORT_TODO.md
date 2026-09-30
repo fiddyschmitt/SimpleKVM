@@ -27,9 +27,10 @@ VirtualBox), driven by the `SimpleKVM.SystemTests` project.
 
 - [x] **G1** GNOME (Wayland and X11) works end to end: layout, idle, tray/relaunch story.
       All 21 system tests green on Ubuntu 24.04 GNOME, Wayland and Xorg (2026-09-30).
-- [ ] **G2** KDE Plasma (Wayland) keeps working (the contributor's tested setup).
-      Fedora KDE VM being built; run the system tests on it, and confirm the units of
-      KDE's ScreenSaver idle reply (the fallback test fails loudly if they're seconds).
+- [x] **G2** KDE Plasma (Wayland) keeps working (the contributor's tested setup).
+      Green on the Fedora 42 KDE VM: kscreen-doctor layout, GUI, hotkeys, evdev idle.
+      Finding: Plasma on Wayland refuses ScreenSaver.GetSessionIdleTime, so without the
+      input group there is no idle source there; the app now says so (CLI note, editor hint).
 - [x] **G3** X11 sessions on any desktop: layout and EDID pairing via `xrandr`.
 - [x] **G4** Single-instance guard: a second launch shows the running instance's window
       (needed on GNOME, which has no tray without an extension; helps Windows too).
@@ -57,10 +58,11 @@ VirtualBox), driven by the `SimpleKVM.SystemTests` project.
 - [x] **T1** Unit tests for the pure logic: kscreen JSON, Mutter GVariant text, gdbus values,
       xrandr output, USB sysfs snapshot diff, key-code map, desktop-entry escaping,
       EDID keying / duplicate detection, layout join rules. (86 -> 149 unit tests.)
-- [ ] **T2** System tests against real desktops in VMs (Ubuntu GNOME Wayland, Ubuntu GNOME
+- [x] **T2** System tests against real desktops in VMs (Ubuntu GNOME Wayland, Ubuntu GNOME
       X11, Fedora GNOME, Fedora KDE): list-monitors, get-caps, watch-idle both paths,
       test-hotkey via uinput, set-startup, GUI launch, verify-rules (trim smoke).
-      `SimpleKVM.SystemTests`: green on both Ubuntu VMs; the Fedora VMs are next.
+      `SimpleKVM.SystemTests`: 48 runs across all four VMs, 43 passed, 5 skipped by
+      design (input-group variants; KDE's absent D-Bus idle), 0 failed (2026-09-30).
 - [x] **T3** VM provisioning in `SimpleKVM local` (Vagrant + Ansible), mirroring condeco.
 - [x] **R1** Release pipeline: linux-x64 artifact in `publish-release.ps1` (+ pubxml), README
       download note. Native libs must travel with the binary (self-extract).
