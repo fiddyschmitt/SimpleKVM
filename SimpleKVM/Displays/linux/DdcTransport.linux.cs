@@ -1,3 +1,4 @@
+using SimpleKVM.Displays.Ddc;
 using SimpleKVM.Displays.I2C;
 using SimpleKVM.Platform.linux;
 using System;
@@ -16,7 +17,7 @@ namespace SimpleKVM.Displays.linux
     /// buses, otherwise add the user to the i2c group (see ddcutil's i2c_permissions page).
     /// </summary>
     [SupportedOSPlatform("linux")]
-    public class DdcTransport
+    public class DdcTransport : IDdcTransport
     {
         const ulong DdcCiAddress = 0x37;
         const ulong EdidAddress = 0x50;

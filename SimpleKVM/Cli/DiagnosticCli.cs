@@ -246,7 +246,7 @@ namespace SimpleKVM.Cli
                     return 1;
                 }
 
-                Console.WriteLine($"Bus: {mon.Transport.DevicePath}");
+                Console.WriteLine($"Bus: {(mon.Transport as Displays.linux.DdcTransport)?.DevicePath}");
                 var caps = mon.Transport.ReadCapabilitiesString(Console.WriteLine);
                 Console.WriteLine(caps == null ? "No capabilities string." : $"Capabilities: {caps}");
                 return caps == null ? 1 : 0;

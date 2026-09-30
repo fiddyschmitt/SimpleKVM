@@ -1,4 +1,5 @@
 using SimpleKVM.Configuration;
+using SimpleKVM.Displays.Ddc;
 using SimpleKVM.Displays.I2C;
 using SimpleKVM.Platform;
 using SimpleKVM.Platform.linux;
@@ -446,97 +447,14 @@ namespace SimpleKVM.Displays.linux
 
         static Monitor BuildMonitor(DisplayInfo display)
         {
-            List<(int SourceId, string SourceName)>? sources = null;
+            //The EDID from sysfs saves a read over the bus; the builder falls back to the bus if it's junk
+            var probe = DdcMonitorBuilder.Run(display.MonitorNumber, display.Edid, display.Transport);
 
-            //First the config file, in case the user specified a custom list of sources for this monitor
-            var monitorOverride = ConfigManager
-                        .Current?
-                        .Overrides?
-                        .MonitorOverrides?
-                        .FirstOrDefault(ovr => ovr.MonitorNumber == display.MonitorNumber);
-
-            sources = monitorOverride?
-                        .Sources
-                        .Select(src => (src.SourceId, src.SourceName))
-                        .ToList();
-
-            if (sources != null && sources.Count == 0)
-                sources = null;
-
-            bool userSpecifiedSources = sources != null;
-
-            //Second, the monitor's capabilities string (model + valid sources)
-            var model = "Unknown";
-            ushort edidManufacturer = 0;
-
-            var edid = Edid.IsValid(display.Edid) ? display.Edid : display.Transport?.ReadEdid();
-            if (edid != null && Edid.IsValid(edid))
+            return new Monitor(display.UniqueId, probe.Model, probe.Sources)
             {
-                edidManufacturer = Edid.ManufacturerId(edid);
-                model = Edid.ModelName(edid) ?? model;
-            }
-
-            Action<string>? ddcDebug = Environment.GetEnvironmentVariable("SIMPLEKVM_DDC_DEBUG") == "1"
-                                        ? msg => Console.Error.WriteLine($"[caps] {msg}")
-                                        : null;
-            var caps = display.Transport?.ReadCapabilitiesString(ddcDebug);
-            if (caps != null)
-            {
-                var parsed = CapabilitiesParser.Parse(caps);
-
-                //The EDID display name (e.g. "S240HL") is usually more specific than the
-                //capabilities model (often just the brand), so only fill a gap here
-                if (!string.IsNullOrEmpty(parsed.Model) && model == "Unknown")
-                    model = parsed.Model;
-
-                if (sources == null && parsed.VcpFeatures.TryGetValue(0x60, out var inputSources))
-                {
-                    sources = inputSources
-                                .Select(sourceId => ((int)sourceId, VcpSourceNames.SourceIdToName(sourceId)))
-                                .ToList();
-                }
-            }
-
-            if ((sources == null || sources.Count == 0) &&
-                display.Transport != null && display.Transport.GetVcp(0x60, out _))
-            {
-                sources =
-                [
-                    (0x11, "HDMI 1"),
-                    (0x12, "HDMI 2"),
-                    (0x0F, "DisplayPort 1"),
-                    (0x10, "DisplayPort 2"),
-                    (0x03, "DVI 1"),
-                    (0x01, "VGA 1"),
-                ];
-            }
-
-            //LG monitors ignore VCP 0x60 writes; use the 0xF4 sidechannel unless overridden
-            bool useLgAltMode = false;
-            if (monitorOverride?.UseLgAltMode == true)
-            {
-                useLgAltMode = true;
-            }
-            else if (monitorOverride?.UseLgAltMode == null)
-            {
-                useLgAltMode = edidManufacturer == LgInputSources.EdidManufacturerId
-                || model.Contains("LG", StringComparison.OrdinalIgnoreCase);
-            }
-
-            if (useLgAltMode && !userSpecifiedSources)
-            {
-                sources = LgInputSources.GetDefaultSources();
-            }
-
-            sources ??= [];
-
-            var newMonitor = new Monitor(display.UniqueId, model, sources)
-            {
-                UseLgAltMode = useLgAltMode,
+                UseLgAltMode = probe.UseLgAltMode,
                 Transport = display.Transport
             };
-
-            return newMonitor;
         }
 
         public static Dictionary<string, int> GetCurrentSources()
