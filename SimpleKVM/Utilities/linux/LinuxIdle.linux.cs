@@ -42,6 +42,23 @@ namespace SimpleKVM.Utilities.linux
         /// <summary>Which source answered last: "evdev", a D-Bus interface name, or null when nothing has.</summary>
         public string? Source { get; private set; }
 
+        /// <summary>
+        /// Set once every D-Bus interface has refused. KDE Plasma on Wayland answers the
+        /// ScreenSaver call with "not supported", so there only /dev/input can tell.
+        /// </summary>
+        public string? StatusMessage
+        {
+            get
+            {
+                lock (sync)
+                {
+                    return Source == null && failedQueries.Count == Queries.Length
+                        ? "Idle detection needs read access to /dev/input (add your user to the input group and log in again): this desktop doesn't report idle time over D-Bus."
+                        : null;
+                }
+            }
+        }
+
         public TimeSpan GetIdleTimeSpan()
         {
             if (EvdevInput.Instance.ReadableDeviceCount > 0)

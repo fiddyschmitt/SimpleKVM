@@ -180,9 +180,17 @@ namespace SimpleKVM.Cli
         static int WatchIdle()
         {
             Console.WriteLine("Printing idle time every second (Ctrl+C to stop)...");
+            bool noted = false;
             while (true)
             {
                 Console.WriteLine($"idle: {IdleUtility.GetIdleTimeSpan().TotalSeconds:F1} s");
+
+                if (!noted && PlatformServices.Current.Idle.StatusMessage is string note)
+                {
+                    Console.WriteLine($"Note: {note}");
+                    noted = true;
+                }
+
                 Thread.Sleep(1000);
             }
         }

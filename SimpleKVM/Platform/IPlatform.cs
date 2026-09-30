@@ -61,6 +61,12 @@ namespace SimpleKVM.Platform
     public interface IIdleProvider
     {
         TimeSpan GetIdleTimeSpan();
+
+        /// <summary>
+        /// Why idle time can't be determined on this machine (Linux without input-device access
+        /// on a desktop that doesn't report it), or null when it can. Known after the first call.
+        /// </summary>
+        string? StatusMessage => null;
     }
 
     public interface IStartupManager

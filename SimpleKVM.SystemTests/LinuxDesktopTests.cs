@@ -114,6 +114,16 @@ public class LinuxDesktopTests(ITestOutputHelper output)
         var result = vm.Sudo($"setpriv --reuid=1000 --regid=1000 --clear-groups {vm.SessionEnv} timeout 5 {LinuxVm.Exe} --watch-idle", timeoutSeconds: 30);
         output.WriteLine(result.Output);
 
+        //KDE Plasma on Wayland refuses org.freedesktop.ScreenSaver.GetSessionIdleTime ("not
+        //supported on this platform") and has no Mutter-style interface, so there the app
+        //must say that the input group is the only way, rather than report zero forever
+        var note = Regex.Match(result.Stdout, @"^Note: (.*)$", RegexOptions.Multiline);
+        if (note.Success)
+        {
+            Assert.Contains("input group", note.Groups[1].Value);
+            Skip.If(true, $"this desktop offers no idle time over D-Bus; the app says so: {note.Groups[1].Value}");
+        }
+
         var samples = Samples(result.Stdout);
         Assert.True(samples.Count >= 3, $"expected several samples, got {samples.Count}");
         Assert.True(samples[^1] - samples[0] >= 2.0, $"idle grew only {samples[^1] - samples[0]:F3} s over the run: wrong units, or no desktop answered");
