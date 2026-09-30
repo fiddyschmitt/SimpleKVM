@@ -21,7 +21,7 @@ namespace SimpleKVM.Platform.linux
 
         static string ExecutablePath => Environment.ProcessPath ?? throw new InvalidOperationException("Cannot determine the executable path");
 
-        static string ExecLine => $"Exec=\"{ExecutablePath}\" {Program.StartMinimizedArg}";
+        static string ExecLine => $"Exec={DesktopEntry.QuoteExecArgument(ExecutablePath)} {Program.StartMinimizedArg}";
 
         public bool IsEnabled()
         {
@@ -55,7 +55,7 @@ namespace SimpleKVM.Platform.linux
                 """;
 
             Directory.CreateDirectory(Path.GetDirectoryName(DesktopFilePath)!);
-            File.WriteAllText(DesktopFilePath, entry);
+            Extensions.WriteTextFile(DesktopFilePath, entry);
         }
     }
 }

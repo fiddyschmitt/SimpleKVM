@@ -1,6 +1,7 @@
 using SimpleKVM.Platform;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
@@ -86,6 +87,8 @@ namespace SimpleKVM.Input.linux
                 {
                     if (openDevices.Contains(path)) continue;
                 }
+
+                if (!EvdevDeviceFilter.IsWanted(path)) continue;
 
                 FileStream stream;
                 try
@@ -219,6 +222,53 @@ namespace SimpleKVM.Input.linux
         }
     }
 
+    /// <summary>
+    /// Which event devices are worth reading. Anything with keys, relative or absolute axes
+    /// counts as user input, except accelerometers: those stream absolute events whenever the
+    /// machine so much as vibrates, which would keep the idle time at zero forever.
+    /// </summary>
+    public static class EvdevDeviceFilter
+    {
+        const int EV_KEY = 1, EV_REL = 2, EV_ABS = 3;
+        const int INPUT_PROP_ACCELEROMETER = 6;
+
+        /// <summary>Decides from the device's sysfs capability bitmasks; a device whose sysfs can't be read is kept.</summary>
+        public static bool IsWanted(string eventDevicePath)
+        {
+            var sysfs = Path.Combine("/sys/class/input", Path.GetFileName(eventDevicePath), "device");
+            var capabilities = ReadBitmask(Path.Combine(sysfs, "capabilities", "ev"));
+            var properties = ReadBitmask(Path.Combine(sysfs, "properties"));
+            return capabilities == null || IsWanted(capabilities.Value, properties ?? 0);
+        }
+
+        public static bool IsWanted(ulong eventCapabilities, ulong properties)
+        {
+            bool hasInput = (eventCapabilities & ((1UL << EV_KEY) | (1UL << EV_REL) | (1UL << EV_ABS))) != 0;
+            bool accelerometer = (properties & (1UL << INPUT_PROP_ACCELEROMETER)) != 0;
+            return hasInput && !accelerometer;
+        }
+
+        /// <summary>sysfs prints bitmasks as space-separated 64-bit hex words, most significant first; only the low word matters here.</summary>
+        public static ulong? ParseBitmask(string text)
+        {
+            var words = text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0) return null;
+            return ulong.TryParse(words[^1], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var low) ? low : null;
+        }
+
+        static ulong? ReadBitmask(string path)
+        {
+            try
+            {
+                return ParseBitmask(File.ReadAllText(path));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
     [SupportedOSPlatform("linux")]
     public class LinuxHotkeys : IHotkeyBackend
     {
@@ -229,7 +279,7 @@ namespace SimpleKVM.Input.linux
     }
 
     /// <summary>Linux input-event-codes.h key codes for the .NET Keys names that rules.json stores.</summary>
-    static class LinuxKeyCodes
+    public static class LinuxKeyCodes
     {
         public const ushort LeftCtrl = 29, RightCtrl = 97, LeftShift = 42, RightShift = 54,
                             LeftAlt = 56, RightAlt = 100, LeftMeta = 125, RightMeta = 126;
@@ -263,6 +313,13 @@ namespace SimpleKVM.Input.linux
                 ["Home"] = 102, ["End"] = 107, ["PageUp"] = 104, ["PageDown"] = 109, ["Prior"] = 104, ["Next"] = 109,
                 ["Insert"] = 110, ["Delete"] = 111, ["Pause"] = 119, ["Scroll"] = 70,
                 ["Space"] = 57, ["Tab"] = 15, ["Return"] = 28, ["Enter"] = 28, ["Escape"] = 1, ["Back"] = 14,
+                ["PrintScreen"] = 99, ["Snapshot"] = 99, ["CapsLock"] = 58, ["Capital"] = 58, ["NumLock"] = 69,
+                ["Apps"] = 127, ["Help"] = 138, ["Sleep"] = 142,
+
+                ["VolumeMute"] = 113, ["VolumeDown"] = 114, ["VolumeUp"] = 115,
+                ["MediaNextTrack"] = 163, ["MediaPreviousTrack"] = 165, ["MediaStop"] = 166, ["MediaPlayPause"] = 164,
+                ["LaunchMail"] = 155, ["BrowserHome"] = 172, ["BrowserBack"] = 158, ["BrowserForward"] = 159,
+                ["BrowserRefresh"] = 173, ["BrowserStop"] = 128, ["BrowserSearch"] = 217, ["BrowserFavorites"] = 156,
 
                 ["OemMinus"] = 12, ["Oemplus"] = 13, ["Oemcomma"] = 51, ["OemPeriod"] = 52,
                 ["OemQuestion"] = 53, ["Oem2"] = 53, ["OemSemicolon"] = 39, ["Oem1"] = 39, ["OemQuotes"] = 40, ["Oem7"] = 40,
