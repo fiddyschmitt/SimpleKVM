@@ -1,6 +1,7 @@
 using SimpleKVM.Displays.I2C;
 using SimpleKVM.Platform.linux;
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Runtime.Versioning;
 using System.Text;
@@ -11,19 +12,29 @@ namespace SimpleKVM.Displays.linux
     /// <summary>
     /// DDC/CI over a Linux i2c-dev bus (/dev/i2c-N). The kernel adds the 0x6E destination
     /// byte itself from the slave address, so frames start at the source byte. Needs read/write
-    /// access to the bus: Fedora grants it to the logged-in user via uaccess for display buses,
-    /// otherwise add the user to the i2c group (see ddcutil's i2c_permissions page).
+    /// access to the bus: ddcutil's udev rules grant it to the logged-in user for display
+    /// buses, otherwise add the user to the i2c group (see ddcutil's i2c_permissions page).
     /// </summary>
     [SupportedOSPlatform("linux")]
-    public class DdcTransport(string devicePath)
+    public class DdcTransport
     {
         const ulong DdcCiAddress = 0x37;
         const ulong EdidAddress = 0x50;
 
-        public string DevicePath { get; } = devicePath;
+        //One transaction at a time PER BUS, whichever object drives it: DDC/CI monitors need
+        //~50ms between commands, and a rule's write must not interleave with the follow
+        //watcher's read on the same wire.
+        static readonly ConcurrentDictionary<string, object> busLocks = new();
 
-        //One transaction at a time per bus; DDC/CI monitors need ~50ms between commands
-        readonly object ddcLock = new();
+        readonly object ddcLock;
+
+        public DdcTransport(string devicePath)
+        {
+            DevicePath = devicePath;
+            ddcLock = busLocks.GetOrAdd(devicePath, _ => new object());
+        }
+
+        public string DevicePath { get; }
 
         int Open(ulong slaveAddress)
         {
@@ -59,7 +70,7 @@ namespace SimpleKVM.Displays.linux
                     if (LibC.Write(fd, [0x00]) != 1) return null;
 
                     var edid = new byte[128];
-                    return LibC.Read(fd, edid) == edid.Length && edid[0] == 0x00 && edid[1] == 0xFF ? edid : null;
+                    return LibC.Read(fd, edid) == edid.Length && Edid.IsValid(edid) ? edid : null;
                 }
                 finally
                 {

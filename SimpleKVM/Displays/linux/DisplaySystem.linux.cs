@@ -1,21 +1,19 @@
 using SimpleKVM.Configuration;
 using SimpleKVM.Displays.I2C;
 using SimpleKVM.Platform;
+using SimpleKVM.Platform.linux;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
-using System.Text;
-using System.Text.Json;
 
 namespace SimpleKVM.Displays.linux
 {
     /// <summary>
-    /// Monitors on Linux: connected DRM connectors from sysfs, their desktop layout from the
-    /// compositor (KDE's kscreen-doctor, or GNOME's Mutter DisplayConfig), and a DDC/CI
-    /// transport on the /dev/i2c-N bus whose EDID matches the connector's.
+    /// Monitors on Linux: the connected DRM connectors from sysfs, where the desktop puts each
+    /// of them (asked of the compositor: KDE's kscreen-doctor, GNOME's Mutter, or xrandr on
+    /// X11), and a DDC/CI transport on the /dev/i2c-N bus that belongs to each connector.
     /// </summary>
     [SupportedOSPlatform("linux")]
     public static class DisplaySystem
@@ -23,8 +21,12 @@ namespace SimpleKVM.Displays.linux
         /// <summary>See the macOS DisplaySystem: how often an unresponsive monitor is re-probed.</summary>
         static readonly TimeSpan ProbeRetryInterval = TimeSpan.FromSeconds(30);
 
-        /// <summary>The layout query spawns a process, so it's reused for this long.</summary>
-        static readonly TimeSpan LayoutCacheDuration = TimeSpan.FromSeconds(3);
+        /// <summary>
+        /// Asking the compositor starts a process, so between checks of the (cheap) connector
+        /// set the last answer is reused for this long. A connector appearing or vanishing
+        /// re-asks at once.
+        /// </summary>
+        static readonly TimeSpan LayoutRefreshInterval = TimeSpan.FromSeconds(10);
 
         static readonly object cacheLock = new();
         static List<DisplayInfo>? cachedDisplays;
@@ -32,8 +34,19 @@ namespace SimpleKVM.Displays.linux
         static DateTime lastProbe = DateTime.MinValue;
 
         static readonly object layoutLock = new();
-        static List<DisplayInfo>? cachedLayout;
+        static List<DisplayInfo>? lastGoodLayout;
+        static string? lastGoodSignature;
         static DateTime lastLayoutQuery = DateTime.MinValue;
+
+        static readonly object busScanLock = new();
+        static Dictionary<string, string?>? scannedBusByEdid;   //null value: two buses answered with this EDID
+        static string? scannedSignature;
+
+        /// <summary>How the current layout was determined: "mutter", "kscreen", "xrandr", "guess" or "none".</summary>
+        public static string LayoutSource { get; private set; } = "none";
+
+        /// <summary>Something the user should know about DDC access, or null when all is well.</summary>
+        public static string? StatusMessage { get; private set; }
 
         public static IList<Monitor> GetMonitors()
         {
@@ -43,7 +56,7 @@ namespace SimpleKVM.Displays.linux
             }
         }
 
-        /// <summary>Drops the cache so the next GetMonitors re-enumerates and re-probes every monitor.</summary>
+        /// <summary>Drops every cache so the next GetMonitors re-asks the desktop and re-probes every monitor.</summary>
         public static void InvalidateMonitors()
         {
             lock (cacheLock)
@@ -53,7 +66,13 @@ namespace SimpleKVM.Displays.linux
             }
             lock (layoutLock)
             {
-                cachedLayout = null;
+                lastGoodLayout = null;
+                lastGoodSignature = null;
+            }
+            lock (busScanLock)
+            {
+                scannedBusByEdid = null;
+                scannedSignature = null;
             }
         }
 
@@ -76,7 +95,7 @@ namespace SimpleKVM.Displays.linux
             }
             else if (cachedMonitorList.Any(mon => mon.ValidSources.Count == 0) && DateTime.Now - lastProbe >= ProbeRetryInterval)
             {
-                //The bus may not have been matched yet either (monitor was off), so re-attach
+                //A monitor that was off may have a bus now; re-attach the unmatched ones and re-probe the sourceless ones
                 cachedDisplays = AttachTransports(cachedDisplays);
                 var known = cachedDisplays;
                 cachedMonitorList = cachedMonitorList
@@ -98,62 +117,119 @@ namespace SimpleKVM.Displays.linux
             return current.Except(cached).Any() || cached.Except(current).Any();
         }
 
-        record DisplayInfo(string Connector, string SysfsPath, byte[] Edid, bool BuiltIn, int Left, int Top, int Right, int Bottom, string UniqueId, int MonitorNumber, DdcTransport? Transport);
+        record DisplayInfo(ConnectorInfo Connector, bool BuiltIn, int Left, int Top, int Right, int Bottom, string UniqueId, int MonitorNumber, DdcTransport? Transport)
+        {
+            public string SysfsPath => Connector.SysfsPath;
+            public byte[] Edid => Connector.Edid;
+        }
 
-        record ConnectorInfo(string Name, string SysfsPath, byte[] Edid);
-
-        record OutputGeometry(int X, int Y, int Width, int Height);
+        // ------------------------------------------------------------------ layout
 
         /// <summary>
         /// Every enabled display, the built-in one included, numbered left to right then top to
-        /// bottom like the other platforms so MonitorOverrides numbers stay meaningful.
+        /// bottom like the other platforms so MonitorOverrides numbers stay meaningful. A
+        /// compositor answer that pairs with no connector, or no answer at all, keeps the last
+        /// good layout rather than re-keying every monitor; only when there has never been one
+        /// (or the connectors themselves changed) are they laid out left to right as a guess.
         /// </summary>
         static List<DisplayInfo> GetLayout()
         {
             lock (layoutLock)
             {
-                if (cachedLayout != null && DateTime.Now - lastLayoutQuery < LayoutCacheDuration)
-                    return cachedLayout;
-
                 var connectors = EnumerateConnectors();
-                var geometry = QueryKScreen() ?? QueryMutter() ?? [];
+                var signature = string.Join("|", connectors.Select(c => c.Name + ":" + Edid.Key(c.Edid)));
+                bool connectorsChanged = signature != lastGoodSignature;
 
-                //Connectors the compositor didn't report (unknown desktop) are laid out left to right
-                int nextX = geometry.Count > 0 ? geometry.Values.Max(g => g.X + g.Width) : 0;
-                var placed = new List<(ConnectorInfo Connector, OutputGeometry Geometry)>();
-                foreach (var connector in connectors)
+                if (lastGoodLayout != null && !connectorsChanged && DateTime.Now - lastLayoutQuery < LayoutRefreshInterval)
+                    return lastGoodLayout;
+
+                var (outputs, source) = QueryCompositor();
+                lastLayoutQuery = DateTime.Now;
+
+                var pairs = outputs != null ? LayoutJoin.Match(connectors, outputs) : null;
+                if (pairs == null)
                 {
-                    if (geometry.Count > 0)
-                    {
-                        //The compositor knows the layout; a connector it doesn't list is disabled
-                        if (geometry.TryGetValue(connector.Name, out var g)) placed.Add((connector, g));
-                        continue;
-                    }
+                    if (lastGoodLayout != null && !connectorsChanged) return lastGoodLayout;
 
-                    var (w, h) = PreferredMode(connector.SysfsPath);
-                    placed.Add((connector, new OutputGeometry(nextX, 0, w, h)));
-                    nextX += w;
+                    pairs = GuessLayout(connectors);
+                    source = "guess";
                 }
 
-                cachedLayout = placed
-                        .OrderBy(p => p.Geometry.X)
-                        .ThenBy(p => p.Geometry.Y)
-                        .Select((p, index) =>
-                        {
-                            var g = p.Geometry;
-                            int right = g.X + g.Width, bottom = g.Y + g.Height;
-                            return new DisplayInfo(
-                                p.Connector.Name, p.Connector.SysfsPath, p.Connector.Edid,
-                                BuiltIn: IsBuiltIn(p.Connector.Name),
-                                g.X, g.Y, right, bottom,
-                                MonitorIdentity.FromBounds(g.X, g.Y, right, bottom),
-                                MonitorNumber: index + 1,
-                                Transport: null);
-                        })
-                        .ToList();
-                lastLayoutQuery = DateTime.Now;
-                return cachedLayout;
+                lastGoodLayout = Number(pairs);
+                lastGoodSignature = signature;
+                LayoutSource = source;
+                return lastGoodLayout;
             }
+        }
+
+        static (List<OutputGeometry>? Outputs, string Source) QueryCompositor()
+        {
+            var sessionType = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
+            var desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? "";
+            bool x11 = sessionType == "x11"
+                       || (sessionType == null && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null && Environment.GetEnvironmentVariable("DISPLAY") != null);
+
+            //X11: xrandr knows the real geometry and each output's EDID whatever the desktop.
+            //Wayland: the compositor is the only one who knows; try the likely one first.
+            Func<(List<OutputGeometry>?, string)>[] attempts =
+                x11 ? [Xrandr, KScreen, Mutter]
+                : desktop.Contains("KDE", StringComparison.OrdinalIgnoreCase) ? [KScreen, Mutter, Xrandr]
+                : [Mutter, KScreen, Xrandr];
+
+            foreach (var attempt in attempts)
+            {
+                var (outputs, source) = attempt();
+                if (outputs != null) return (outputs, source);
+            }
+
+            return (null, "none");
+        }
+
+        static (List<OutputGeometry>?, string) Mutter()
+        {
+            var result = ExternalTool.Run("gdbus", "call --session --dest org.gnome.Mutter.DisplayConfig --object-path /org/gnome/Mutter/DisplayConfig --method org.gnome.Mutter.DisplayConfig.GetCurrentState");
+            return (result?.Succeeded == true ? MutterLayout.Parse(result.StandardOutput) : null, "mutter");
+        }
+
+        static (List<OutputGeometry>?, string) KScreen()
+        {
+            var result = ExternalTool.Run("kscreen-doctor", "-j");
+            return (result?.Succeeded == true ? KScreenLayout.Parse(result.StandardOutput) : null, "kscreen");
+        }
+
+        static (List<OutputGeometry>?, string) Xrandr()
+        {
+            var result = ExternalTool.Run("xrandr", "--verbose");
+            return (result?.Succeeded == true ? XrandrLayout.Parse(result.StandardOutput) : null, "xrandr");
+        }
+
+        /// <summary>No compositor answer: each connector at its preferred mode, left to right.</summary>
+        static List<LayoutJoin.Pair> GuessLayout(List<ConnectorInfo> connectors)
+        {
+            var pairs = new List<LayoutJoin.Pair>();
+            int nextX = 0;
+            foreach (var connector in connectors)
+            {
+                var (w, h) = PreferredMode(connector.SysfsPath);
+                pairs.Add(new LayoutJoin.Pair(connector, new OutputGeometry(connector.Name, nextX, 0, w, h)));
+                nextX += w;
+            }
+            return pairs;
+        }
+
+        static List<DisplayInfo> Number(List<LayoutJoin.Pair> pairs)
+        {
+            return pairs
+                    .OrderBy(p => p.Output.X)
+                    .ThenBy(p => p.Output.Y)
+                    .Select((p, index) => new DisplayInfo(
+                        p.Connector,
+                        BuiltIn: IsBuiltIn(p.Connector.Name),
+                        p.Output.X, p.Output.Y, p.Output.Right, p.Output.Bottom,
+                        MonitorIdentity.FromBounds(p.Output.X, p.Output.Y, p.Output.Right, p.Output.Bottom),
+                        MonitorNumber: index + 1,
+                        Transport: null))
+                    .ToList();
         }
 
         static bool IsBuiltIn(string connector)
@@ -213,156 +289,63 @@ namespace SimpleKVM.Displays.linux
             return (1920, 1080);
         }
 
-        /// <summary>KDE Plasma: logical layout from kscreen-doctor -j.</summary>
-        static Dictionary<string, OutputGeometry>? QueryKScreen()
-        {
-            var json = RunProcess("kscreen-doctor", "-j");
-            if (json == null) return null;
-
-            try
-            {
-                using var doc = JsonDocument.Parse(json);
-                var result = new Dictionary<string, OutputGeometry>();
-
-                foreach (var output in doc.RootElement.GetProperty("outputs").EnumerateArray())
-                {
-                    if (!output.GetProperty("enabled").GetBoolean()) continue;
-                    if (output.TryGetProperty("connected", out var connected) && !connected.GetBoolean()) continue;
-
-                    var name = output.GetProperty("name").GetString();
-                    if (name == null) continue;
-
-                    var pos = output.GetProperty("pos");
-                    var size = output.GetProperty("size");
-                    double scale = output.TryGetProperty("scale", out var s) ? s.GetDouble() : 1.0;
-                    if (scale <= 0) scale = 1.0;
-
-                    int w = size.GetProperty("width").GetInt32();
-                    int h = size.GetProperty("height").GetInt32();
-
-                    //rotation: 1 none, 2 left, 4 inverted, 8 right
-                    int rotation = output.TryGetProperty("rotation", out var r) ? r.GetInt32() : 1;
-                    if (rotation == 2 || rotation == 8) (w, h) = (h, w);
-
-                    result[name] = new OutputGeometry(
-                        pos.GetProperty("x").GetInt32(),
-                        pos.GetProperty("y").GetInt32(),
-                        (int)Math.Round(w / scale),
-                        (int)Math.Round(h / scale));
-                }
-
-                return result.Count > 0 ? result : null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// GNOME: logical monitors from Mutter's DisplayConfig via gdbus. The GVariant text is
-        /// parsed loosely: each logical monitor is "(x, y, scale, transform, primary, [('DP-1', ...".
-        /// </summary>
-        static Dictionary<string, OutputGeometry>? QueryMutter()
-        {
-            var text = RunProcess("gdbus", "call --session --dest org.gnome.Mutter.DisplayConfig --object-path /org/gnome/Mutter/DisplayConfig --method org.gnome.Mutter.DisplayConfig.GetCurrentState");
-            if (text == null) return null;
-
-            try
-            {
-                var result = new Dictionary<string, OutputGeometry>();
-
-                //Current mode per connector: ('DP-1', 'vendor', 'product', 'serial'), [modes...] where
-                //the current mode carries 'is-current': <true>
-                var currentModes = new Dictionary<string, (int W, int H)>();
-                var monitorRegex = new System.Text.RegularExpressions.Regex(@"\(\('([^']+)', '[^']*', '[^']*', '[^']*'\), \[(.*?)\], \{");
-                var modeRegex = new System.Text.RegularExpressions.Regex(@"\('[^']*', (\d+), (\d+), [\d.]+, [\d.]+, \[[^\]]*\], \{([^}]*)\}\)");
-                foreach (System.Text.RegularExpressions.Match m in monitorRegex.Matches(text))
-                {
-                    foreach (System.Text.RegularExpressions.Match mode in modeRegex.Matches(m.Groups[2].Value))
-                    {
-                        if (mode.Groups[3].Value.Contains("'is-current': <true>"))
-                            currentModes[m.Groups[1].Value] = (int.Parse(mode.Groups[1].Value), int.Parse(mode.Groups[2].Value));
-                    }
-                }
-
-                var logicalRegex = new System.Text.RegularExpressions.Regex(@"\((-?\d+), (-?\d+), ([\d.]+), (\d+), (?:true|false), \[\('([^']+)'");
-                foreach (System.Text.RegularExpressions.Match m in logicalRegex.Matches(text))
-                {
-                    var name = m.Groups[5].Value;
-                    if (!currentModes.TryGetValue(name, out var mode)) continue;
-
-                    double scale = double.Parse(m.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture);
-                    int transform = int.Parse(m.Groups[4].Value);
-                    var (w, h) = mode;
-                    if (transform % 2 == 1) (w, h) = (h, w);
-
-                    result[name] = new OutputGeometry(
-                        int.Parse(m.Groups[1].Value),
-                        int.Parse(m.Groups[2].Value),
-                        (int)Math.Round(w / scale),
-                        (int)Math.Round(h / scale));
-                }
-
-                return result.Count > 0 ? result : null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        static string? RunProcess(string fileName, string arguments)
-        {
-            try
-            {
-                using var process = Process.Start(new ProcessStartInfo(fileName, arguments)
-                {
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false
-                });
-                if (process == null) return null;
-
-                var output = process.StandardOutput.ReadToEndAsync();
-                if (!process.WaitForExit(5000))
-                {
-                    try { process.Kill(); } catch { }
-                    return null;
-                }
-
-                return process.ExitCode == 0 ? output.Result : null;
-            }
-            catch
-            {
-                return null;     //tool not installed
-            }
-        }
+        // ------------------------------------------------------------------ DDC buses
 
         /// <summary>
         /// Pairs each display with its DDC bus. Open-source drivers link the bus from the
-        /// connector's sysfs node; for the others (NVIDIA's proprietary driver) every accessible
-        /// display-adapter bus is asked for its EDID, which is matched against the connector's.
+        /// connector's sysfs node; for the others (NVIDIA's proprietary driver) the buses of
+        /// display adapters are asked for their EDID, which is matched against the connector's.
+        /// Two buses answering with the same EDID can't be told apart, so neither is used:
+        /// driving the wrong monitor is worse than driving none.
         /// </summary>
         static List<DisplayInfo> AttachTransports(List<DisplayInfo> displays)
         {
-            Dictionary<string, string>? busByEdid = null;
+            var notes = new List<string>();
+            var buses = I2cBuses();
+            if (buses.Count == 0)
+            {
+                notes.Add("No I2C buses (/dev/i2c-*): is the i2c-dev kernel module loaded?");
+            }
+            else if (!buses.Any(DdcTransport.CanOpen))
+            {
+                notes.Add("No access to /dev/i2c-*: add your user to the i2c group, or install ddcutil's udev rules (see the README's Linux notes).");
+            }
 
-            return displays
+            Dictionary<string, string?>? busByEdid = null;
+            var result = displays
                     .Select(d =>
                     {
                         if (d.Transport != null) return d;
 
                         var bus = LinkedBus(d.SysfsPath);
-                        if (bus == null && d.Edid.Length >= 128)
+                        if (bus == null && Edid.IsValid(d.Edid))
                         {
-                            busByEdid ??= ScanBusesByEdid();
-                            busByEdid.TryGetValue(EdidKey(d.Edid), out bus);
+                            busByEdid ??= ScanDisplayBusesByEdid(displays);
+                            if (busByEdid.TryGetValue(Edid.Key(d.Edid), out var candidate))
+                            {
+                                if (candidate == null) notes.Add($"{d.Connector.Name}: two buses answer with the same EDID, so DDC is left off for it.");
+                                bus = candidate;
+                            }
                         }
 
                         return d with { Transport = bus != null && DdcTransport.CanOpen(bus) ? new DdcTransport(bus) : null };
                     })
                     .ToList();
+
+            StatusMessage = notes.Count > 0 ? string.Join("\n", notes.Distinct()) : null;
+            return result;
+        }
+
+        static List<string> I2cBuses()
+        {
+            try
+            {
+                return Directory.GetFiles("/dev", "i2c-*").OrderBy(p => p, StringComparer.Ordinal).ToList();
+            }
+            catch
+            {
+                return [];
+            }
         }
 
         static string? LinkedBus(string connectorPath)
@@ -390,42 +373,76 @@ namespace SimpleKVM.Displays.linux
             return null;
         }
 
-        static Dictionary<string, string> ScanBusesByEdid()
+        /// <summary>
+        /// EDID (base block hex) to bus for every accessible bus of a display adapter. Cached
+        /// per set of connectors: a monitor that never matches must not have every bus
+        /// re-read on each re-probe.
+        /// </summary>
+        static Dictionary<string, string?> ScanDisplayBusesByEdid(List<DisplayInfo> displays)
         {
-            var result = new Dictionary<string, string>();
-            const string adapters = "/sys/bus/i2c/devices";
-            if (!Directory.Exists(adapters)) return result;
+            var signature = string.Join("|", displays.Select(d => d.Connector.Name + ":" + Edid.Key(d.Edid)));
 
-            foreach (var adapter in Directory.GetDirectories(adapters, "i2c-*"))
+            lock (busScanLock)
             {
-                try
+                if (scannedBusByEdid != null && scannedSignature == signature) return scannedBusByEdid;
+
+                var result = new Dictionary<string, string?>();
+                const string adapters = "/sys/bus/i2c/devices";
+                if (Directory.Exists(adapters))
                 {
-                    //Never poke SMBus controllers: address 0x50 there is RAM SPD, not a monitor
-                    var name = File.ReadAllText(Path.Combine(adapter, "name")).Trim();
-                    if (name.Contains("SMBus", StringComparison.OrdinalIgnoreCase) ||
-                        name.Contains("PIIX4", StringComparison.OrdinalIgnoreCase) ||
-                        name.Contains("i801", StringComparison.OrdinalIgnoreCase) ||
-                        name.Contains("SMU", StringComparison.OrdinalIgnoreCase))
-                        continue;
+                    foreach (var adapter in Directory.GetDirectories(adapters, "i2c-*"))
+                    {
+                        try
+                        {
+                            if (!BelongsToDisplayAdapter(adapter)) continue;
 
-                    var dev = $"/dev/{Path.GetFileName(adapter)}";
-                    if (!DdcTransport.CanOpen(dev)) continue;
+                            var dev = $"/dev/{Path.GetFileName(adapter)}";
+                            if (!DdcTransport.CanOpen(dev)) continue;
 
-                    var edid = new DdcTransport(dev).ReadEdid();
-                    if (edid != null) result.TryAdd(EdidKey(edid), dev);
+                            var edid = new DdcTransport(dev).ReadEdid();
+                            if (edid == null) continue;
+
+                            var key = Edid.Key(edid);
+                            result[key] = result.ContainsKey(key) ? null : dev;    //seen twice: ambiguous
+                        }
+                        catch
+                        {
+                        }
+                    }
                 }
-                catch
+
+                scannedBusByEdid = result;
+                scannedSignature = signature;
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// ddcutil's rule: only buses whose parent device is a PCI display controller (class
+        /// 0x03xxxx) carry monitors. SMBus controllers (RAM SPD lives at the same 0x50 address),
+        /// touchpad and sensor buses are never probed.
+        /// </summary>
+        static bool BelongsToDisplayAdapter(string adapterPath)
+        {
+            try
+            {
+                var dir = new DirectoryInfo(adapterPath).ResolveLinkTarget(true) as DirectoryInfo ?? new DirectoryInfo(adapterPath);
+                for (int depth = 0; depth < 5 && dir != null; depth++, dir = dir.Parent)
                 {
+                    var classFile = Path.Combine(dir.FullName, "class");
+                    if (File.Exists(classFile))
+                    {
+                        return File.ReadAllText(classFile).Trim().StartsWith("0x03", StringComparison.OrdinalIgnoreCase);
+                    }
                 }
             }
-
-            return result;
+            catch
+            {
+            }
+            return false;
         }
 
-        static string EdidKey(byte[] edid)
-        {
-            return Convert.ToHexString(edid, 0, 128);
-        }
+        // ------------------------------------------------------------------ monitors
 
         static Monitor BuildMonitor(DisplayInfo display)
         {
@@ -452,11 +469,11 @@ namespace SimpleKVM.Displays.linux
             var model = "Unknown";
             ushort edidManufacturer = 0;
 
-            var edid = display.Edid.Length >= 128 ? display.Edid : display.Transport?.ReadEdid();
-            if (edid != null && edid.Length >= 128)
+            var edid = Edid.IsValid(display.Edid) ? display.Edid : display.Transport?.ReadEdid();
+            if (edid != null && Edid.IsValid(edid))
             {
-                edidManufacturer = (ushort)((edid[8] << 8) | edid[9]);
-                model = EdidModelName(edid) ?? model;
+                edidManufacturer = Edid.ManufacturerId(edid);
+                model = Edid.ModelName(edid) ?? model;
             }
 
             Action<string>? ddcDebug = Environment.GetEnvironmentVariable("SIMPLEKVM_DDC_DEBUG") == "1"
@@ -520,25 +537,6 @@ namespace SimpleKVM.Displays.linux
             };
 
             return newMonitor;
-        }
-
-        static string? EdidModelName(byte[] edid)
-        {
-            //Display name lives in an 18-byte descriptor block tagged 0xFC
-            foreach (int offset in new[] { 54, 72, 90, 108 })
-            {
-                if (offset + 18 > edid.Length) break;
-                if (edid[offset] != 0 || edid[offset + 1] != 0 || edid[offset + 3] != 0xFC) continue;
-
-                var name = Encoding.ASCII.GetString(edid, offset + 5, 13);
-                int newline = name.IndexOf('\n');
-                if (newline >= 0) name = name[..newline];
-                name = name.Trim();
-
-                return name.Length > 0 ? name : null;
-            }
-
-            return null;
         }
 
         public static Dictionary<string, int> GetCurrentSources()

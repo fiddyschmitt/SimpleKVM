@@ -35,6 +35,16 @@ namespace SimpleKVM.Platform
 
         /// <summary>Bounds of every screen in the OS's global desktop coordinate space.</summary>
         List<ScreenRect> GetScreenBounds();
+
+        /// <summary>
+        /// Something the user should act on for monitor control to work (missing device access,
+        /// an ambiguous monitor pairing), or null when there is nothing to say. Shown in the
+        /// rule editor and by --list-monitors.
+        /// </summary>
+        string? StatusMessage => null;
+
+        /// <summary>How the screen layout was determined, where that isn't simply the OS (Linux: the compositor queried).</summary>
+        string? LayoutSource => null;
     }
 
     public readonly record struct ScreenRect(int Left, int Top, int Right, int Bottom);

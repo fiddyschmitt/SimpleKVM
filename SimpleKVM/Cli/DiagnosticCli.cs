@@ -111,6 +111,11 @@ namespace SimpleKVM.Cli
             }
 
             var monitors = DisplaySystem.GetMonitors();
+
+            var displays = PlatformServices.Current.Displays;
+            if (displays.LayoutSource != null) Console.WriteLine($"Layout source: {displays.LayoutSource}");
+            if (displays.StatusMessage != null) Console.WriteLine($"Note: {displays.StatusMessage.Replace("\n", "\nNote: ")}");
+
             Console.WriteLine($"{monitors.Count} monitor(s):");
 
             for (int i = 0; i < monitors.Count; i++)

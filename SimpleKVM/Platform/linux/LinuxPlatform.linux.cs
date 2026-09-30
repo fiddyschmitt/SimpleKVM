@@ -33,5 +33,9 @@ namespace SimpleKVM.Platform.linux
         public Dictionary<string, int> GetCurrentSources() => SimpleKVM.Displays.linux.DisplaySystem.GetCurrentSources();
 
         public List<ScreenRect> GetScreenBounds() => SimpleKVM.Displays.linux.DisplaySystem.GetScreenBounds();
+
+        public string? StatusMessage => SimpleKVM.Displays.linux.DisplaySystem.StatusMessage;
+
+        public string? LayoutSource => SimpleKVM.Displays.linux.DisplaySystem.LayoutSource;
     }
 }
