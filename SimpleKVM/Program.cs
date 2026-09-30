@@ -30,6 +30,13 @@ namespace SimpleKVM
                 return Cli.DiagnosticCli.Run(args);
             }
 
+            //A copy is already running: hand it the request (show the window, unless this launch
+            //was the login-time minimized one) and leave. Two copies would both act on every event.
+            if (SingleInstance.NotifyExistingInstance(showWindow: !StartMinimized))
+            {
+                return 0;
+            }
+
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
             return 0;
         }

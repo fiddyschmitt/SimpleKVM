@@ -97,9 +97,13 @@ namespace SimpleKVM.Ui
                     desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 }
 
-                //Launching the app again while it's running (Finder, Spotlight, a Desktop
-                //shortcut) arrives as a "reopen" activation; show the window in response, as
-                //macOS users expect. Nothing else has to be done for the first launch.
+                //Launching the app again while it's running: on Windows and Linux the second
+                //copy tells this one over a named pipe and exits; show the window in response
+                SingleInstance.Listen(() => Avalonia.Threading.Dispatcher.UIThread.Post(() => RestoreMainWindow(mainWindow)));
+
+                //On macOS LaunchServices does the same and it arrives as a "reopen" activation
+                //(Finder, Spotlight, a Desktop shortcut); show the window in response, as macOS
+                //users expect. Nothing else has to be done for the first launch.
                 if (TryGetFeature(typeof(IActivatableLifetime)) is IActivatableLifetime activatable)
                 {
                     activatable.Activated += (s, e) =>
