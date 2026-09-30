@@ -9,18 +9,18 @@ VirtualBox), driven by the `SimpleKVM.SystemTests` project.
 
 ## Defects (must fix before merge)
 
-- [ ] **D1** D-Bus idle fallback always reports 64 ms: the regex reads the "64" in the
+- [x] **D1** D-Bus idle fallback always reports 64 ms: the regex reads the "64" in the
       `uint64` type annotation gdbus prints. No-Longer-Idle rules never fire without the
       `input` group. Also spawns `gdbus` on every 100 ms poll.
-- [ ] **D2** GNOME layout path can never succeed: the monitor regex stops inside the first
+- [x] **D2** GNOME layout path can never succeed: the monitor regex stops inside the first
       mode (each mode ends with `[scales], {props}`), and the first logical monitor's
       transform prints as `uint32 0`. Always falls back to the left-to-right guess.
-- [ ] **D3** X11 sessions: compositor output names come from the X driver, not DRM
+- [x] **D3** X11 sessions: compositor output names come from the X driver, not DRM
       (`HDMI-1` vs `HDMI-A-1`; NVIDIA counts from 0). Unmatched connectors are dropped and
       an off-by-one match pairs a monitor with its neighbour's geometry.
-- [ ] **D4** Two monitors with identical EDIDs share one bus in the NVIDIA fallback, so
+- [x] **D4** Two monitors with identical EDIDs share one bus in the NVIDIA fallback, so
       switching one switches the other. Ambiguous matches must leave the transport unset.
-- [ ] **D5** A failed/slow `kscreen-doctor` call drops to the guessed layout, re-keying every
+- [x] **D5** A failed/slow `kscreen-doctor` call drops to the guessed layout, re-keying every
       monitor and re-probing them, then flapping back. Keep the last good layout.
 
 ## Desktop support goals
@@ -28,21 +28,21 @@ VirtualBox), driven by the `SimpleKVM.SystemTests` project.
 - [ ] **G1** GNOME (Wayland and X11) works end to end: layout, idle, tray/relaunch story.
 - [ ] **G2** KDE Plasma (Wayland) keeps working (the contributor's tested setup).
 - [ ] **G3** X11 sessions on any desktop: layout and EDID pairing via `xrandr`.
-- [ ] **G4** Single-instance guard: a second launch shows the running instance's window
+- [x] **G4** Single-instance guard: a second launch shows the running instance's window
       (needed on GNOME, which has no tray without an extension; helps Windows too).
 
 ## Design items
 
-- [ ] **A1** Duplication: third copy of monitor building / EDID name parsing / `Monitor`
+- [x] **A1** Duplication: third copy of monitor building / EDID name parsing / `Monitor`
       subclass / capabilities loop. Extract a shared DDC transport interface + one builder
       (keep the persisted `$type` names mapping through the binder).
 - [ ] **A2** External programs: cache/throttle layout queries; read stderr or don't redirect
       it; don't block the UI thread; note Tmds.DBus as the long-term route.
 - [ ] **A3** Hotkeys via evdev: document non-exclusivity and the `input` group trade-off;
       note the XDG GlobalShortcuts portal as the sanctioned exclusive route (follow-up).
-- [ ] **A4** I2C probing: allow-list adapters by parent display controller (ddcutil's rule)
+- [x] **A4** I2C probing: allow-list adapters by parent display controller (ddcutil's rule)
       instead of a name blocklist; don't re-scan every 30 s for a monitor that never matched.
-- [ ] **A5** Bus lock per bus (keyed by device path), not per transport object.
+- [x] **A5** Bus lock per bus (keyed by device path), not per transport object.
 
 ## Gaps
 
@@ -52,11 +52,11 @@ VirtualBox), driven by the `SimpleKVM.SystemTests` project.
 - [ ] **T2** System tests against real desktops in VMs (Ubuntu GNOME Wayland, Ubuntu GNOME
       X11, Fedora GNOME, Fedora KDE): list-monitors, get-caps, watch-idle both paths,
       test-hotkey via uinput, set-startup, GUI launch, verify-rules (trim smoke).
-- [ ] **T3** VM provisioning in `SimpleKVM local` (Vagrant + Ansible), mirroring condeco.
-- [ ] **R1** Release pipeline: linux-x64 artifact in `publish-release.ps1` (+ pubxml), README
+- [x] **T3** VM provisioning in `SimpleKVM local` (Vagrant + Ansible), mirroring condeco.
+- [x] **R1** Release pipeline: linux-x64 artifact in `publish-release.ps1` (+ pubxml), README
       download note. Native libs must travel with the binary (self-extract).
-- [ ] **U1** Permission feedback in the GUI when I2C or input access is missing.
-- [ ] **S1** Smaller items: accelerometer-style devices pin idle at zero; USB watcher's first
+- [x] **U1** Permission feedback in the GUI when I2C or input access is missing.
+- [x] **S1** Smaller items: accelerometer-style devices pin idle at zero; USB watcher's first
       snapshot outside try; `Exec=` escaping in the autostart entry; PrintScreen/CapsLock/
       media keys unmapped; CLI help still says macOS-only; `LinuxIdle` file placement;
       README Fedora permission claim (ddcutil's udev rule).

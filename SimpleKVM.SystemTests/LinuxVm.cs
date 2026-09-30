@@ -1,12 +1,13 @@
 using Renci.SshNet;
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 
 namespace SimpleKVM.SystemTests;
 
 /// <summary>
 /// One of the rig's desktop VMs, driven over SSH. Deploys the Linux build out of the shared
-/// folder into the guest, finds the auto-logged-in desktop session's environment, and runs
-/// commands either plainly, inside that session's environment, or as root.
+/// folder into the guest, finds the auto-logged-in desktop session and its environment, and
+/// runs commands either plainly, inside that session's environment, or as root.
 /// </summary>
 public sealed class LinuxVm : IDisposable
 {
@@ -16,7 +17,15 @@ public sealed class LinuxVm : IDisposable
     public const string DeployDir = "/home/vagrant/simplekvm";
     public const string Exe = DeployDir + "/SimpleKVM";
 
+    /// <summary>The session variables handed to commands: the display and its auth cookie, the bus, the session type.</summary>
+    static readonly string[] SessionVariables =
+    [
+        "DISPLAY", "XAUTHORITY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "XDG_RUNTIME_DIR",
+        "XDG_SESSION_TYPE", "XDG_CURRENT_DESKTOP", "XDG_SESSION_DESKTOP", "DESKTOP_SESSION", "HOME",
+    ];
+
     readonly SshClient ssh;
+    readonly Dictionary<string, string> sessionEnvironment = new(StringComparer.Ordinal);
 
     public MachineSpec Machine { get; }
     public string Build { get; private set; } = "";
@@ -43,6 +52,7 @@ public sealed class LinuxVm : IDisposable
             var vm = new LinuxVm(machine);
             vm.Deploy();
             vm.WaitForSession(TimeSpan.FromMinutes(3));
+            vm.ReadSessionEnvironment();
             return vm;
         });
     }
@@ -71,9 +81,26 @@ public sealed class LinuxVm : IDisposable
         return Run($"sudo -n bash -c {Quote(command)}", timeoutSeconds);
     }
 
-    public string SessionEnv =>
-        $"env XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus XDG_SESSION_TYPE={SessionType} " +
-        $"XDG_CURRENT_DESKTOP={(Machine.Desktop == "kde" ? "KDE" : "GNOME")} WAYLAND_DISPLAY=wayland-0 DISPLAY={Display} HOME=/home/vagrant";
+    /// <summary>
+    /// The real session's variables where the session exports them (XWayland's auth cookie in
+    /// particular can't be guessed), with defaults for the rest.
+    /// </summary>
+    public string SessionEnv
+    {
+        get
+        {
+            var vars = new Dictionary<string, string>(sessionEnvironment, StringComparer.Ordinal);
+            vars.TryAdd("XDG_RUNTIME_DIR", "/run/user/1000");
+            vars.TryAdd("DBUS_SESSION_BUS_ADDRESS", "unix:path=/run/user/1000/bus");
+            vars.TryAdd("WAYLAND_DISPLAY", "wayland-0");
+            vars.TryAdd("DISPLAY", Display);
+            vars.TryAdd("XDG_CURRENT_DESKTOP", Machine.Desktop == "kde" ? "KDE" : "GNOME");
+            vars["XDG_SESSION_TYPE"] = SessionType;
+            vars["HOME"] = "/home/vagrant";
+
+            return "env " + string.Join(" ", vars.Where(kv => kv.Value.Length > 0).Select(kv => kv.Key + "=" + Quote(kv.Value)));
+        }
+    }
 
     public static string Quote(string s) => "'" + s.Replace("'", "'\\''") + "'";
 
@@ -100,18 +127,48 @@ public sealed class LinuxVm : IDisposable
             if (probe.ExitCode == 0 && parts.Length >= 1 && parts[0] is "wayland" or "x11")
             {
                 SessionType = parts[0];
-                Display = parts.Length >= 2 ? parts[1] : (SessionType == "x11" ? ":0" : "");
-                //X11 sessions leave Display empty in logind sometimes; find the socket instead
-                if (Display.Length == 0)
-                {
-                    var sockets = Run("ls /tmp/.X11-unix/ 2>/dev/null | sed 's/X/:/' | tail -1").Stdout.Trim();
-                    Display = sockets.Length > 0 ? sockets : ":0";
-                }
+                Display = parts.Length >= 2 ? parts[1] : "";
                 return;
             }
             Thread.Sleep(3000);
         }
         throw new TimeoutException($"{Machine.Name}: no desktop session for vagrant within {timeout} (last: '{last}'); did you `vagrant reload` after the first provision?");
+    }
+
+    /// <summary>
+    /// The session's environment: what the desktop exported into the user's systemd instance,
+    /// or failing that the compositor process's own environment.
+    /// </summary>
+    void ReadSessionEnvironment()
+    {
+        var shown = Run("XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus systemctl --user show-environment 2>/dev/null").Stdout;
+        Absorb(shown);
+
+        if (!sessionEnvironment.ContainsKey("DISPLAY") && !sessionEnvironment.ContainsKey("WAYLAND_DISPLAY"))
+        {
+            var environ = Run("pid=$(pgrep -u vagrant -x 'gnome-shell|kwin_wayland|plasmashell|Xorg' | head -1); [ -n \"$pid\" ] && tr '\\0' '\\n' < /proc/$pid/environ").Stdout;
+            Absorb(environ);
+        }
+
+        if (sessionEnvironment.TryGetValue("DISPLAY", out var display) && display.Length > 0) Display = display;
+        else if (Display.Length == 0)
+        {
+            //An X11 session leaves the display empty in logind sometimes; find the socket instead
+            var sockets = Run("ls /tmp/.X11-unix/ 2>/dev/null | sed 's/X/:/' | tail -1").Stdout.Trim();
+            Display = sockets.Length > 0 ? sockets : ":0";
+        }
+    }
+
+    void Absorb(string keyValueLines)
+    {
+        foreach (var line in keyValueLines.Split('\n'))
+        {
+            var eq = line.IndexOf('=');
+            if (eq <= 0) continue;
+            var key = line[..eq];
+            if (!SessionVariables.Contains(key) || !Regex.IsMatch(key, "^[A-Z_][A-Z0-9_]*$")) continue;
+            sessionEnvironment[key] = line[(eq + 1)..].Trim();
+        }
     }
 
     public void Dispose()

@@ -73,14 +73,23 @@ public sealed class VmRig
         }
     }
 
-    /// <summary>..\SimpleKVM local\provisioning\linux, relative to the repo root (found by walking up to the .sln).</summary>
+    /// <summary>
+    /// ..\SimpleKVM local\provisioning\linux, relative to the repo root: found by walking up from
+    /// the test assembly, or, when the tests were built to some other output folder, from where
+    /// this source file was when it was compiled.
+    /// </summary>
     static string? DefaultRigDir()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "SimpleKVM.sln"))) dir = dir.Parent;
-        if (dir?.Parent == null) return null;
-        return Path.Combine(dir.Parent.FullName, "SimpleKVM local", "provisioning", "linux");
+        foreach (var start in new[] { AppContext.BaseDirectory, Path.GetDirectoryName(SourceFile()) })
+        {
+            var dir = start != null ? new DirectoryInfo(start) : null;
+            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "SimpleKVM.sln"))) dir = dir.Parent;
+            if (dir?.Parent != null) return Path.Combine(dir.Parent.FullName, "SimpleKVM local", "provisioning", "linux");
+        }
+        return null;
     }
+
+    static string SourceFile([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 
     /// <summary>The machines: list of settings.yml: name, desktop, session, input_group. A line-based read, enough for that shape.</summary>
     static List<MachineSpec> ReadSettings(string path)

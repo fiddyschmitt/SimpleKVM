@@ -57,9 +57,10 @@ public class LinuxDesktopTests(ITestOutputHelper output)
         var expected = vm.SessionType == "x11" ? "xrandr" : vm.Machine.Desktop == "kde" ? "kscreen" : "mutter";
         Assert.Equal(expected, source.Groups[1].Value);
 
-        //The one monitor is the virtual display, without DDC (a VM has no I2C buses) and the app says so
+        //The one monitor is the virtual display, without DDC, and the app says why: either the VM
+        //exposes no I2C buses at all, or (VirtualBox's chipset does expose one) the user can't open them
         Assert.Matches(@"^1 monitor\(s\):", Regex.Match(result.Stdout, @"^\d+ monitor\(s\):", RegexOptions.Multiline).Value);
-        Assert.Contains("Note: No I2C buses", result.Stdout);
+        Assert.Matches(@"^Note: (No I2C buses|No access to /dev/i2c-\*)", Regex.Match(result.Stdout, @"^Note: .*", RegexOptions.Multiline).Value);
 
         //On X11 the size must agree with what xrandr itself reports as the current mode
         if (vm.SessionType == "x11")
