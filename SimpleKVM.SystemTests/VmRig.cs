@@ -44,6 +44,14 @@ public sealed class VmRig
                                .Select(m => m.Groups[1].Value)
                                .ToHashSet();
 
+            //SIMPLEKVM_VM_ONLY=name,name restricts the run, e.g. while another VM is still being provisioned
+            var only = Environment.GetEnvironmentVariable("SIMPLEKVM_VM_ONLY");
+            if (!string.IsNullOrWhiteSpace(only))
+            {
+                var wanted = only.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet();
+                running.IntersectWith(wanted);
+            }
+
             var machines = new List<MachineSpec>();
             foreach (var spec in specs.Where(s => running.Contains(s.Name)))
             {

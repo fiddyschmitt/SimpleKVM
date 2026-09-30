@@ -101,6 +101,25 @@ public class LinuxDesktopTests(ITestOutputHelper output)
     }
 
     [SkippableTheory, MemberData(nameof(VmRig.RunningMachines), MemberType = typeof(VmRig))]
+    public void WatchIdle_falls_back_to_the_desktop_without_the_input_group(string machine)
+    {
+        var vm = Vm(machine);
+
+        //Run as vagrant with the supplementary groups dropped, so /dev/input is unreadable
+        //whatever the VM's setting and the D-Bus path (Mutter's IdleMonitor, or KDE's
+        //ScreenSaver interface) is what answers. If a desktop answered in seconds instead
+        //of milliseconds the growth over five seconds would be a few thousandths.
+        Skip.If(vm.Run("command -v setpriv").ExitCode != 0, "setpriv is not available on this VM");
+
+        var result = vm.Sudo($"setpriv --reuid=1000 --regid=1000 --clear-groups {vm.SessionEnv} timeout 5 {LinuxVm.Exe} --watch-idle", timeoutSeconds: 30);
+        output.WriteLine(result.Output);
+
+        var samples = Samples(result.Stdout);
+        Assert.True(samples.Count >= 3, $"expected several samples, got {samples.Count}");
+        Assert.True(samples[^1] - samples[0] >= 2.0, $"idle grew only {samples[^1] - samples[0]:F3} s over the run: wrong units, or no desktop answered");
+    }
+
+    [SkippableTheory, MemberData(nameof(VmRig.RunningMachines), MemberType = typeof(VmRig))]
     public void WatchIdle_resets_when_a_key_is_pressed(string machine)
     {
         var vm = Vm(machine);
