@@ -4,6 +4,7 @@
 
 .DESCRIPTION
     Windows: self-contained, single-file, trimmed  ->  publish\SimpleKVM.exe
+    Linux:   self-contained, single-file, trimmed  ->  publish\SimpleKVM-linux-x64
     macOS:   self-contained, single-file, trimmed  ->  publish\SimpleKVM-macos-arm64.zip
              (the zip contains SimpleKVM.app, assembled and ad-hoc signed on the Mac)
 
@@ -84,6 +85,19 @@ else {
 
 Move-Item $winExe (Join-Path $publishDir "SimpleKVM.exe")
 Remove-Item $winOut -Recurse -Force
+
+# ---------------------------------------------------------------- Linux
+# One self-contained binary (the native libraries self-extract), published as-is: a tar made
+# on Windows can't carry the executable bit, so the README tells users to chmod +x it.
+# It is smoke-tested by SimpleKVM.SystemTests against the desktop VMs in "SimpleKVM local".
+$linuxOut = Join-Path $publishDir "_linux-x64"
+Publish-Rid -Framework "net10.0" -Rid "linux-x64" -OutDir $linuxOut -Trim $true
+
+$linuxBin = Join-Path $linuxOut "SimpleKVM"
+if (-not (Test-Path $linuxBin)) { throw "linux-x64 publish produced no SimpleKVM binary" }
+
+Move-Item $linuxBin (Join-Path $publishDir "SimpleKVM-linux-x64")
+Remove-Item $linuxOut -Recurse -Force
 
 # ---------------------------------------------------------------- macOS
 if (-not $SkipMac -and $MacHost) {

@@ -80,7 +80,7 @@ namespace SimpleKVM.Cli
                 default:
                     Console.WriteLine("""
                         SimpleKVM diagnostic commands:
-                          --probe-ddc                 macOS: test DDC/CI on the attached monitor
+                          --probe-ddc                 macOS/Linux: test DDC/CI on the attached monitor
                           --list-monitors             enumerate monitors, ids and sources
                           --get-source <n>            read monitor n's current input (1-based)
                           --set-source <n> <id>       switch monitor n to input <id> (decimal or 0xHEX)
@@ -89,7 +89,7 @@ namespace SimpleKVM.Cli
                           --test-hotkey "<gesture>"   register a hotkey (e.g. "Ctrl+Alt+F1") and wait
                           --verify-rules <file>       parse a rules.json and print its rules
                           --set-startup on|off|status control the run-at-startup registration
-                          --get-caps <n>              macOS: read and parse monitor n's capabilities string
+                          --get-caps <n>              macOS/Linux: read and parse monitor n's capabilities string
                         """);
                     return 1;
             }

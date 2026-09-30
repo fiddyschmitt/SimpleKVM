@@ -13,7 +13,7 @@ Releases can be found over in the [releases](https://github.com/fiddyschmitt/Sim
 - **Windows**: download `SimpleKVM.exe` and run it.
 - **macOS** (Apple Silicon): download `SimpleKVM-macos-arm64.zip`, unzip it, and drag `SimpleKVM.app` to Applications. Because the app isn't notarized, macOS blocks the first launch: open System Settings → Privacy & Security, scroll down to the message saying SimpleKVM was blocked, and click "Open Anyway" (one time only). Terminal alternative: `xattr -dr com.apple.quarantine /Applications/SimpleKVM.app`.
 
-- **Linux** (x64): build with `dotnet publish SimpleKVM/SimpleKVM.csproj -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true` and run `SimpleKVM/bin/Release/net10.0/linux-x64/publish/SimpleKVM`. See [Linux notes](#linux-notes).
+- **Linux** (x64): download `SimpleKVM-linux-x64`, make it executable (`chmod +x SimpleKVM-linux-x64`) and run it. See [Linux notes](#linux-notes).
 
 ## What you need
 
@@ -74,11 +74,13 @@ Yes
 On Windows this creates a shortcut in the Startup folder; on macOS it creates a LaunchAgent in `~/Library/LaunchAgents`.
 
 ## Linux notes
-- **Monitors (DDC/CI)** go through `/dev/i2c-*` (the `i2c-dev` module must be loaded). Fedora gives the logged-in user access to display buses automatically; elsewhere follow [ddcutil's permissions guide](https://www.ddcutil.com/i2c_permissions). Buses are matched to connectors by EDID, so NVIDIA's proprietary driver works too.
-- **Screen layout** comes from `kscreen-doctor` (KDE Plasma) or Mutter's DisplayConfig (GNOME); on other desktops screens are laid out left to right.
-- **Hotkeys and idle detection** read keyboard/mouse events from `/dev/input` (works on Wayland and X11). Add yourself to the `input` group and log in again: `sudo usermod -aG input $USER`. Note this lets any program you run read your keystrokes.
+- **Monitors (DDC/CI)** go through `/dev/i2c-*`, so the `i2c-dev` module must be loaded (`sudo modprobe i2c-dev`, and `i2c-dev` in `/etc/modules-load.d/` to keep it). Your user needs access to the display buses: ddcutil's udev rules grant it to the logged-in user (they come with the `ddcutil` package, which KDE Plasma already pulls in for brightness control); otherwise add yourself to the `i2c` group. [ddcutil's permissions guide](https://www.ddcutil.com/i2c_permissions) has the details. The rule editor and `--list-monitors` say so when access is missing. Buses are matched to connectors by EDID, so NVIDIA's proprietary driver works too.
+- **Screen layout** comes from the desktop: GNOME (Mutter) and KDE Plasma (`kscreen-doctor`) on Wayland, and `xrandr` on any X11 desktop. Elsewhere screens are laid out left to right.
+- **Hotkeys and idle detection** read keyboard and mouse events from `/dev/input`, which works on Wayland and X11 alike. Add yourself to the `input` group and log in again: `sudo usermod -aG input $USER`. Two things to know: this lets any program you run read your keystrokes, and hotkeys aren't exclusive, so the key combination also reaches the focused application and the desktop's own shortcuts. Pick one nothing else uses. Without the group, idle detection still works through the desktop (GNOME and KDE) and USB rules are unaffected.
+- **Tray icon**: GNOME shows no tray icons unless the AppIndicator extension is installed. Launching SimpleKVM again brings up the window of the copy already running, so the app is never out of reach.
 - **USB events** are read from sysfs and need no permissions.
 - **Run at startup** writes `~/.config/autostart/simplekvm.desktop`. Settings and rules live in `~/.config/SimpleKVM`.
+- **Building from source**: `dotnet publish SimpleKVM/SimpleKVM.csproj -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true`, then run `SimpleKVM/bin/Release/net10.0/linux-x64/publish/SimpleKVM`.
 
 ## Thanks to
 This program was inspired by [haimgel's display-switch program](https://github.com/haimgel/display-switch).

@@ -23,6 +23,7 @@ namespace SimpleKVM.Ui.Controls
         readonly Canvas canvas;
         readonly Rule? ruleToEdit;
         readonly List<MonitorComboEntry> monitorCombos = [];
+        readonly TextBlock statusText;
 
         public MonitorLayoutView(Rule? ruleToEdit)
         {
@@ -39,8 +40,18 @@ namespace SimpleKVM.Ui.Controls
                 Reload();
             };
 
+            //Why a monitor can't be controlled, when the platform knows (Linux: no /dev/i2c-* access)
+            statusText = new TextBlock
+            {
+                Foreground = Brushes.Gray,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = InitialDrawerSize.Width + 2 * Pad,
+                IsVisible = false
+            };
+
             var layout = new StackPanel { Spacing = 4 };
             layout.Children.Add(canvas);
+            layout.Children.Add(statusText);
             layout.Children.Add(btnRefresh);
             Content = layout;
 
@@ -83,6 +94,10 @@ namespace SimpleKVM.Ui.Controls
             var scale = Math.Min(scaleX, scaleY);
 
             var monitors = Displays.DisplaySystem.GetMonitors();
+
+            var status = PlatformServices.Current.Displays.StatusMessage;
+            statusText.Text = status;
+            statusText.IsVisible = status != null;
 
             //Screens are numbered in the same order the platforms use: left, then top
             var orderedScreens = screens
