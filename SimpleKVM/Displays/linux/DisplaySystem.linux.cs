@@ -213,6 +213,14 @@ namespace SimpleKVM.Displays.linux
             return (1920, 1080);
         }
 
+        /// <summary>Compositor layout converted to physical pixels, see PhysicalLayout.</summary>
+        static Dictionary<string, OutputGeometry>? ToPhysicalGeometry(Dictionary<string, PhysicalLayout.Output> outputs)
+        {
+            if (outputs.Count == 0) return null;
+            return PhysicalLayout.ToPhysical(outputs)
+                    .ToDictionary(o => o.Key, o => new OutputGeometry(o.Value.X, o.Value.Y, o.Value.Width, o.Value.Height));
+        }
+
         /// <summary>KDE Plasma: logical layout from kscreen-doctor -j.</summary>
         static Dictionary<string, OutputGeometry>? QueryKScreen()
         {
@@ -222,7 +230,7 @@ namespace SimpleKVM.Displays.linux
             try
             {
                 using var doc = JsonDocument.Parse(json);
-                var result = new Dictionary<string, OutputGeometry>();
+                var result = new Dictionary<string, PhysicalLayout.Output>();
 
                 foreach (var output in doc.RootElement.GetProperty("outputs").EnumerateArray())
                 {
@@ -244,14 +252,15 @@ namespace SimpleKVM.Displays.linux
                     int rotation = output.TryGetProperty("rotation", out var r) ? r.GetInt32() : 1;
                     if (rotation == 2 || rotation == 8) (w, h) = (h, w);
 
-                    result[name] = new OutputGeometry(
+                    result[name] = new PhysicalLayout.Output(
                         pos.GetProperty("x").GetInt32(),
                         pos.GetProperty("y").GetInt32(),
                         (int)Math.Round(w / scale),
-                        (int)Math.Round(h / scale));
+                        (int)Math.Round(h / scale),
+                        w, h);
                 }
 
-                return result.Count > 0 ? result : null;
+                return ToPhysicalGeometry(result);
             }
             catch
             {
@@ -270,7 +279,7 @@ namespace SimpleKVM.Displays.linux
 
             try
             {
-                var result = new Dictionary<string, OutputGeometry>();
+                var result = new Dictionary<string, PhysicalLayout.Output>();
 
                 //Current mode per connector: ('DP-1', 'vendor', 'product', 'serial'), [modes...] where
                 //the current mode carries 'is-current': <true>
@@ -286,6 +295,8 @@ namespace SimpleKVM.Displays.linux
                     }
                 }
 
+                bool physicalLayoutMode = text.Contains("'layout-mode': <uint32 2>");
+
                 var logicalRegex = new System.Text.RegularExpressions.Regex(@"\((-?\d+), (-?\d+), ([\d.]+), (\d+), (?:true|false), \[\('([^']+)'");
                 foreach (System.Text.RegularExpressions.Match m in logicalRegex.Matches(text))
                 {
@@ -297,14 +308,17 @@ namespace SimpleKVM.Displays.linux
                     var (w, h) = mode;
                     if (transform % 2 == 1) (w, h) = (h, w);
 
-                    result[name] = new OutputGeometry(
+                    //Physical layout mode (X11) positions monitors in pixels, unscaled
+                    double layoutScale = physicalLayoutMode ? 1.0 : scale;
+                    result[name] = new PhysicalLayout.Output(
                         int.Parse(m.Groups[1].Value),
                         int.Parse(m.Groups[2].Value),
-                        (int)Math.Round(w / scale),
-                        (int)Math.Round(h / scale));
+                        (int)Math.Round(w / layoutScale),
+                        (int)Math.Round(h / layoutScale),
+                        w, h);
                 }
 
-                return result.Count > 0 ? result : null;
+                return ToPhysicalGeometry(result);
             }
             catch
             {
