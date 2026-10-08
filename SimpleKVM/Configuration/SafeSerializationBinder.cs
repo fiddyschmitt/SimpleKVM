@@ -38,6 +38,7 @@ namespace SimpleKVM.Configuration
             typeof(Displays.Monitor),
             typeof(Displays.win.Monitor),
             typeof(Displays.mac.Monitor),
+            typeof(Displays.linux.Monitor),
         ];
 
         /// <summary>
@@ -45,10 +46,17 @@ namespace SimpleKVM.Configuration
         /// crosses platforms, translate the type to this platform's equivalent. The mapped
         /// instance is only a MonitorUniqueId carrier — actions re-resolve the live monitor.
         /// </summary>
-        static readonly Dictionary<string, string> crossPlatformTypeMap =
-            OperatingSystem.IsWindows()
-                ? new() { ["SimpleKVM.Displays.mac.Monitor"] = "SimpleKVM.Displays.win.Monitor" }
-                : new() { ["SimpleKVM.Displays.win.Monitor"] = "SimpleKVM.Displays.mac.Monitor" };
+        static readonly Dictionary<string, string> crossPlatformTypeMap = BuildCrossPlatformTypeMap();
+
+        static Dictionary<string, string> BuildCrossPlatformTypeMap()
+        {
+            string[] all = ["SimpleKVM.Displays.win.Monitor", "SimpleKVM.Displays.mac.Monitor", "SimpleKVM.Displays.linux.Monitor"];
+            var native = OperatingSystem.IsWindows() ? all[0]
+                       : OperatingSystem.IsLinux() ? all[2]
+                       : all[1];
+
+            return all.Where(name => name != native).ToDictionary(name => name, _ => native);
+        }
 
         public Type BindToType(string? assemblyName, string typeName)
         {

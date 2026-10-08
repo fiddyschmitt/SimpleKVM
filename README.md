@@ -13,6 +13,8 @@ Releases can be found over in the [releases](https://github.com/fiddyschmitt/Sim
 - **Windows**: download `SimpleKVM.exe` and run it.
 - **macOS** (Apple Silicon): download `SimpleKVM-macos-arm64.zip`, unzip it, and drag `SimpleKVM.app` to Applications. Because the app isn't notarized, macOS blocks the first launch: open System Settings → Privacy & Security, scroll down to the message saying SimpleKVM was blocked, and click "Open Anyway" (one time only). Terminal alternative: `xattr -dr com.apple.quarantine /Applications/SimpleKVM.app`.
 
+- **Linux** (x64): build with `dotnet publish SimpleKVM/SimpleKVM.csproj -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true` and run `SimpleKVM/bin/Release/net10.0/linux-x64/publish/SimpleKVM`. See [Linux notes](#linux-notes).
+
 ## What you need
 
 1. Connect your computers to your monitor.
@@ -70,6 +72,13 @@ Yes
 2. Tick 'Run at Startup'
 
 On Windows this creates a shortcut in the Startup folder; on macOS it creates a LaunchAgent in `~/Library/LaunchAgents`.
+
+## Linux notes
+- **Monitors (DDC/CI)** go through `/dev/i2c-*` (the `i2c-dev` module must be loaded). Fedora gives the logged-in user access to display buses automatically; elsewhere follow [ddcutil's permissions guide](https://www.ddcutil.com/i2c_permissions). Buses are matched to connectors by EDID, so NVIDIA's proprietary driver works too.
+- **Screen layout** comes from `kscreen-doctor` (KDE Plasma) or Mutter's DisplayConfig (GNOME); on other desktops screens are laid out left to right.
+- **Hotkeys and idle detection** read keyboard/mouse events from `/dev/input` (works on Wayland and X11). Add yourself to the `input` group and log in again: `sudo usermod -aG input $USER`. Note this lets any program you run read your keystrokes.
+- **USB events** are read from sysfs and need no permissions.
+- **Run at startup** writes `~/.config/autostart/simplekvm.desktop`. Settings and rules live in `~/.config/SimpleKVM`.
 
 ## Thanks to
 This program was inspired by [haimgel's display-switch program](https://github.com/haimgel/display-switch).

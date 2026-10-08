@@ -43,7 +43,11 @@ namespace SimpleKVM.Cli
                     {
                         return Displays.mac.DdcProbe.Run();
                     }
-                    Console.WriteLine("--probe-ddc is only available on macOS.");
+                    if (OperatingSystem.IsLinux())
+                    {
+                        return ListMonitors();
+                    }
+                    Console.WriteLine("--probe-ddc is only available on macOS and Linux.");
                     return 1;
 
                 case "--list-monitors":
@@ -228,7 +232,21 @@ namespace SimpleKVM.Cli
                     : "VCP 0x60 not found in parsed features");
                 return 0;
             }
-            Console.WriteLine("--get-caps is only available on macOS (Windows reads capabilities via Dxva2).");
+            if (OperatingSystem.IsLinux())
+            {
+                var monitors = DisplaySystem.GetMonitors();
+                if (monitors[monitorNumber - 1] is not Displays.linux.Monitor mon || mon.Transport == null)
+                {
+                    Console.WriteLine("No DDC transport for that monitor (check /dev/i2c-* permissions).");
+                    return 1;
+                }
+
+                Console.WriteLine($"Bus: {mon.Transport.DevicePath}");
+                var caps = mon.Transport.ReadCapabilitiesString(Console.WriteLine);
+                Console.WriteLine(caps == null ? "No capabilities string." : $"Capabilities: {caps}");
+                return caps == null ? 1 : 0;
+            }
+            Console.WriteLine("--get-caps is only available on macOS and Linux (Windows reads capabilities via Dxva2).");
             return 1;
         }
 

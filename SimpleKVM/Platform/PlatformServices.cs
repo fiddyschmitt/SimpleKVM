@@ -15,6 +15,7 @@ namespace SimpleKVM.Platform
         {
             if (OperatingSystem.IsWindowsVersionAtLeast(6, 1)) return new win.WindowsPlatform();
             if (OperatingSystem.IsMacOS()) return new mac.MacPlatform();
+            if (OperatingSystem.IsLinux()) return new linux.LinuxPlatform();
             throw new PlatformNotSupportedException("SimpleKVM does not support this operating system yet.");
         }
     }
