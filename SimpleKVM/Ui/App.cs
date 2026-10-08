@@ -5,6 +5,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Platform;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.Themes.Fluent;
 using System;
 
@@ -82,6 +83,18 @@ namespace SimpleKVM.Ui
                 trayIcon.Menu = [openItem, new NativeMenuItemSeparator(), exitItem];
 
                 TrayIcon.SetIcons(this, [trayIcon]);
+
+                //On Linux the tray icon watches the StatusNotifierWatcher over D-Bus. At logout the
+                //session bus goes away first, the watch task is canceled and Avalonia rethrows the
+                //cancellation on the UI thread, which aborts the process and triggers a crash report.
+                //A canceled background task is never worth dying for, so swallow it.
+                Dispatcher.UIThread.UnhandledException += (s, e) =>
+                {
+                    if (e.Exception is OperationCanceledException)
+                    {
+                        e.Handled = true;
+                    }
+                };
 
                 //Ensure the tray icon doesn't linger until hovered after exit
                 desktop.Exit += (s, e) =>
