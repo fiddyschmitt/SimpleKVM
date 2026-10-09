@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using SimpleKVM.Platform;
 using SimpleKVM.Rules;
 using SimpleKVM.Rules.Triggers;
 using System.Linq;
@@ -38,6 +39,16 @@ namespace SimpleKVM.Ui
 
             availabilityText = new TextBlock { Text = "" };
 
+            //How hotkeys behave on this desktop, or what stands in their way, when the platform has something to say
+            var platformNote = new TextBlock
+            {
+                Text = PlatformServices.Current.Hotkeys.Note,
+                Foreground = Brushes.Gray,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 360,
+                IsVisible = PlatformServices.Current.Hotkeys.Note != null
+            };
+
             btnOk = new Button { Content = "OK", IsEnabled = false };
             btnOk.Click += (s, e) =>
             {
@@ -53,6 +64,7 @@ namespace SimpleKVM.Ui
             layout.Children.Add(new TextBlock { Text = "Press the key combination to use:" });
             layout.Children.Add(hotkeyBox);
             layout.Children.Add(availabilityText);
+            layout.Children.Add(platformNote);
             layout.Children.Add(btnOk);
 
             Content = layout;

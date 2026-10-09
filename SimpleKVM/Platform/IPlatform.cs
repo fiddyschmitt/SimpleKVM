@@ -62,6 +62,16 @@ namespace SimpleKVM.Platform
         /// already taken. Dispose the returned registration to unregister.
         /// </summary>
         IDisposable Register(HotkeyGesture gesture, Action action);
+
+        /// <summary>
+        /// Something the user should know about how hotkeys behave or why they can't be used
+        /// here (Linux: the desktop confirms them, or access is missing), or null when there is
+        /// nothing to say. Shown where a hotkey is chosen.
+        /// </summary>
+        string? Note => null;
+
+        /// <summary>Which of several ways of getting hotkeys is in use, where there is more than one (Linux).</summary>
+        string? BackendName => null;
     }
 
     public interface IIdleProvider

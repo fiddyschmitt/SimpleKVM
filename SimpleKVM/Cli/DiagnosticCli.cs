@@ -215,6 +215,11 @@ namespace SimpleKVM.Cli
 
         static int TestHotkey(string gesture)
         {
+            //Said first: when the hotkey can't be registered, the route and its note are the explanation
+            var hotkeys = PlatformServices.Current.Hotkeys;
+            if (hotkeys.BackendName != null) Console.WriteLine($"Hotkeys through: {hotkeys.BackendName}");
+            if (hotkeys.Note != null) Console.WriteLine($"Note: {hotkeys.Note}");
+
             using var registration = HotkeySystem.Register(gesture, () => Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} hotkey fired: {gesture}"));
             Console.WriteLine($"Registered {gesture}; press it now (Ctrl+C to stop)...");
 
