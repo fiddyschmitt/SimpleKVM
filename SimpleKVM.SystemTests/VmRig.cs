@@ -99,19 +99,28 @@ public sealed class VmRig
 
     static string SourceFile([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 
-    /// <summary>The machines: list of settings.yml: name, desktop, session, input_group. A line-based read, enough for that shape.</summary>
+    /// <summary>
+    /// The machines: list of settings.yml (name, desktop, session, input_group, monitors) and the
+    /// top-level monitors default. A line-based read, enough for that shape.
+    /// </summary>
     static List<MachineSpec> ReadSettings(string path)
     {
         var result = new List<MachineSpec>();
         MachineSpec? current = null;
         bool inMachines = false;
+        int defaultMonitors = 1;
 
         foreach (var raw in File.ReadLines(path))
         {
             var line = raw.Split('#')[0].TrimEnd();
             if (line.Length == 0) continue;
 
-            if (!line.StartsWith(' ')) { inMachines = line.StartsWith("machines:"); continue; }
+            if (!line.StartsWith(' '))
+            {
+                inMachines = line.StartsWith("machines:");
+                if (line.StartsWith("monitors:") && int.TryParse(line["monitors:".Length..].Trim(), out var monitors)) defaultMonitors = monitors;
+                continue;
+            }
             if (!inMachines) continue;
 
             var text = line.TrimStart();
@@ -133,12 +142,16 @@ public sealed class VmRig
                 "desktop" => current with { Desktop = value },
                 "session" => current with { Session = value },
                 "input_group" => current with { InputGroup = value.Equals("true", StringComparison.OrdinalIgnoreCase) },
+                "monitors" when int.TryParse(value, out var monitors) => current with { Monitors = monitors },
                 _ => current,
             };
         }
         if (current != null) result.Add(current);
 
-        return result.Where(m => m.Name.Length > 0).ToList();
+        return result
+                .Where(m => m.Name.Length > 0)
+                .Select(m => m.Monitors > 0 ? m : m with { Monitors = defaultMonitors })
+                .ToList();
     }
 
     static string? Vagrant(string rigDir, string arguments, int timeoutMs)
@@ -172,10 +185,14 @@ public sealed record MachineSpec(string Name)
     public string Desktop { get; init; } = "";
     public string Session { get; init; } = "";
     public bool InputGroup { get; init; }
+
+    /// <summary>Virtual screens the rig gives the VM (settings.yml `monitors`, or the machine's own).</summary>
+    public int Monitors { get; init; }
+
     public string Host { get; init; } = "";
     public int Port { get; init; }
     public string User { get; init; } = "";
     public string KeyFile { get; init; } = "";
 
-    public override string ToString() => $"{Name} ({Desktop}/{Session}, input group: {(InputGroup ? "yes" : "no")})";
+    public override string ToString() => $"{Name} ({Desktop}/{Session}, input group: {(InputGroup ? "yes" : "no")}, screens: {Monitors})";
 }

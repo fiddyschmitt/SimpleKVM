@@ -13,9 +13,9 @@ public sealed class LinuxVm : IDisposable
 {
     static readonly ConcurrentDictionary<string, LinuxVm> connected = new();
 
-    /// <summary>Where the build is copied to inside the guest (never run it from the vboxsf share).</summary>
+    /// <summary>Where the build is copied to inside the guest (never run it from the vboxsf share); the rig's play.ps1 uses the same place.</summary>
     public const string DeployDir = "/home/vagrant/simplekvm";
-    public const string Exe = DeployDir + "/SimpleKVM";
+    public const string Exe = DeployDir + "/simplekvm-linux-x64";
 
     /// <summary>The session variables handed to commands: the display and its auth cookie, the bus, the session type.</summary>
     static readonly string[] SessionVariables =
@@ -106,9 +106,11 @@ public sealed class LinuxVm : IDisposable
 
     void Deploy()
     {
-        var result = Run($"test -f /simplekvm/SimpleKVM && mkdir -p {DeployDir} && cp /simplekvm/SimpleKVM {Exe} && chmod +x {Exe} && cat /simplekvm/BUILD.txt 2>/dev/null");
+        //Copied next to the deployed file and renamed over it: a copy someone is trying out by hand
+        //(play.ps1) may be running from that path, and a running executable can't be written to
+        var result = Run($"test -f /simplekvm/simplekvm-linux-x64 && mkdir -p {DeployDir} && cp /simplekvm/simplekvm-linux-x64 {Exe}.new && chmod +x {Exe}.new && mv -f {Exe}.new {Exe} && cat /simplekvm/BUILD.txt 2>/dev/null");
         if (result.ExitCode != 0)
-            throw new InvalidOperationException($"{Machine.Name}: no Linux build in the shared folder; run publish.ps1 in the rig first ({result.Output})");
+            throw new InvalidOperationException($"{Machine.Name}: no simplekvm-linux-x64 in the shared folder; run publish.ps1 in the rig first ({result.Output})");
         Build = result.Stdout.Trim();
     }
 
