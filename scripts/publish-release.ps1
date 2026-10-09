@@ -4,7 +4,9 @@
 
 .DESCRIPTION
     Windows: self-contained, single-file, trimmed  ->  publish\SimpleKVM.exe
-    Linux:   self-contained, single-file, trimmed  ->  publish\SimpleKVM-linux-x64
+    Linux:   self-contained, single-file, trimmed  ->  publish\simplekvm-linux-x64.tar.gz
+                                                        publish\simplekvm-linux-arm64.tar.gz
+             (each holds the program, install.sh and uninstall.sh; see package-linux.ps1)
     macOS:   self-contained, single-file, trimmed  ->  publish\SimpleKVM-macos-arm64.zip
              (the zip contains SimpleKVM.app, assembled and ad-hoc signed on the Mac)
 
@@ -16,7 +18,7 @@
     ssh host used to assemble and sign the .app (default 192.168.0.33). Skipped when empty.
 
 .PARAMETER SkipMac
-    Build only the Windows artifact.
+    Build only the Windows and Linux artifacts.
 #>
 [CmdletBinding()]
 param(
@@ -87,17 +89,21 @@ Move-Item $winExe (Join-Path $publishDir "SimpleKVM.exe")
 Remove-Item $winOut -Recurse -Force
 
 # ---------------------------------------------------------------- Linux
-# One self-contained binary (the native libraries self-extract), published as-is: a tar made
-# on Windows can't carry the executable bit, so the README tells users to chmod +x it.
-# It is smoke-tested by SimpleKVM.SystemTests against the desktop VMs in "SimpleKVM local".
-$linuxOut = Join-Path $publishDir "_linux-x64"
-Publish-Rid -Framework "net10.0" -Rid "linux-x64" -OutDir $linuxOut -Trim $true
+# One self-contained binary per architecture (the native libraries self-extract), packed with
+# its install script into a .tar.gz that keeps the executable bit. Neither can be run here:
+# the x64 build is what SimpleKVM.SystemTests exercises on the desktop VMs in "SimpleKVM
+# local", tarball included; the arm64 build is the same code cross-published, and nothing
+# runs it before it ships.
+foreach ($linuxRid in "linux-x64", "linux-arm64") {
+    $linuxOut = Join-Path $publishDir "_$linuxRid"
+    Publish-Rid -Framework "net10.0" -Rid $linuxRid -OutDir $linuxOut -Trim $true
 
-$linuxBin = Join-Path $linuxOut "SimpleKVM"
-if (-not (Test-Path $linuxBin)) { throw "linux-x64 publish produced no SimpleKVM binary" }
+    $linuxBin = Join-Path $linuxOut "SimpleKVM"
+    if (-not (Test-Path $linuxBin)) { throw "$linuxRid publish produced no SimpleKVM binary" }
 
-Move-Item $linuxBin (Join-Path $publishDir "SimpleKVM-linux-x64")
-Remove-Item $linuxOut -Recurse -Force
+    & (Join-Path $PSScriptRoot "package-linux.ps1") -Binary $linuxBin -Rid $linuxRid -OutDir $publishDir | Out-Null
+    Remove-Item $linuxOut -Recurse -Force
+}
 
 # ---------------------------------------------------------------- macOS
 if (-not $SkipMac -and $MacHost) {

@@ -1,2 +1,5 @@
 # Shell scripts must stay LF or bash on macOS/Linux rejects them
 *.sh text eol=lf
+
+# Goes into the Linux tarball as it is
+packaging/linux/README.txt text eol=lf
