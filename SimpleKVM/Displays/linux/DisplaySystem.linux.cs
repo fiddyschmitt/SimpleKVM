@@ -13,8 +13,8 @@ namespace SimpleKVM.Displays.linux
 {
     /// <summary>
     /// Monitors on Linux: the connected DRM connectors from sysfs, where the desktop puts each
-    /// of them (asked of the compositor: KDE's kscreen-doctor, GNOME's Mutter, or xrandr on
-    /// X11), and a DDC/CI transport on the /dev/i2c-N bus that belongs to each connector.
+    /// of them (asked of the desktop: GNOME's Mutter over D-Bus, KDE's kscreen-doctor, or
+    /// xrandr on X11), and a DDC/CI transport on the /dev/i2c-N bus that belongs to each connector.
     /// </summary>
     [SupportedOSPlatform("linux")]
     public static class DisplaySystem
@@ -23,9 +23,9 @@ namespace SimpleKVM.Displays.linux
         static readonly TimeSpan ProbeRetryInterval = TimeSpan.FromSeconds(30);
 
         /// <summary>
-        /// Asking the compositor starts a process, so between checks of the (cheap) connector
-        /// set the last answer is reused for this long. A connector appearing or vanishing
-        /// re-asks at once.
+        /// Asking KDE or X11 starts a process, so between checks of the (cheap) connector set
+        /// the last answer is reused for this long. A connector appearing or vanishing re-asks
+        /// at once. GNOME announces its layout changes, so there the answer is kept until it does.
         /// </summary>
         static readonly TimeSpan LayoutRefreshInterval = TimeSpan.FromSeconds(10);
 
@@ -38,6 +38,7 @@ namespace SimpleKVM.Displays.linux
         static List<DisplayInfo>? lastGoodLayout;
         static string? lastGoodSignature;
         static DateTime lastLayoutQuery = DateTime.MinValue;
+        static int lastMutterChange;
 
         static readonly object busScanLock = new();
         static Dictionary<string, string?>? scannedBusByEdid;   //null value: two buses answered with this EDID
@@ -141,11 +142,13 @@ namespace SimpleKVM.Displays.linux
                 var signature = string.Join("|", connectors.Select(c => c.Name + ":" + Edid.Key(c.Edid)));
                 bool connectorsChanged = signature != lastGoodSignature;
 
-                if (lastGoodLayout != null && !connectorsChanged && DateTime.Now - lastLayoutQuery < LayoutRefreshInterval)
+                if (lastGoodLayout != null && !connectorsChanged && !LayoutMayHaveChanged())
                     return lastGoodLayout;
 
+                int mutterChange = MutterDisplayConfig.ChangeCount;
                 var (outputs, source) = QueryCompositor();
                 lastLayoutQuery = DateTime.Now;
+                lastMutterChange = mutterChange;
 
                 var pairs = outputs != null ? LayoutJoin.Match(connectors, outputs) : null;
                 if (pairs == null)
@@ -163,12 +166,20 @@ namespace SimpleKVM.Displays.linux
             }
         }
 
+        /// <summary>Whether the desktop has to be asked again although the connectors are the same.</summary>
+        static bool LayoutMayHaveChanged()
+        {
+            //Mutter says so itself; the others are simply asked again every so often
+            if (LayoutSource == "mutter" && MutterDisplayConfig.ListeningForChanges)
+                return MutterDisplayConfig.ChangeCount != lastMutterChange;
+
+            return DateTime.Now - lastLayoutQuery >= LayoutRefreshInterval;
+        }
+
         static (List<OutputGeometry>? Outputs, string Source) QueryCompositor()
         {
-            var sessionType = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
             var desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? "";
-            bool x11 = sessionType == "x11"
-                       || (sessionType == null && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null && Environment.GetEnvironmentVariable("DISPLAY") != null);
+            bool x11 = LinuxSession.IsX11;
 
             //X11: xrandr knows the real geometry and each output's EDID whatever the desktop.
             //Wayland: the compositor is the only one who knows; try the likely one first.
@@ -188,8 +199,7 @@ namespace SimpleKVM.Displays.linux
 
         static (List<OutputGeometry>?, string) Mutter()
         {
-            var result = ExternalTool.Run("gdbus", "call --session --dest org.gnome.Mutter.DisplayConfig --object-path /org/gnome/Mutter/DisplayConfig --method org.gnome.Mutter.DisplayConfig.GetCurrentState");
-            return (result?.Succeeded == true ? MutterLayout.Parse(result.StandardOutput) : null, "mutter");
+            return (MutterDisplayConfig.GetLayout(), "mutter");
         }
 
         static (List<OutputGeometry>?, string) KScreen()

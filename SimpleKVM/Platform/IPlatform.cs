@@ -67,6 +67,9 @@ namespace SimpleKVM.Platform
         /// on a desktop that doesn't report it), or null when it can. Known after the first call.
         /// </summary>
         string? StatusMessage => null;
+
+        /// <summary>Where the idle time comes from, where there is more than one possibility (Linux). Known after the first call.</summary>
+        string? SourceName => null;
     }
 
     public interface IStartupManager

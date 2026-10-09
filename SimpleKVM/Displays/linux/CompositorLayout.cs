@@ -1,4 +1,3 @@
-using SimpleKVM.Platform.linux;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -83,82 +82,59 @@ namespace SimpleKVM.Displays.linux
         }
     }
 
+    /// <summary>One monitor as Mutter describes it: its connector, the identity read from its EDID, and the size of its current mode (null while it has none).</summary>
+    public sealed record MutterMonitor(string Connector, string? Vendor, string? Product, string? Serial, (int Width, int Height)? CurrentMode);
+
+    /// <summary>One logical monitor: where it sits on the desktop, and the connectors showing it (several when mirrored).</summary>
+    public sealed record MutterLogicalMonitor(int X, int Y, double Scale, uint Transform, IReadOnlyList<string> Connectors);
+
     /// <summary>
-    /// GNOME: the reply to <c>org.gnome.Mutter.DisplayConfig.GetCurrentState</c> as gdbus prints
-    /// it. Shape: (serial, monitors, logical_monitors, properties) where each monitor is
-    /// ((connector, vendor, product, serial), modes, props), each mode is (id, width, height,
-    /// refresh, preferred_scale, supported_scales, props) with 'is-current' in props, and each
-    /// logical monitor is (x, y, scale, transform, primary, [monitor specs], props). In the
-    /// default logical layout mode positions are logical pixels and sizes are mode size over
-    /// scale; in physical mode both are device pixels.
+    /// GNOME: the layout in the reply to <c>org.gnome.Mutter.DisplayConfig.GetCurrentState</c>
+    /// (read off the bus by MutterDisplayConfig). In the default logical layout mode positions
+    /// are logical pixels and sizes are mode size over scale; in physical mode both are device
+    /// pixels.
     /// </summary>
     public static class MutterLayout
     {
-        public static List<OutputGeometry>? Parse(string gvariantText)
+        /// <summary>The value of the state's <c>layout-mode</c> property that means physical pixels.</summary>
+        public const uint PhysicalLayoutMode = 2;
+
+        public static List<OutputGeometry>? Build(IReadOnlyList<MutterMonitor> monitors, IReadOnlyList<MutterLogicalMonitor> logicalMonitors, bool physicalLayout)
         {
-            try
+            var current = new Dictionary<string, MutterMonitor>(StringComparer.Ordinal);
+            foreach (var monitor in monitors)
             {
-                if (GVariantText.Parse(gvariantText) is not List<object?> { Count: >= 3 } state) return null;
-                if (state[1] is not List<object?> monitors || state[2] is not List<object?> logicalMonitors) return null;
-
-                bool physicalLayout = state.Count >= 4
-                                      && state[3] is Dictionary<string, object?> props
-                                      && props.TryGetValue("layout-mode", out var mode)
-                                      && mode is long and 2;
-
-                //connector -> (current mode size, spec)
-                var current = new Dictionary<string, (int W, int H, string? Vendor, string? Product, string? Serial)>(StringComparer.Ordinal);
-                foreach (var monitor in monitors.OfType<List<object?>>())
-                {
-                    if (monitor.Count < 2 || monitor[0] is not List<object?> { Count: >= 4 } spec || spec[0] is not string connector) continue;
-
-                    foreach (var m in (monitor[1] as List<object?>)?.OfType<List<object?>>() ?? [])
-                    {
-                        if (m.Count < 7 || m[1] is not long w || m[2] is not long h) continue;
-                        if (m[6] is Dictionary<string, object?> modeProps && modeProps.TryGetValue("is-current", out var isCurrent) && isCurrent is true)
-                        {
-                            current[connector] = ((int)w, (int)h, Unknown(spec[1]), Unknown(spec[2]), Unknown(spec[3]));
-                            break;
-                        }
-                    }
-                }
-
-                var result = new List<OutputGeometry>();
-                foreach (var logical in logicalMonitors.OfType<List<object?>>())
-                {
-                    if (logical.Count < 6 || logical[0] is not long x || logical[1] is not long y) continue;
-                    double scale = logical[2] switch { double d => d, long l => l, _ => 1.0 };
-                    long transform = logical[3] as long? ?? 0;
-                    if (scale <= 0) scale = 1.0;
-
-                    foreach (var spec in (logical[5] as List<object?>)?.OfType<List<object?>>() ?? [])
-                    {
-                        if (spec.Count < 1 || spec[0] is not string connector || !current.TryGetValue(connector, out var cur)) continue;
-
-                        var (w, h) = (cur.W, cur.H);
-                        if (transform % 2 == 1) (w, h) = (h, w);    //1, 3, 5, 7: rotated 90 or 270
-                        if (!physicalLayout)
-                        {
-                            w = (int)Math.Round(w / scale);
-                            h = (int)Math.Round(h / scale);
-                        }
-
-                        result.Add(new OutputGeometry(connector, (int)x, (int)y, w, h, cur.Vendor, cur.Product, cur.Serial));
-                    }
-                }
-
-                return result.Count > 0 ? result : null;
+                if (monitor.CurrentMode != null) current[monitor.Connector] = monitor;
             }
-            catch (FormatException)
+
+            var result = new List<OutputGeometry>();
+            foreach (var logical in logicalMonitors)
             {
-                return null;
+                double scale = logical.Scale > 0 ? logical.Scale : 1.0;
+
+                foreach (var connector in logical.Connectors)
+                {
+                    if (!current.TryGetValue(connector, out var monitor)) continue;
+
+                    var (w, h) = monitor.CurrentMode!.Value;
+                    if (logical.Transform % 2 == 1) (w, h) = (h, w);    //1, 3, 5, 7: rotated 90 or 270
+                    if (!physicalLayout)
+                    {
+                        w = (int)Math.Round(w / scale);
+                        h = (int)Math.Round(h / scale);
+                    }
+
+                    result.Add(new OutputGeometry(connector, logical.X, logical.Y, w, h, monitor.Vendor, monitor.Product, monitor.Serial));
+                }
             }
+
+            return result.Count > 0 ? result : null;
         }
 
-        //Mutter fills fields it couldn't read from the EDID with "unknown"
-        static string? Unknown(object? value)
+        /// <summary>Mutter fills the identity fields it couldn't read from the EDID with "unknown".</summary>
+        public static string? Known(string? value)
         {
-            return value is string s && s.Length > 0 && !s.Equals("unknown", StringComparison.OrdinalIgnoreCase) ? s : null;
+            return !string.IsNullOrEmpty(value) && !value.Equals("unknown", StringComparison.OrdinalIgnoreCase) ? value : null;
         }
     }
 

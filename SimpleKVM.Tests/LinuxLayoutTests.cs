@@ -4,40 +4,43 @@ namespace SimpleKVM.Tests;
 
 // The Linux backend learns where each monitor sits on the desktop from the compositor, and
 // pairs that with the kernel's DRM connectors (where the DDC bus hangs off). These pin the
-// parsers to the exact text each tool prints and the pairing rules to the cases that broke.
+// parsers to what each desktop reports and the pairing rules to the cases that broke.
 public class LinuxLayoutTests
 {
     // ------------------------------------------------------------------ GNOME / Mutter
 
-    // What `gdbus call ... GetCurrentState` prints for a VM with one virtual display: the
-    // serial and the first logical monitor's transform carry type annotations.
-    const string MutterSingle =
-        "(uint32 3, [(('Virtual-1', 'unknown', 'unknown', 'unknown'), [('1920x1080@60.000', 1920, 1080, 60.0, 1.0, [1.0, 1.25, 1.5, 1.75, 2.0], {'is-current': <true>, 'is-preferred': <true>}), ('1280x720@60.000', 1280, 720, 60.0, 1.0, [1.0], @a{sv} {})], {'is-builtin': <false>, 'display-name': <'Unknown Display'>})], " +
-        "[(0, 0, 1.0, uint32 0, true, [('Virtual-1', 'unknown', 'unknown', 'unknown')], @a{sv} {})], " +
-        "{'layout-mode': <uint32 1>, 'supports-changing-layout-mode': <true>, 'global-scale-required': <false>})";
+    // What Mutter's GetCurrentState describes for a VM with one virtual display: it fills the
+    // identity it couldn't read with "unknown", which the bus reader turns into nulls.
+    static readonly MutterMonitor[] VirtualMonitor = [new("Virtual-1", null, null, null, (1920, 1080))];
+    static readonly MutterLogicalMonitor[] VirtualLogical = [new(0, 0, 1.0, 0, ["Virtual-1"])];
 
     // Two monitors: a scaled, primary Dell on DP-1 and a rotated HDMI one to its right.
-    const string MutterTwo =
-        "(uint32 7, [(('DP-1', 'DEL', 'DELL U2412M', 'ABC123'), [('1920x1200@59.950', 1920, 1200, 59.950172424316406, 1.25, [1.0, 1.25], {'is-current': <true>})], {'is-builtin': <false>}), " +
-        "(('HDMI-A-1', 'ACR', 'S240HL', 'unknown'), [('1920x1080@60.000', 1920, 1080, 60.0, 1.0, [1.0], {'is-current': <true>}), ('1280x720@60.000', 1280, 720, 60.0, 1.0, [1.0], @a{sv} {})], {'is-builtin': <false>})], " +
-        "[(0, 0, 1.25, uint32 0, true, [('DP-1', 'DEL', 'DELL U2412M', 'ABC123')], @a{sv} {}), (1536, 0, 1.0, 1, false, [('HDMI-A-1', 'ACR', 'S240HL', 'unknown')], @a{sv} {})], " +
-        "{'layout-mode': <uint32 1>})";
+    static readonly MutterMonitor[] TwoMonitors =
+    [
+        new("DP-1", "DEL", "DELL U2412M", "ABC123", (1920, 1200)),
+        new("HDMI-A-1", "ACR", "S240HL", null, (1920, 1080)),
+    ];
+    static readonly MutterLogicalMonitor[] TwoLogical =
+    [
+        new(0, 0, 1.25, 0, ["DP-1"]),
+        new(1536, 0, 1.0, 1, ["HDMI-A-1"]),
+    ];
 
     [Fact]
     public void Mutter_reads_a_single_virtual_display()
     {
-        var outputs = MutterLayout.Parse(MutterSingle);
+        var outputs = MutterLayout.Build(VirtualMonitor, VirtualLogical, physicalLayout: false);
 
         var output = Assert.Single(outputs!);
         Assert.Equal("Virtual-1", output.Name);
         Assert.Equal((0, 0, 1920, 1080), (output.X, output.Y, output.Width, output.Height));
-        Assert.Null(output.Vendor);   //"unknown" is not an identity
+        Assert.Null(output.Vendor);
     }
 
     [Fact]
     public void Mutter_applies_scale_and_rotation_and_keeps_the_identity_fields()
     {
-        var outputs = MutterLayout.Parse(MutterTwo)!;
+        var outputs = MutterLayout.Build(TwoMonitors, TwoLogical, physicalLayout: false)!;
 
         Assert.Equal(2, outputs.Count);
         var dell = outputs[0];
@@ -54,18 +57,45 @@ public class LinuxLayoutTests
     [Fact]
     public void Mutter_physical_layout_mode_does_not_divide_by_scale()
     {
-        var physical = MutterTwo.Replace("'layout-mode': <uint32 1>", "'layout-mode': <uint32 2>");
-        var dell = MutterLayout.Parse(physical)![0];
+        var dell = MutterLayout.Build(TwoMonitors, TwoLogical, physicalLayout: true)![0];
         Assert.Equal((1920, 1200), (dell.Width, dell.Height));
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("Error: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown")]
-    [InlineData("(uint32 1, [], [], @a{sv} {})")]
-    public void Mutter_junk_or_no_monitors_is_null(string text)
+    [Fact]
+    public void Mutter_mirrored_monitors_share_one_position()
     {
-        Assert.Null(MutterLayout.Parse(text));
+        var outputs = MutterLayout.Build(TwoMonitors, [new(0, 0, 1.0, 0, ["DP-1", "HDMI-A-1"])], physicalLayout: false)!;
+
+        Assert.Equal(["DP-1", "HDMI-A-1"], outputs.Select(o => o.Name));
+        Assert.All(outputs, o => Assert.Equal((0, 0), (o.X, o.Y)));
+    }
+
+    [Fact]
+    public void Mutter_a_monitor_with_no_current_mode_is_not_laid_out()
+    {
+        // Connected but switched off in Settings: Mutter lists it without a current mode
+        MutterMonitor[] monitors = [TwoMonitors[0], TwoMonitors[1] with { CurrentMode = null }];
+
+        var output = Assert.Single(MutterLayout.Build(monitors, TwoLogical, physicalLayout: false)!);
+        Assert.Equal("DP-1", output.Name);
+    }
+
+    [Fact]
+    public void Mutter_with_nothing_laid_out_is_null()
+    {
+        Assert.Null(MutterLayout.Build([], [], physicalLayout: false));
+        Assert.Null(MutterLayout.Build(TwoMonitors, [], physicalLayout: false));
+    }
+
+    [Theory]
+    [InlineData("unknown", null)]
+    [InlineData("Unknown", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    [InlineData("DEL", "DEL")]
+    public void Mutter_unknown_identity_fields_are_no_identity(string? reported, string? expected)
+    {
+        Assert.Equal(expected, MutterLayout.Known(reported));
     }
 
     // ------------------------------------------------------------------ KDE / kscreen-doctor

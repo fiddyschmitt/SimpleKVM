@@ -25,6 +25,9 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="System.Management" Version="10.0.7" />
+    <!-- The D-Bus library Avalonia's Linux backend already depends on (tray icon, menus); referenced
+         directly, at the version Avalonia brings, for talking to the desktop ourselves -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.1" />
     <!-- Source-generated Win32 bindings for the functions listed in Platform\win\NativeMethods.txt -->
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.298">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
