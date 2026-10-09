@@ -13,7 +13,7 @@ Releases can be found over in the [releases](https://github.com/fiddyschmitt/Sim
 - **Windows**: download `SimpleKVM.exe` and run it.
 - **macOS** (Apple Silicon): download `SimpleKVM-macos-arm64.zip`, unzip it, and drag `SimpleKVM.app` to Applications. Because the app isn't notarized, macOS blocks the first launch: open System Settings → Privacy & Security, scroll down to the message saying SimpleKVM was blocked, and click "Open Anyway" (one time only). Terminal alternative: `xattr -dr com.apple.quarantine /Applications/SimpleKVM.app`.
 
-- **Linux** (x64): download `SimpleKVM-linux-x64`, make it executable (`chmod +x SimpleKVM-linux-x64`) and run it. See [Linux notes](#linux-notes).
+- **Linux**: download `simplekvm-linux-x64.tar.gz` (or `simplekvm-linux-arm64.tar.gz` for ARM), unpack it, and run `./install.sh` in the unpacked folder. See [Linux notes](#linux-notes).
 
 ## What you need
 
@@ -71,15 +71,21 @@ Yes
 1. Click the settings button
 2. Tick 'Run at Startup'
 
-On Windows this creates a shortcut in the Startup folder; on macOS it creates a LaunchAgent in `~/Library/LaunchAgents`.
+On Windows this creates a shortcut in the Startup folder; on macOS it creates a LaunchAgent in `~/Library/LaunchAgents`; on Linux, an autostart entry in `~/.config/autostart`.
 
 ## Linux notes
+- **Installing**: `tar -xzf simplekvm-linux-x64.tar.gz`, then `simplekvm/install.sh`. It puts the program in `~/.local/bin` and Simple KVM in your applications menu; `install.sh --startup` also starts it at every login, and `uninstall.sh` removes it again (your rules stay). Nothing needs root. You can also just run `simplekvm/simplekvm` where you unpacked it, and tick "Show in the applications menu" in Settings if you want it listed there. (Where hotkeys go through the desktop's shortcut service, the app keeps a hidden menu entry in any case, because the desktop identifies it by that file.)
 - **Monitors (DDC/CI)** go through `/dev/i2c-*`, so the `i2c-dev` module must be loaded (`sudo modprobe i2c-dev`, and `i2c-dev` in `/etc/modules-load.d/` to keep it). Your user needs access to the display buses: ddcutil's udev rules grant it to the logged-in user (they come with the `ddcutil` package, which KDE Plasma already pulls in for brightness control); otherwise add yourself to the `i2c` group. [ddcutil's permissions guide](https://www.ddcutil.com/i2c_permissions) has the details. The rule editor and `--list-monitors` say so when access is missing. Buses are matched to connectors by EDID, so NVIDIA's proprietary driver works too.
 - **Screen layout** comes from the desktop: GNOME (Mutter) and KDE Plasma (`kscreen-doctor`) on Wayland, and `xrandr` on any X11 desktop. Elsewhere screens are laid out left to right.
-- **Hotkeys and idle detection** read keyboard and mouse events from `/dev/input`, which works on Wayland and X11 alike. Add yourself to the `input` group and log in again: `sudo usermod -aG input $USER`. Two things to know: this lets any program you run read your keystrokes, and hotkeys aren't exclusive, so the key combination also reaches the focused application and the desktop's own shortcuts. Pick one nothing else uses. Without the group, idle detection still works on GNOME through the desktop's own idle monitor; KDE Plasma on Wayland offers no such interface, so there the group is needed for "no longer idle" rules (the rule editor says so). USB rules are unaffected either way.
-- **Tray icon**: GNOME shows no tray icons unless the AppIndicator extension is installed. Launching SimpleKVM again brings up the window of the copy already running, so the app is never out of reach.
+- **Hotkeys** need no special permission on most desktops, and the key combination is the app's alone:
+  - On **X11** (any desktop) the keys are grabbed from the X server. A combination something else already holds shows as unavailable when you choose it.
+  - On **Wayland with GNOME 48 or later, or KDE Plasma 6**, they go through the desktop's global shortcuts service. The desktop asks you to confirm each new hotkey the first time, and you can change its keys afterwards in the desktop's own keyboard settings.
+  - On **other Wayland desktops** (GNOME 46 on Ubuntu 24.04, for one) the keys are read from `/dev/input`, which needs the `input` group: `sudo usermod -aG input $USER`, then log in again. Two things to know there: the group lets any program you run read your keystrokes, and the hotkeys aren't exclusive, so the combination also reaches the focused application and the desktop's own shortcuts. Pick one nothing else uses.
+- **Idle detection** ("no longer idle" rules) needs nothing on GNOME, which reports idle time itself. KDE Plasma on Wayland has no such interface, so there the `input` group is needed (the rule editor says so).
+- **The window**: closing it leaves Simple KVM running, so your rules keep working. The tray icon brings the window back, and so does starting Simple KVM again, which is the way on GNOME (it shows no tray icons unless the AppIndicator extension is installed). To stop it, use the window's Quit button, the tray menu, a right-click on its launcher icon, or `simplekvm --quit`.
 - **USB events** are read from sysfs and need no permissions.
-- **Run at startup** writes `~/.config/autostart/simplekvm.desktop`. Settings and rules live in `~/.config/SimpleKVM`.
+- **Run at startup** writes `~/.config/autostart/io.github.fiddyschmitt.simplekvm.desktop`. Settings and rules live in `~/.config/simplekvm`, or under `$XDG_CONFIG_HOME` when that is set.
+- **Troubleshooting**: `simplekvm --test-hotkey "Ctrl+Alt+F1"` and `simplekvm --watch-idle` say which of these routes is in use on your desktop. `SIMPLEKVM_HOTKEYS=evdev` (or `x11`, `portal`) and `SIMPLEKVM_IDLE_SOURCE=evdev` (or `desktop`) in the environment pin one, should the automatic choice not suit.
 - **Building from source**: `dotnet publish SimpleKVM/SimpleKVM.csproj -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true`, then run `SimpleKVM/bin/Release/net10.0/linux-x64/publish/SimpleKVM`.
 
 ## Thanks to
