@@ -38,21 +38,36 @@ public class LinuxLayoutTests
     }
 
     [Fact]
-    public void Mutter_applies_scale_and_rotation_and_keeps_the_identity_fields()
+    public void Mutter_reports_the_scaled_layout_in_physical_pixels_and_keeps_the_identity_fields()
     {
+        // The Dell at 125% is 1536 logical pixels wide and the rotated Acer starts there;
+        // in pixels the Dell is its full 1920 and the Acer starts where it ends
         var outputs = MutterLayout.Build(TwoMonitors, TwoLogical, physicalLayout: false)!;
 
         Assert.Equal(2, outputs.Count);
         var dell = outputs[0];
         Assert.Equal("DP-1", dell.Name);
-        Assert.Equal((0, 0, 1536, 960), (dell.X, dell.Y, dell.Width, dell.Height));   // 1920x1200 / 1.25
+        Assert.Equal((0, 0, 1920, 1200), (dell.X, dell.Y, dell.Width, dell.Height));
         Assert.Equal(("DEL", "DELL U2412M", "ABC123"), (dell.Vendor, dell.Product, dell.Serial));
 
         var acer = outputs[1];
         Assert.Equal("HDMI-A-1", acer.Name);
-        Assert.Equal((1536, 0, 1080, 1920), (acer.X, acer.Y, acer.Width, acer.Height));   // transform 1 = rotated
+        Assert.Equal((1920, 0, 1080, 1920), (acer.X, acer.Y, acer.Width, acer.Height));   // transform 1 = rotated
         Assert.Null(acer.Serial);
     }
+
+    [Fact]
+    public void Mutter_ids_do_not_change_with_the_desktop_scale()
+    {
+        MutterMonitor[] monitors = [new("DP-2", null, null, null, (2560, 1440)), new("DP-1", null, null, null, (2560, 1440))];
+
+        var at100 = MutterLayout.Build(monitors, [new(0, 0, 1.0, 0, ["DP-2"]), new(2560, 0, 1.0, 0, ["DP-1"])], physicalLayout: false)!;
+        var at125 = MutterLayout.Build(monitors, [new(0, 0, 1.25, 0, ["DP-2"]), new(2048, 0, 1.25, 0, ["DP-1"])], physicalLayout: false)!;
+
+        Assert.Equal(at100.Select(Id), at125.Select(Id));
+    }
+
+    static string Id(OutputGeometry o) => SimpleKVM.Displays.MonitorIdentity.FromBounds(o.X, o.Y, o.Right, o.Bottom);
 
     [Fact]
     public void Mutter_physical_layout_mode_does_not_divide_by_scale()
@@ -117,13 +132,31 @@ public class LinuxLayoutTests
         """;
 
     [Fact]
-    public void KScreen_reads_enabled_outputs_with_scale_and_rotation()
+    public void KScreen_reads_enabled_outputs_in_physical_pixels_with_rotation()
     {
+        // At 120% DP-1 is 2133 logical pixels wide and KDE puts DP-2 at 2133; in pixels DP-1
+        // is its full 2560 and the rotated DP-2 starts where it ends
         var outputs = KScreenLayout.Parse(KScreenJson)!;
 
         Assert.Equal(2, outputs.Count);
-        Assert.Equal(("DP-1", 0, 0, 2133, 1200), (outputs[0].Name, outputs[0].X, outputs[0].Y, outputs[0].Width, outputs[0].Height));
-        Assert.Equal(("DP-2", 2133, 0, 1200, 2133), (outputs[1].Name, outputs[1].X, outputs[1].Y, outputs[1].Width, outputs[1].Height));
+        Assert.Equal(("DP-1", 0, 0, 2560, 1440), (outputs[0].Name, outputs[0].X, outputs[0].Y, outputs[0].Width, outputs[0].Height));
+        Assert.Equal(("DP-2", 2560, 0, 1440, 2560), (outputs[1].Name, outputs[1].X, outputs[1].Y, outputs[1].Width, outputs[1].Height));
+    }
+
+    [Fact]
+    public void KScreen_ids_at_125_percent_are_the_ids_windows_gives_the_same_monitors()
+    {
+        // Two 1440p monitors side by side, KDE set to 125%: the ids SimpleKVM on Windows
+        // computes for this pair, so one rules file works on both
+        const string json = """
+            { "outputs": [
+                { "connected": true, "enabled": true, "name": "DP-2", "pos": { "x": 0, "y": 0 }, "rotation": 1, "scale": 1.25, "size": { "width": 2560, "height": 1440 } },
+                { "connected": true, "enabled": true, "name": "DP-1", "pos": { "x": 2048, "y": 0 }, "rotation": 1, "scale": 1.25, "size": { "width": 2560, "height": 1440 } } ] }
+            """;
+
+        var outputs = KScreenLayout.Parse(json)!;
+
+        Assert.Equal(["8E34800754286219FDAB0601FDF57760", "60C283E44D7F76162144AAC68741F48C"], outputs.Select(Id));
     }
 
     [Theory]

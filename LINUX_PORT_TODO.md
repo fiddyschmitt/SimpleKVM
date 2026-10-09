@@ -103,6 +103,17 @@ VirtualBox), driven by the `SimpleKVM.SystemTests` project.
       (`--startup`), `uninstall.sh`. The arm64 build is started under emulation by one
       system test; it has not run on ARM hardware.
 
+From the contributor's later commits on #40 (merged into this branch):
+
+- [x] **P1** Logout crash: at logout the tray icon's D-Bus watch is cancelled and the
+      cancellation was rethrown on the UI thread, killing the app and leaving a crash report.
+      Cancellations are now handled. Taken as it was.
+- [x] **P2** Monitor ids from physical pixels: KDE and GNOME on Wayland report a layout divided
+      by the scale, so the ids changed with it and orphaned rules. PhysicalLayout rebuilds the
+      layout in pixels; wired into this branch's KScreen and Mutter parsers, with a pixel of
+      slack at the edges for fractional scales. The ids now match Windows' for the same monitors.
+      System test: the KDE VM scaled to 125% and 150% keeps its ids.
+
 System tests after round two: 20 tests on each of the four VMs.
 
 Still open from the second review (not chosen for this round): `xrandr` should be asked

@@ -42,6 +42,16 @@ public class PhysicalLayoutTests
             new() { ["A"] = new(0, 0, 2560, 1440), ["B"] = new(2560, 0, 2560, 1440), ["C"] = new(5120, 0, 1920, 1080) }
         },
         {
+            "fractional logical size, neighbour a pixel past the rounded edge",
+            new() { ["A"] = new(0, 0, 2194, 1234, 3840, 2160), ["B"] = new(2195, 0, 1920, 1080, 1920, 1080) },
+            new() { ["A"] = new(0, 0, 3840, 2160), ["B"] = new(3840, 0, 1920, 1080) }
+        },
+        {
+            "fractional logical size, neighbour a pixel short of the rounded edge",
+            new() { ["A"] = new(0, 0, 2194, 1234, 3840, 2160), ["B"] = new(2193, 0, 1920, 1080, 1920, 1080) },
+            new() { ["A"] = new(0, 0, 3840, 2160), ["B"] = new(3840, 0, 1920, 1080) }
+        },
+        {
             "gap between monitors falls back to scaled offset",
             new() { ["A"] = new(0, 0, 2048, 1152, 2560, 1440), ["B"] = new(4000, 0, 2048, 1152, 2560, 1440) },
             new() { ["A"] = new(0, 0, 2560, 1440), ["B"] = new(5000, 0, 2560, 1440) }

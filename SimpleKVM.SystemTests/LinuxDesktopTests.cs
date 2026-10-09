@@ -105,6 +105,45 @@ public class LinuxDesktopTests(ITestOutputHelper output)
     }
 
     [SkippableTheory, MemberData(nameof(VmRig.RunningMachines), MemberType = typeof(VmRig))]
+    public void Monitor_ids_stay_the_same_when_the_desktop_is_scaled(string machine)
+    {
+        var vm = Vm(machine);
+        Skip.IfNot(vm.Machine.Desktop == "kde", "the scale is set with kscreen-doctor, which only the KDE VM has");
+
+        //Ids are made from the screens' bounds, which must be in pixels: at 125% a Wayland desktop
+        //reports a 1280x800 screen as 1024x640, and ids taken from that would orphan every rule
+        static string Ids(string listMonitors) =>
+            string.Join(" ", Regex.Matches(listMonitors, @"^Screen bounds: .* -> id (\w+)", RegexOptions.Multiline).Select(m => m.Groups[1].Value).Order());
+
+        var before = vm.RunInSession($"{LinuxVm.Exe} --list-monitors");
+        output.WriteLine(before.Output);
+        Assert.Equal(2, Ids(before.Stdout).Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
+
+        try
+        {
+            //What the display settings do: scale the screens, mixed scales here, and keep them
+            //side by side (the first screen is 1024 logical pixels wide at 125%)
+            var scaled = vm.RunInSession("kscreen-doctor output.Virtual-1.scale.1.25 output.Virtual-1.position.0,0 " +
+                                         "output.Virtual-2.scale.1.5 output.Virtual-2.position.1024,0");
+            output.WriteLine(scaled.Output);
+            Thread.Sleep(2000);
+
+            var state = vm.RunInSession("kscreen-doctor -j").Stdout;
+            Assert.Matches(@"""scale"":\s*1\.25", state);    //the desktop really is scaled now
+
+            var after = vm.RunInSession($"{LinuxVm.Exe} --list-monitors");
+            output.WriteLine(after.Output);
+            Assert.Equal(Ids(before.Stdout), Ids(after.Stdout));
+        }
+        finally
+        {
+            vm.RunInSession("kscreen-doctor output.Virtual-1.scale.1 output.Virtual-1.position.0,0 " +
+                            "output.Virtual-2.scale.1 output.Virtual-2.position.1280,0");
+            Thread.Sleep(2000);
+        }
+    }
+
+    [SkippableTheory, MemberData(nameof(VmRig.RunningMachines), MemberType = typeof(VmRig))]
     public void GetCaps_reports_the_missing_ddc_transport_cleanly(string machine)
     {
         var vm = Vm(machine);

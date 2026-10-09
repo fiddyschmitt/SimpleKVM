@@ -9,9 +9,12 @@ namespace SimpleKVM.Displays.linux
 {
     /// <summary>
     /// One enabled output as the desktop lays it out: its name as the compositor knows it,
-    /// its logical bounds, and whatever identity the compositor exposes for pairing it with
-    /// a DRM connector (see <see cref="LayoutJoin"/>). Wayland compositors name outputs by
-    /// their DRM connector; X drivers use their own names, so X11 pairs by EDID instead.
+    /// its bounds in physical pixels, and whatever identity the compositor exposes for pairing
+    /// it with a DRM connector (see <see cref="LayoutJoin"/>). Wayland compositors name outputs
+    /// by their DRM connector; X drivers use their own names, so X11 pairs by EDID instead.
+    /// Physical pixels because monitor ids are made from these bounds: a Wayland desktop works
+    /// in a layout divided by its scale, so ids taken from that would change whenever the scale
+    /// does, and would differ from the ids Windows gives the same monitors.
     /// </summary>
     public sealed record OutputGeometry(
         string Name, int X, int Y, int Width, int Height,
@@ -21,7 +24,32 @@ namespace SimpleKVM.Displays.linux
         public int Bottom => Y + Height;
     }
 
-    /// <summary>KDE Plasma: the JSON printed by <c>kscreen-doctor -j</c>.</summary>
+    /// <summary>
+    /// An output as a Wayland compositor reports it, its logical position and size beside its
+    /// size in pixels, on its way to an <see cref="OutputGeometry"/> in physical pixels.
+    /// </summary>
+    sealed record ScaledOutput(string Name, PhysicalLayout.Output Geometry, string? Vendor, string? Product, string? Serial);
+
+    static class ScaledLayout
+    {
+        /// <summary>The outputs in physical pixels, in the order given (see <see cref="PhysicalLayout"/>); null when there are none.</summary>
+        public static List<OutputGeometry>? ToPhysical(List<ScaledOutput> outputs)
+        {
+            if (outputs.Count == 0) return null;
+
+            var physical = PhysicalLayout.ToPhysical(outputs.ToDictionary(o => o.Name, o => o.Geometry, StringComparer.Ordinal));
+            return outputs.Select(o =>
+            {
+                var r = physical[o.Name];
+                return new OutputGeometry(o.Name, r.X, r.Y, r.Width, r.Height, o.Vendor, o.Product, o.Serial);
+            }).ToList();
+        }
+    }
+
+    /// <summary>
+    /// KDE Plasma: the JSON printed by <c>kscreen-doctor -j</c>. Positions are logical, sizes
+    /// are the mode in pixels with the output's own scale beside them.
+    /// </summary>
     public static class KScreenLayout
     {
         public static List<OutputGeometry>? Parse(string json)
@@ -29,7 +57,7 @@ namespace SimpleKVM.Displays.linux
             try
             {
                 using var doc = JsonDocument.Parse(json);
-                var result = new List<OutputGeometry>();
+                var outputs = new List<ScaledOutput>();
 
                 foreach (var output in doc.RootElement.GetProperty("outputs").EnumerateArray())
                 {
@@ -37,7 +65,7 @@ namespace SimpleKVM.Displays.linux
                     if (output.TryGetProperty("connected", out var connected) && !connected.GetBoolean()) continue;
 
                     var name = output.GetProperty("name").GetString();
-                    if (string.IsNullOrEmpty(name)) continue;
+                    if (string.IsNullOrEmpty(name) || outputs.Any(o => o.Name == name)) continue;
 
                     var pos = output.GetProperty("pos");
                     var size = output.GetProperty("size");
@@ -59,16 +87,18 @@ namespace SimpleKVM.Displays.linux
                         serial = OptionalString(edid, "serial");
                     }
 
-                    result.Add(new OutputGeometry(
+                    outputs.Add(new ScaledOutput(
                         name,
-                        pos.GetProperty("x").GetInt32(),
-                        pos.GetProperty("y").GetInt32(),
-                        (int)Math.Round(w / scale),
-                        (int)Math.Round(h / scale),
+                        new PhysicalLayout.Output(
+                            pos.GetProperty("x").GetInt32(),
+                            pos.GetProperty("y").GetInt32(),
+                            (int)Math.Round(w / scale),
+                            (int)Math.Round(h / scale),
+                            w, h),
                         vendor, product, serial));
                 }
 
-                return result.Count > 0 ? result : null;
+                return ScaledLayout.ToPhysical(outputs);
             }
             catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
             {
@@ -91,8 +121,8 @@ namespace SimpleKVM.Displays.linux
     /// <summary>
     /// GNOME: the layout in the reply to <c>org.gnome.Mutter.DisplayConfig.GetCurrentState</c>
     /// (read off the bus by MutterDisplayConfig). In the default logical layout mode positions
-    /// are logical pixels and sizes are mode size over scale; in physical mode both are device
-    /// pixels.
+    /// are logical pixels and sizes are mode size over scale; in physical mode (X11) both are
+    /// device pixels already. Either way the result is in physical pixels.
     /// </summary>
     public static class MutterLayout
     {
@@ -107,28 +137,29 @@ namespace SimpleKVM.Displays.linux
                 if (monitor.CurrentMode != null) current[monitor.Connector] = monitor;
             }
 
-            var result = new List<OutputGeometry>();
+            var outputs = new List<ScaledOutput>();
             foreach (var logical in logicalMonitors)
             {
                 double scale = logical.Scale > 0 ? logical.Scale : 1.0;
 
                 foreach (var connector in logical.Connectors)
                 {
-                    if (!current.TryGetValue(connector, out var monitor)) continue;
+                    if (!current.TryGetValue(connector, out var monitor) || outputs.Any(o => o.Name == connector)) continue;
 
                     var (w, h) = monitor.CurrentMode!.Value;
                     if (logical.Transform % 2 == 1) (w, h) = (h, w);    //1, 3, 5, 7: rotated 90 or 270
-                    if (!physicalLayout)
-                    {
-                        w = (int)Math.Round(w / scale);
-                        h = (int)Math.Round(h / scale);
-                    }
 
-                    result.Add(new OutputGeometry(connector, logical.X, logical.Y, w, h, monitor.Vendor, monitor.Product, monitor.Serial));
+                    int logicalWidth = physicalLayout ? w : (int)Math.Round(w / scale);
+                    int logicalHeight = physicalLayout ? h : (int)Math.Round(h / scale);
+
+                    outputs.Add(new ScaledOutput(
+                        connector,
+                        new PhysicalLayout.Output(logical.X, logical.Y, logicalWidth, logicalHeight, w, h),
+                        monitor.Vendor, monitor.Product, monitor.Serial));
                 }
             }
 
-            return result.Count > 0 ? result : null;
+            return ScaledLayout.ToPhysical(outputs);
         }
 
         /// <summary>Mutter fills the identity fields it couldn't read from the EDID with "unknown".</summary>

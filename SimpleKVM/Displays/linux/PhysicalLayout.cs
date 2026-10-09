@@ -12,6 +12,13 @@ namespace SimpleKVM.Displays.linux
     /// </summary>
     public static class PhysicalLayout
     {
+        /// <summary>
+        /// How far apart two edges may be and still count as touching. At a scale like 175% a
+        /// monitor's logical size isn't whole, and the compositor may place its neighbour a
+        /// pixel either side of where the rounded size ends.
+        /// </summary>
+        const int EdgeSlack = 1;
+
         /// <param name="X">Logical position</param>
         /// <param name="LogicalWidth">Logical size (mode size divided by scale)</param>
         /// <param name="Width">Physical size in pixels, rotation already applied</param>
@@ -29,7 +36,8 @@ namespace SimpleKVM.Displays.linux
 
         /// <summary>
         /// Physical start of each output along one axis. Outputs at or after the origin are placed
-        /// ascending and butt against a placed output whose logical end meets their logical start;
+        /// ascending and butt against a placed output whose logical end meets their logical start
+        /// (give or take <see cref="EdgeSlack"/>);
         /// outputs before the origin are placed descending against the one they end at. An output
         /// touching nothing falls back to its logical offset times its own scale.
         /// </summary>
@@ -39,7 +47,7 @@ namespace SimpleKVM.Displays.linux
 
             foreach (var (name, o) in axis.Where(a => a.Value.Start >= 0).OrderBy(a => a.Value.Start))
             {
-                var neighbour = placed.Keys.FirstOrDefault(p => axis[p].Start + axis[p].LogicalSize == o.Start);
+                var neighbour = placed.Keys.FirstOrDefault(p => Math.Abs(axis[p].Start + axis[p].LogicalSize - o.Start) <= EdgeSlack);
                 placed[name] = o.Start == 0 ? 0
                              : neighbour != null ? placed[neighbour] + axis[neighbour].Size
                              : Scale(o.Start, o.LogicalSize, o.Size);
@@ -47,7 +55,7 @@ namespace SimpleKVM.Displays.linux
 
             foreach (var (name, o) in axis.Where(a => a.Value.Start < 0).OrderByDescending(a => a.Value.Start))
             {
-                var neighbour = placed.Keys.FirstOrDefault(p => o.Start + o.LogicalSize == axis[p].Start);
+                var neighbour = placed.Keys.FirstOrDefault(p => Math.Abs(o.Start + o.LogicalSize - axis[p].Start) <= EdgeSlack);
                 placed[name] = neighbour != null ? placed[neighbour] - o.Size
                              : Scale(o.Start, o.LogicalSize, o.Size);
             }
