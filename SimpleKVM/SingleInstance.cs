@@ -10,7 +10,8 @@ namespace SimpleKVM
     /// pipe (a Unix domain socket on Linux and macOS) and exits, so launching the app again is
     /// how you get its window back where there is no tray icon to click: GNOME without an
     /// AppIndicator extension, or Windows when the tray is hidden. Two copies would otherwise
-    /// both act on every hotkey and USB event.
+    /// both act on every hotkey and USB event. The same pipe carries a request to quit, for
+    /// where there is no tray menu to quit from either.
     /// </summary>
     public static class SingleInstance
     {
@@ -18,6 +19,7 @@ namespace SimpleKVM
 
         public const string ShowRequest = "show";
         public const string PingRequest = "ping";
+        public const string QuitRequest = "quit";
 
         /// <summary>
         /// Tells an already-running copy to show its window (or just that we exist, when this
@@ -26,13 +28,19 @@ namespace SimpleKVM
         /// </summary>
         public static bool NotifyExistingInstance(bool showWindow)
         {
+            return Send(showWindow ? ShowRequest : PingRequest);
+        }
+
+        /// <summary>Hands a request to the running copy. False when there is none.</summary>
+        public static bool Send(string request)
+        {
             try
             {
                 using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
                 client.Connect(timeout: 500);
 
                 using var writer = new StreamWriter(client);
-                writer.WriteLine(showWindow ? ShowRequest : PingRequest);
+                writer.WriteLine(request);
                 writer.Flush();
                 return true;
             }
@@ -43,8 +51,8 @@ namespace SimpleKVM
             }
         }
 
-        /// <summary>Listens for later launches for the life of the process; <paramref name="onShow"/> runs on a background thread.</summary>
-        public static void Listen(Action onShow)
+        /// <summary>Listens for later launches for the life of the process; the callbacks run on a background thread.</summary>
+        public static void Listen(Action onShow, Action onQuit)
         {
             var thread = new Thread(() =>
             {
@@ -58,7 +66,11 @@ namespace SimpleKVM
                         server.WaitForConnection();
 
                         using var reader = new StreamReader(server);
-                        if (reader.ReadLine() == ShowRequest) onShow();
+                        switch (reader.ReadLine())
+                        {
+                            case ShowRequest: onShow(); break;
+                            case QuitRequest: onQuit(); break;
+                        }
                     }
                     catch (Exception)
                     {

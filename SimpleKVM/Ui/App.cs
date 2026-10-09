@@ -47,7 +47,28 @@ namespace SimpleKVM.Ui
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
+                //Linux: the app's applications-menu entry, when it has one, is kept pointing at a
+                //program that exists. Before the rules start, which is when the desktop portal
+                //may need the entry to know the app by.
+                if (OperatingSystem.IsLinux())
+                {
+                    Platform.linux.LinuxMenuEntry.OnAppStart();
+                }
+
+                //Launching the app again while it's running: on Windows and Linux the second
+                //copy tells this one over a named pipe and exits; show the window in response.
+                //"--quit" arrives the same way. Listening starts before the window is built,
+                //because building it starts the rules, which can take a while (at login a
+                //Linux desktop's shortcut service may still be coming up), and a launch in
+                //that time must find this copy rather than become a second one. What it
+                //asks for is done once the window exists: both run on this thread, after this.
+                MainWindow? window = null;
+                SingleInstance.Listen(
+                    onShow: () => Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (window != null) RestoreMainWindow(window); }),
+                    onQuit: () => Avalonia.Threading.Dispatcher.UIThread.Post(() => window?.Quit()));
+
                 var mainWindow = new MainWindow();
+                window = mainWindow;
 
                 //Refreshes an existing run-at-startup registration to the current format
                 //(e.g. adds the start-minimized argument to a shortcut made by an older version)
@@ -91,15 +112,13 @@ namespace SimpleKVM.Ui
                 };
 
                 //As a menu-bar agent the app has no Dock icon and the window can't be reached
-                //once closed except through the menu-bar icon, so keep running in the background
-                if (OperatingSystem.IsMacOS())
+                //once closed except through the menu-bar icon, so keep running in the background.
+                //Linux likewise: closing the window leaves the rules running, and the window
+                //comes back through the tray icon or by launching the app again.
+                if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
                 {
                     desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 }
-
-                //Launching the app again while it's running: on Windows and Linux the second
-                //copy tells this one over a named pipe and exits; show the window in response
-                SingleInstance.Listen(() => Avalonia.Threading.Dispatcher.UIThread.Post(() => RestoreMainWindow(mainWindow)));
 
                 //On macOS LaunchServices does the same and it arrives as a "reopen" activation
                 //(Finder, Spotlight, a Desktop shortcut); show the window in response, as macOS

@@ -78,9 +78,22 @@ namespace SimpleKVM.Ui
             };
             buttonRow.Children.Add(saveErrorText);
 
+            //Closing the window on Linux leaves the app running, and a desktop without tray icons
+            //(GNOME) has no other place to stop it from
+            var bottomRow = new DockPanel();
+            if (OperatingSystem.IsLinux())
+            {
+                var btnQuit = new Button { Content = "Quit", Margin = new Thickness(8) };
+                ToolTip.SetTip(btnQuit, "Stop Simple KVM. Closing the window leaves it running.");
+                btnQuit.Click += (s, e) => Quit();
+                DockPanel.SetDock(btnQuit, Dock.Right);
+                bottomRow.Children.Add(btnQuit);
+            }
+            bottomRow.Children.Add(buttonRow);
+
             var layout = new DockPanel();
-            DockPanel.SetDock(buttonRow, Dock.Bottom);
-            layout.Children.Add(buttonRow);
+            DockPanel.SetDock(bottomRow, Dock.Bottom);
+            layout.Children.Add(bottomRow);
             rulesGrid.Margin = new Thickness(8, 8, 8, 0);
             layout.Children.Add(rulesGrid);
             Content = layout;
@@ -469,8 +482,9 @@ namespace SimpleKVM.Ui
         bool quitting;
 
         /// <summary>
-        /// Shuts the app down for real. On macOS the app is a menu-bar agent, so the window's
-        /// close button merely hides it; only the menu-bar "Quit" item comes through here.
+        /// Shuts the app down for real. On macOS and Linux the window's close button merely
+        /// hides it; the menu-bar or tray "Quit" item, the window's Quit button (Linux) and a
+        /// "--quit" from another launch come through here.
         /// </summary>
         public void Quit()
         {
@@ -510,15 +524,17 @@ namespace SimpleKVM.Ui
 
             //The user closed the window. On macOS the app keeps running as a menu-bar agent, so
             //the close button just hides the window (Cmd+W behaviour); quitting is only via the
-            //menu-bar icon.
-            if (OperatingSystem.IsMacOS())
+            //menu-bar icon. Linux does the same: the rules are the point of the app and should
+            //outlive its window, which on GNOME is the only thing there is to close. Launching
+            //the app again, or the tray icon where there is one, brings the window back.
+            if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
             {
                 e.Cancel = true;
                 Hide();
                 return;
             }
 
-            //On the other platforms closing the window exits the app. When the app was started
+            //On Windows closing the window exits the app. When the app was started
             //minimized the lifetime runs in explicit-shutdown mode (so it survives without a main
             //window), so the shutdown has to be requested here.
             sourceFollowWatcher?.Stop();

@@ -16,6 +16,9 @@
 
   <ItemGroup>
     <AvaloniaResource Include="iconfinder_Communication_pc_computer_sharing_6588768_white_bg.ico" />
+    <!-- The Linux launcher icon, which the app writes into the user's icon theme together with
+         its applications-menu entry. Drawn from the .ico by packaging\linux\make-icon.py. -->
+    <EmbeddedResource Include="..\packaging\linux\simplekvm.png" LogicalName="simplekvm.png" Link="Platform\linux\simplekvm.png" />
   </ItemGroup>
 
   <ItemGroup>

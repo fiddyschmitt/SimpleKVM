@@ -21,6 +21,12 @@ namespace SimpleKVM.Platform
 
         /// <summary>The USB watcher singleton for this platform. Starts watching on construction.</summary>
         USB.USBSystem Usb { get; }
+
+        /// <summary>
+        /// The app's entry in the applications menu, on a platform where the app has to put it
+        /// there itself (Linux). Null where the installer or the OS takes care of it.
+        /// </summary>
+        IMenuEntry? MenuEntry => null;
     }
 
     public interface IDisplayPlatform
@@ -76,5 +82,13 @@ namespace SimpleKVM.Platform
     {
         bool IsEnabled();
         void SetEnabled(bool enabled);
+    }
+
+    public interface IMenuEntry
+    {
+        bool IsShown();
+
+        /// <summary>Shows the app in the applications menu, or takes it out of it. Throws when the entry can't be written.</summary>
+        void SetShown(bool shown);
     }
 }

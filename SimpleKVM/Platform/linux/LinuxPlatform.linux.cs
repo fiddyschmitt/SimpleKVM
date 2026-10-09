@@ -12,6 +12,7 @@ namespace SimpleKVM.Platform.linux
         public IHotkeyBackend Hotkeys { get; } = new LinuxHotkeys();
         public IIdleProvider Idle { get; } = new Utilities.linux.LinuxIdle();
         public IStartupManager? Startup { get; } = new LinuxStartupManager();
+        public IMenuEntry? MenuEntry { get; } = new LinuxMenuEntry();
 
         USB.USBSystem? usb;
         public USB.USBSystem Usb => usb ??= new USB.linux.USBSystem();

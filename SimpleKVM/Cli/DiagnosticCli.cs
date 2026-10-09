@@ -74,6 +74,12 @@ namespace SimpleKVM.Cli
                 case "--set-startup" when args.Length >= 2:
                     return SetStartup(args[1]);
 
+                case "--set-menu-entry" when args.Length >= 2:
+                    return SetMenuEntry(args[1]);
+
+                case "--quit":
+                    return Quit();
+
                 case "--get-caps" when args.Length >= 2:
                     return GetCaps(int.Parse(args[1]));
 
@@ -89,6 +95,9 @@ namespace SimpleKVM.Cli
                           --test-hotkey "<gesture>"   register a hotkey (e.g. "Ctrl+Alt+F1") and wait
                           --verify-rules <file>       parse a rules.json and print its rules
                           --set-startup on|off|status control the run-at-startup registration
+                          --set-menu-entry on|hidden|off|status
+                                                      Linux: the app's entry in the applications menu
+                          --quit                      ask the running SimpleKVM to exit (exit code 1: none was running)
                           --get-caps <n>              macOS/Linux: read and parse monitor n's capabilities string
                         """);
                     return 1;
@@ -293,6 +302,45 @@ namespace SimpleKVM.Cli
 
             Console.WriteLine($"Run at startup: {(startup.IsEnabled() ? "enabled" : "disabled")}");
             return 0;
+        }
+
+        /// <summary>
+        /// Linux: the applications-menu entry. "hidden" keeps an entry the desktop can know the
+        /// app by (name, icon, identity for the portals) without listing it; "off" removes it,
+        /// which is what an uninstall wants.
+        /// </summary>
+        static int SetMenuEntry(string mode)
+        {
+            if (!OperatingSystem.IsLinux())
+            {
+                Console.WriteLine("The applications-menu entry is only managed by the app on Linux.");
+                return 1;
+            }
+
+            switch (mode.ToLowerInvariant())
+            {
+                case "on": Platform.linux.LinuxMenuEntry.Write(shown: true); break;
+                case "hidden": Platform.linux.LinuxMenuEntry.Write(shown: false); break;
+                case "off": Platform.linux.LinuxMenuEntry.Remove(); break;
+                case "status": break;
+                default:
+                    Console.WriteLine("Expected on, hidden, off or status.");
+                    return 1;
+            }
+
+            Console.WriteLine($"Applications menu entry: {Platform.linux.LinuxMenuEntry.State.ToString().ToLowerInvariant()} ({Platform.linux.LinuxMenuEntry.DesktopFilePath})");
+            return 0;
+        }
+
+        /// <summary>
+        /// Asks the copy that is running to exit: the way out where there is neither a window
+        /// nor a tray icon to quit from. The exit code tells a script whether there was one.
+        /// </summary>
+        static int Quit()
+        {
+            bool told = SingleInstance.Send(SingleInstance.QuitRequest);
+            Console.WriteLine(told ? "Asked the running SimpleKVM to quit." : "SimpleKVM is not running.");
+            return told ? 0 : 1;
         }
 
         static int VerifyRules(string filename)

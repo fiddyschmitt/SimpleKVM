@@ -4,30 +4,37 @@ using System.Runtime.Versioning;
 
 namespace SimpleKVM.Platform.linux
 {
-    /// <summary>Run-at-startup via an XDG autostart entry (~/.config/autostart), honoured by KDE, GNOME and most desktops.</summary>
+    /// <summary>
+    /// Run-at-startup via an XDG autostart entry (~/.config/autostart), honoured by KDE, GNOME
+    /// and most desktops. The entry is named after the application id, like the launcher: a
+    /// desktop that starts it puts the app in a scope named after the file, and the portals
+    /// take the app's identity from that scope's name.
+    /// </summary>
     [SupportedOSPlatform("linux")]
     public class LinuxStartupManager : IStartupManager
     {
-        static string DesktopFilePath
+        static string AutostartDirectory
         {
             get
             {
                 var config = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
                 if (string.IsNullOrEmpty(config))
                     config = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
-                return Path.Combine(config, "autostart", "simplekvm.desktop");
+                return Path.Combine(config, "autostart");
             }
         }
 
+        static string DesktopFilePath => Path.Combine(AutostartDirectory, DesktopEntry.FileName);
+
         static string ExecutablePath => Environment.ProcessPath ?? throw new InvalidOperationException("Cannot determine the executable path");
 
-        static string ExecLine => $"Exec={DesktopEntry.QuoteExecArgument(ExecutablePath)} {Program.StartMinimizedArg}";
+        static string Entry => DesktopEntry.Autostart(ExecutablePath, Program.StartMinimizedArg);
 
         public bool IsEnabled()
         {
             try
             {
-                return File.Exists(DesktopFilePath) && File.ReadAllText(DesktopFilePath).Contains(ExecLine);
+                return File.Exists(DesktopFilePath) && File.ReadAllText(DesktopFilePath) == Entry;
             }
             catch
             {
@@ -43,19 +50,11 @@ namespace SimpleKVM.Platform.linux
                 return;
             }
 
-            var entry = $"""
-                [Desktop Entry]
-                Type=Application
-                Name=Simple KVM
-                Comment=Switch monitor inputs on USB switch events or hotkeys
-                {ExecLine}
-                Terminal=false
-                X-GNOME-Autostart-enabled=true
+            Directory.CreateDirectory(AutostartDirectory);
+            Extensions.WriteTextFile(DesktopFilePath, Entry);
 
-                """;
-
-            Directory.CreateDirectory(Path.GetDirectoryName(DesktopFilePath)!);
-            Extensions.WriteTextFile(DesktopFilePath, entry);
+            //The copy the desktop starts at login is known to it by this name, so the name has to lead somewhere
+            LinuxMenuEntry.EnsureExists();
         }
     }
 }
