@@ -109,20 +109,6 @@ namespace SimpleKVM.Ui
             statsTimer.Tick += (s, e) => RefreshRows();
             statsTimer.Start();
 
-            //On Windows, minimizing hides the window and the tray icon brings it back.
-            //On macOS the window must minimize to the Dock natively — hiding
-            //it mid-minimize leaves it blank when restored.
-            if (OperatingSystem.IsWindows())
-            {
-                PropertyChanged += (s, e) =>
-                {
-                    if (e.Property == WindowStateProperty && WindowState == WindowState.Minimized)
-                    {
-                        Hide();
-                    }
-                };
-            }
-
             Closing += MainWindow_Closing;
 
             //Grow the window so every column is in view on startup
@@ -469,8 +455,8 @@ namespace SimpleKVM.Ui
         bool quitting;
 
         /// <summary>
-        /// Shuts the app down for real. On macOS the app is a menu-bar agent, so the window's
-        /// close button merely hides it; only the menu-bar "Quit" item comes through here.
+        /// Shuts the app down for real. On Windows and macOS the window's close button merely
+        /// hides it; the tray "Exit" or menu-bar "Quit" item comes through here.
         /// </summary>
         public void Quit()
         {
@@ -508,10 +494,9 @@ namespace SimpleKVM.Ui
                 return;
             }
 
-            //The user closed the window. On macOS the app keeps running as a menu-bar agent, so
-            //the close button just hides the window (Cmd+W behaviour); quitting is only via the
-            //menu-bar icon.
-            if (OperatingSystem.IsMacOS())
+            //Keep rules running in the tray / menu bar when the user closes the window.
+            //The tray's Exit / Quit item still shuts the app down through Quit().
+            if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
             {
                 e.Cancel = true;
                 Hide();
