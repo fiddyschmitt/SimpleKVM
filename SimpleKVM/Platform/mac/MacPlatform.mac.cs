@@ -37,20 +37,19 @@ namespace SimpleKVM.Platform.mac
             return SimpleKVM.Displays.mac.DisplaySystem.GetCurrentSources();
         }
 
+        /// <summary>In pixels, like the monitor ids, so the rule editor's layout finds each monitor by its id.</summary>
         public List<ScreenRect> GetScreenBounds()
         {
-            return SimpleKVM.Displays.mac.CoreGraphicsNative
-                    .GetActiveDisplays()
-                    .Select(id =>
-                    {
-                        var bounds = SimpleKVM.Displays.mac.CoreGraphicsNative.CGDisplayBounds(id);
-                        return new ScreenRect(
-                            (int)System.Math.Round(bounds.X),
-                            (int)System.Math.Round(bounds.Y),
-                            (int)System.Math.Round(bounds.X + bounds.Width),
-                            (int)System.Math.Round(bounds.Y + bounds.Height));
-                    })
+            return SimpleKVM.Displays.mac.DisplaySystem
+                    .Screens()
+                    .Select(screen => screen.Pixels)
                     .ToList();
+        }
+
+        /// <summary>Before 2.5.0 the ids were made from the layout in points; see MacPixelLayout.</summary>
+        public IReadOnlyDictionary<string, string> EarlierMonitorIds()
+        {
+            return SimpleKVM.Displays.mac.MacPixelLayout.EarlierIds(SimpleKVM.Displays.mac.DisplaySystem.Screens());
         }
     }
 }

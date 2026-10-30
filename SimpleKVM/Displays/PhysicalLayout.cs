@@ -2,13 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SimpleKVM.Displays.linux
+namespace SimpleKVM.Displays
 {
     /// <summary>
-    /// Converts a compositor's logical (scaled) layout into physical pixels, so monitor ids don't
+    /// Converts a desktop's logical (scaled) layout into physical pixels, so monitor ids don't
     /// change with the desktop scale and match the ids Windows produces for the same geometry.
-    /// Sizes are exact (the mode in pixels); positions are rebuilt from edge adjacency in the
-    /// logical layout, since scaling a logical offset is wrong once monitors have mixed scales.
+    /// Used for Wayland compositors, whose layout is divided by each output's scale, and for
+    /// macOS, whose layout is in points. Sizes are exact (the mode in pixels); positions are
+    /// rebuilt from edge adjacency in the logical layout, since scaling a logical offset is
+    /// wrong once monitors have mixed scales.
     /// </summary>
     public static class PhysicalLayout
     {

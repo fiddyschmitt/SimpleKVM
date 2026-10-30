@@ -43,6 +43,13 @@ namespace SimpleKVM.Platform
         List<ScreenRect> GetScreenBounds();
 
         /// <summary>
+        /// Ids an earlier version of the app gave monitors that are connected now, mapped to the
+        /// ids the same monitors have now, wherever the two differ. Rules saved by that version
+        /// are moved over at startup (Rules.MonitorIdMigration). Empty where ids never changed.
+        /// </summary>
+        IReadOnlyDictionary<string, string> EarlierMonitorIds() => new Dictionary<string, string>();
+
+        /// <summary>
         /// Something the user should act on for monitor control to work (missing device access,
         /// an ambiguous monitor pairing), or null when there is nothing to say. Shown in the
         /// rule editor and by --list-monitors.

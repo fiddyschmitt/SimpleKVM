@@ -114,6 +114,14 @@ From the contributor's later commits on #40 (merged into this branch):
       slack at the edges for fractional scales. The ids now match Windows' for the same monitors.
       System test: the KDE VM scaled to 125% and 150% keeps its ids.
 
+- [x] **M1** The same problem on macOS, which lays displays out in points: a Retina screen or a
+      scaled 4K monitor got a new id whenever its scaling changed, and so did any monitor beside
+      a scaled screen. Ids now come from each display's native resolution, with the arrangement
+      rebuilt in pixels by the now shared PhysicalLayout. The Mac version has shipped, so rules
+      saved under the earlier ids are moved over at every start (MonitorIdMigration). Verified on
+      the Mac mini with the Acer briefly in a HiDPI mode: the installed 2.5.0 changed its id, the
+      fix kept it and moved a rule saved under the scaled id.
+
 System tests after round two: 20 tests on each of the four VMs.
 
 Still open from the second review (not chosen for this round): `xrandr` should be asked

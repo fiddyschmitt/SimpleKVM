@@ -100,6 +100,19 @@ namespace SimpleKVM.Ui
 
             RuleStore.Load();
 
+            //Rules saved by a version that measured monitors differently (macOS before 2.5.0 used
+            //the layout in points, which follows each display's scaling) are pointed at the ids the
+            //same monitors have now, before any rule runs
+            try
+            {
+                var moved = MonitorIdMigration.Apply(RuleStore.Rules, Platform.PlatformServices.Current.Displays.EarlierMonitorIds());
+                if (moved.Count > 0) RuleStore.Save();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not check the rules' monitor ids: {ex.Message}");
+            }
+
             RuleStore.Rules.ForEach(rule =>
             {
                 ruleRows.Add(new RuleRow(rule));

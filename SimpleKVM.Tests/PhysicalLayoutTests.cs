@@ -1,7 +1,7 @@
 using SimpleKVM.Displays;
 using SimpleKVM.Displays.linux;
-using Output = SimpleKVM.Displays.linux.PhysicalLayout.Output;
-using Rect = SimpleKVM.Displays.linux.PhysicalLayout.Rect;
+using Output = SimpleKVM.Displays.PhysicalLayout.Output;
+using Rect = SimpleKVM.Displays.PhysicalLayout.Rect;
 
 namespace SimpleKVM.Tests;
 

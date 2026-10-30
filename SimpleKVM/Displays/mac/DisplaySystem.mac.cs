@@ -85,31 +85,38 @@ namespace SimpleKVM.Displays.mac
         record DisplayInfo(uint DisplayId, int Left, int Top, int Right, int Bottom, string UniqueId, int MonitorNumber, DdcTransport? Transport);
 
         /// <summary>
-        /// The external displays as CoreGraphics lays them out, without DDC transports. Monitor
-        /// numbers count every screen, the built-in one included, so they match the numbers in
-        /// the rule editor's layout and the MonitorOverrides in config.json (as on Windows).
+        /// Every active display with its bounds in pixels as well as in points (see
+        /// <see cref="MacPixelLayout"/>): pixels are what monitor ids, monitor numbers and the rule
+        /// editor's layout use, so none of them change when a display's scaling does.
         /// </summary>
-        static List<DisplayInfo> EnumerateExternalDisplays()
+        public static List<MacScreen> Screens()
         {
-            return CoreGraphicsNative
+            return MacPixelLayout.Build(CoreGraphicsNative
                     .GetActiveDisplays()
                     .Select(id =>
                     {
                         var bounds = CoreGraphicsNative.CGDisplayBounds(id);
-                        int left = (int)Math.Round(bounds.X);
-                        int top = (int)Math.Round(bounds.Y);
-                        int right = (int)Math.Round(bounds.X + bounds.Width);
-                        int bottom = (int)Math.Round(bounds.Y + bounds.Height);
-                        bool builtin = CoreGraphicsNative.CGDisplayIsBuiltin(id);
-                        return (id, left, top, right, bottom, builtin);
+                        var (nativeWidth, nativeHeight) = CoreGraphicsNative.NativePixelSize(id);
+                        return new MacDisplay(id, CoreGraphicsNative.CGDisplayIsBuiltin(id), bounds.X, bounds.Y, bounds.Width, bounds.Height, nativeWidth, nativeHeight);
                     })
-                    .OrderBy(d => d.left)
-                    .ThenBy(d => d.top)
-                    .Select((d, index) => (Display: d, Number: index + 1))
-                    .Where(entry => !entry.Display.builtin)
+                    .ToList());
+        }
+
+        /// <summary>
+        /// The external displays, without DDC transports. Monitor numbers count every screen, the
+        /// built-in one included, so they match the numbers in the rule editor's layout and the
+        /// MonitorOverrides in config.json (as on Windows).
+        /// </summary>
+        static List<DisplayInfo> EnumerateExternalDisplays()
+        {
+            return Screens()
+                    .OrderBy(screen => screen.Pixels.Left)
+                    .ThenBy(screen => screen.Pixels.Top)
+                    .Select((screen, index) => (Screen: screen, Number: index + 1))
+                    .Where(entry => !entry.Screen.BuiltIn)
                     .Select(entry => new DisplayInfo(
-                        entry.Display.id, entry.Display.left, entry.Display.top, entry.Display.right, entry.Display.bottom,
-                        MonitorIdentity.FromBounds(entry.Display.left, entry.Display.top, entry.Display.right, entry.Display.bottom),
+                        entry.Screen.Id, entry.Screen.Pixels.Left, entry.Screen.Pixels.Top, entry.Screen.Pixels.Right, entry.Screen.Pixels.Bottom,
+                        MacPixelLayout.Id(entry.Screen.Pixels),
                         entry.Number,
                         Transport: null))
                     .ToList();

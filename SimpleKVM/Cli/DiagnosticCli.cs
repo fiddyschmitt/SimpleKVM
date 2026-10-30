@@ -137,6 +137,12 @@ namespace SimpleKVM.Cli
                 }
             }
 
+            //Where an earlier version knew a monitor by another id, rules saved under it are moved over at startup
+            foreach (var (earlier, current) in displays.EarlierMonitorIds())
+            {
+                Console.WriteLine($"Earlier id {earlier} is now {current}");
+            }
+
             return 0;
         }
 
@@ -352,6 +358,12 @@ namespace SimpleKVM.Cli
         {
             var json = File.ReadAllText(filename);
             var rules = json.DeserializeJson<System.Collections.Generic.List<Rules.Rule>>() ?? [];
+
+            //What starting the app with this file would do to monitor ids an earlier version saved (the file isn't changed)
+            foreach (var (earlier, current) in Rules.MonitorIdMigration.Apply(rules, PlatformServices.Current.Displays.EarlierMonitorIds()))
+            {
+                Console.WriteLine($"A rule's monitor id {earlier}, from an earlier version, would become {current}");
+            }
 
             Console.WriteLine($"Parsed {rules.Count} rule(s):");
             foreach (var rule in rules)
