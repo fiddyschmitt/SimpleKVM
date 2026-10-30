@@ -3,6 +3,7 @@ using SimpleKVM.Rules;
 using SimpleKVM.Rules.Triggers;
 using SimpleKVM.USB;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimpleKVM.Ui.Controls
 {
@@ -83,7 +84,14 @@ namespace SimpleKVM.Ui.Controls
             if (TopLevel.GetTopLevel(this) is not Window owner) return;
 
             var chooser = new ChooseUsbWindow(usbSystem);
-            var ok = await chooser.ShowDialog<bool>(owner);
+
+            //The USB rules are paused while the chooser watches for the device: plugging it in or
+            //pulling it out would fire any rule that watches it
+            bool ok;
+            using (Rule.Pause(RuleStore.Rules.Where(rule => rule.Trigger is USBTrigger)))
+            {
+                ok = await chooser.ShowDialog<bool>(owner);
+            }
 
             if (ok && chooser.SelectedDevice != null)
             {

@@ -346,20 +346,12 @@ namespace SimpleKVM.Ui
 
         public async Task EditRule(EnumTriggerType? triggerType, EnumActionType? actionType, Rule? rule)
         {
-            //pause the rules which are currently running
-            var paused = RuleStore.Rules
-                            .Where(r => r.Status == EnumRuleStatus.Running || r.Status == EnumRuleStatus.Error)
-                            .Select(r =>
-                            {
-                                r.StopMonitoring();
-                                return r;
-                            })
-                            .ToList();
-
+            //The rules keep running while the editor is open, so an editor left open switches
+            //nothing off. The steps that need them out of the way pause them for as long as they
+            //take: recording a hotkey, picking a USB device, and the editor's test.
             await Task.Run(initMonitorList.Wait);
 
-            var creatingNewRule = rule == null;
-            var title = creatingNewRule ? "Create new rule" : "Edit rule";
+            var title = rule == null ? "Create new rule" : "Edit rule";
 
             ModifyRuleWindow editRuleWindow;
             if (rule == null)
@@ -373,45 +365,29 @@ namespace SimpleKVM.Ui
             }
 
             var saved = await editRuleWindow.ShowDialog<bool>(this);
-            var save = false;
+            if (!saved) return;
 
-            if (saved)
+            if (rule == null)
             {
-                if (creatingNewRule)
+                var newRule = editRuleWindow.GetRule();
+
+                if (newRule != null)
                 {
-                    var newRule = editRuleWindow.GetRule();
+                    ruleRows.Add(new RuleRow(newRule));
 
-                    if (newRule != null)
-                    {
-                        ruleRows.Add(new RuleRow(newRule));
+                    newRule.Triggered += Rule_Triggered;
+                    RuleStore.Rules.Add(newRule);
 
-                        newRule.Triggered += Rule_Triggered;
-                        RuleStore.Rules.Add(newRule);
-
-                        newRule.StartMonitoring();
-                    }
+                    newRule.StartMonitoring();
                 }
-                else
-                {
-                    var editedRule = editRuleWindow.GetRule();  //forces the new data to be collected into the Rule object
-
-                    if (editedRule?.Status != EnumRuleStatus.Disabled)
-                    {
-                        editedRule?.StartMonitoring();
-                    }
-                }
-
-                save = true;
+            }
+            else
+            {
+                rule.Edit(() => editRuleWindow.GetRule());  //forces the new data to be collected into the Rule object
             }
 
-            //resume the rules which were running earlier
-            paused.ForEach(r => r.StartMonitoring());
-
-            if (save)
-            {
-                RuleStore.Save();
-                RefreshRows();
-            }
+            RuleStore.Save();
+            RefreshRows();
         }
 
         async Task ShowSettings()

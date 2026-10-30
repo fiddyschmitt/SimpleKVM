@@ -122,6 +122,15 @@ From the contributor's later commits on #40 (merged into this branch):
       the Mac mini with the Acer briefly in a HiDPI mode: the installed 2.5.0 changed its id, the
       fix kept it and moved a rule saved under the scaled id.
 
+- [x] **M2** Rules no longer stop while a rule editor is open. The editor paused every rule until
+      it closed, so an editor left open, as one was on the Mac, silenced every hotkey. Now only
+      the steps that need the rules out of the way pause them: the hotkey rules while the hotkey
+      chooser records keys, the USB rules while the USB chooser watches for a device, and all
+      rules during the editor's 10-second Test. Pauses nest, and a rule deleted, disabled or
+      enabled meanwhile is left as it is (Rule.Pause, RulePauseTests). Checked on Windows from
+      outside: the rules' hotkeys stay registered while the editor is open and are released
+      only while the chooser is.
+
 System tests after round two: 20 tests on each of the four VMs.
 
 Still open from the second review (not chosen for this round): `xrandr` should be asked
