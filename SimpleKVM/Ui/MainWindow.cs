@@ -78,7 +78,7 @@ namespace SimpleKVM.Ui
             };
             buttonRow.Children.Add(saveErrorText);
 
-            //Closing the window on Linux leaves the app running, and a desktop without tray icons
+            //Closing the window leaves the app running, and a Linux desktop without tray icons
             //(GNOME) has no other place to stop it from
             var bottomRow = new DockPanel();
             if (OperatingSystem.IsLinux())
@@ -121,20 +121,6 @@ namespace SimpleKVM.Ui
             statsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             statsTimer.Tick += (s, e) => RefreshRows();
             statsTimer.Start();
-
-            //On Windows, minimizing hides the window and the tray icon brings it back.
-            //On macOS the window must minimize to the Dock natively — hiding
-            //it mid-minimize leaves it blank when restored.
-            if (OperatingSystem.IsWindows())
-            {
-                PropertyChanged += (s, e) =>
-                {
-                    if (e.Property == WindowStateProperty && WindowState == WindowState.Minimized)
-                    {
-                        Hide();
-                    }
-                };
-            }
 
             Closing += MainWindow_Closing;
 
@@ -482,9 +468,9 @@ namespace SimpleKVM.Ui
         bool quitting;
 
         /// <summary>
-        /// Shuts the app down for real. On macOS and Linux the window's close button merely
-        /// hides it; the menu-bar or tray "Quit" item, the window's Quit button (Linux) and a
-        /// "--quit" from another launch come through here.
+        /// Shuts the app down for real. The window's close button merely hides it; the tray's
+        /// "Exit" or the menu bar's "Quit" item, the window's Quit button (Linux) and a "--quit"
+        /// from another launch come through here.
         /// </summary>
         public void Quit()
         {
@@ -522,27 +508,13 @@ namespace SimpleKVM.Ui
                 return;
             }
 
-            //The user closed the window. On macOS the app keeps running as a menu-bar agent, so
-            //the close button just hides the window (Cmd+W behaviour); quitting is only via the
-            //menu-bar icon. Linux does the same: the rules are the point of the app and should
-            //outlive its window, which on GNOME is the only thing there is to close. Launching
-            //the app again, or the tray icon where there is one, brings the window back.
-            if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
-            {
-                e.Cancel = true;
-                Hide();
-                return;
-            }
-
-            //On Windows closing the window exits the app. When the app was started
-            //minimized the lifetime runs in explicit-shutdown mode (so it survives without a main
-            //window), so the shutdown has to be requested here.
-            sourceFollowWatcher?.Stop();
-            quitting = true;
-            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                desktop.Shutdown();
-            }
+            //The user closed the window. The rules are the point of the app and should outlive
+            //its window, so the close button just hides it and the app keeps running: in the
+            //tray on Windows, as a menu-bar agent on macOS (Cmd+W behaviour), and on Linux in the
+            //tray where there is one (on GNOME the window is the only thing there is to close).
+            //The tray or menu-bar icon, or launching the app again, brings the window back.
+            e.Cancel = true;
+            Hide();
         }
     }
 

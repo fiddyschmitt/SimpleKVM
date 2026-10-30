@@ -67,6 +67,14 @@ Yes
 ![image](https://github.com/user-attachments/assets/f63bb585-4215-4ffe-8a29-995bab5aceae)
 
 
+## Running in the background
+
+Closing the window leaves SimpleKVM running, so your rules keep working. Minimizing it works as it does for any other window.
+
+- **Windows**: SimpleKVM stays in the system tray. Click its icon, or choose **Open** from its menu, to bring the window back, and choose **Exit** to quit. Windows may hide a new tray icon behind the **^** arrow; starting SimpleKVM again brings the window back too.
+- **macOS**: SimpleKVM stays in the menu bar. Choose **Open Simple KVM** from its menu to bring the window back, and **Quit Simple KVM** to quit. Opening the app again from Applications or Spotlight brings the window back too.
+- **Linux**: the tray icon brings the window back, and so does starting Simple KVM again, which is the way on GNOME (it shows no tray icons unless the AppIndicator extension is installed). To stop it, use the window's Quit button, the tray menu, a right-click on its launcher icon, or `simplekvm --quit`.
+
 ## Run at startup
 1. Click the settings button
 2. Tick 'Run at Startup'
@@ -82,7 +90,7 @@ On Windows this creates a shortcut in the Startup folder; on macOS it creates a 
   - On **Wayland with GNOME 48 or later, or KDE Plasma 6**, they go through the desktop's global shortcuts service. The desktop asks you to confirm each new hotkey the first time, and you can change its keys afterwards in the desktop's own keyboard settings.
   - On **other Wayland desktops** (GNOME 46 on Ubuntu 24.04, for one) the keys are read from `/dev/input`, which needs the `input` group: `sudo usermod -aG input $USER`, then log in again. Two things to know there: the group lets any program you run read your keystrokes, and the hotkeys aren't exclusive, so the combination also reaches the focused application and the desktop's own shortcuts. Pick one nothing else uses.
 - **Idle detection** ("no longer idle" rules) needs nothing on GNOME, which reports idle time itself. KDE Plasma on Wayland has no such interface, so there the `input` group is needed (the rule editor says so).
-- **The window**: closing it leaves Simple KVM running, so your rules keep working. The tray icon brings the window back, and so does starting Simple KVM again, which is the way on GNOME (it shows no tray icons unless the AppIndicator extension is installed). To stop it, use the window's Quit button, the tray menu, a right-click on its launcher icon, or `simplekvm --quit`.
+- **The window**: see [Running in the background](#running-in-the-background).
 - **USB events** are read from sysfs and need no permissions.
 - **Run at startup** writes `~/.config/autostart/io.github.fiddyschmitt.simplekvm.desktop`. Settings and rules live in `~/.config/simplekvm`, or under `$XDG_CONFIG_HOME` when that is set.
 - **Troubleshooting**: `simplekvm --test-hotkey "Ctrl+Alt+F1"` and `simplekvm --watch-idle` say which of these routes is in use on your desktop. `SIMPLEKVM_HOTKEYS=evdev` (or `x11`, `portal`) and `SIMPLEKVM_IDLE_SOURCE=evdev` (or `desktop`) in the environment pin one, should the automatic choice not suit.
