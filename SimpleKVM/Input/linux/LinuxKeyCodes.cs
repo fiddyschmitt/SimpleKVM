@@ -36,6 +36,19 @@ namespace SimpleKVM.Input.linux
             return false;
         }
 
+        /// <summary>The key name for a keysym, the reverse of TryGetKeysym (one of the names when a key has several).</summary>
+        public static bool TryGetKeyName(uint keysym, out string keyName)
+        {
+            if (keyNames.TryGetValue(keysym, out var found))
+            {
+                keyName = found;
+                return true;
+            }
+
+            keyName = "";
+            return false;
+        }
+
         /// <summary>
         /// A gesture as the XDG shortcuts specification writes a trigger, e.g. "CTRL+ALT+F1" or
         /// "LOGO+SHIFT+KP_1"; null when the key has no keysym name to put in it.
@@ -55,6 +68,15 @@ namespace SimpleKVM.Input.linux
 
         static readonly Dictionary<string, ushort> evdev = BuildEvdev();
         static readonly Dictionary<string, (uint Keysym, string Name)> keysyms = BuildKeysyms();
+
+        static readonly Dictionary<uint, string> keyNames = BuildKeyNames();
+
+        static Dictionary<uint, string> BuildKeyNames()
+        {
+            var m = new Dictionary<uint, string>();
+            foreach (var (keyName, (keysym, _)) in keysyms) m.TryAdd(keysym, keyName);
+            return m;
+        }
 
         static Dictionary<string, ushort> BuildEvdev()
         {

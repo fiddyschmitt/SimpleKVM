@@ -227,6 +227,10 @@ namespace SimpleKVM.Cli
             if (hotkeys.BackendName != null) Console.WriteLine($"Hotkeys through: {hotkeys.BackendName}");
             if (hotkeys.Note != null) Console.WriteLine($"Note: {hotkeys.Note}");
 
+            //A combination the desktop keeps for itself never reaches the app, whichever the route
+            if (PlatformServices.Current.DesktopShortcuts?.Uses(gesture) is { Count: > 0 } uses)
+                Console.WriteLine($"Note: your desktop uses {gesture} for {string.Join(" and ", uses)}, and acts on those keys before Simple KVM can. The hotkey chooser can free it.");
+
             using var registration = HotkeySystem.Register(gesture, () => Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} hotkey fired: {gesture}"));
             Console.WriteLine($"Registered {gesture}; press it now (Ctrl+C to stop)...");
 

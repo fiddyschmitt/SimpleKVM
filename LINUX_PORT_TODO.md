@@ -144,6 +144,24 @@ From the contributor's later commits on #40 (merged into this branch):
       doesn't. Clicked there by Fidel: pkexec ran the script, the rule went in, and the user
       got access to the Acer's bus at once.
 
+- [x] **M4** Hotkeys on keys the desktop already uses. Ubuntu's Tiling Assistant has Win+NumPad1-9
+      and GNOME acts on its shortcuts before any app sees the keys, so Win+NumPad4 could be
+      neither chosen (the chooser never saw the press) nor used. The chooser now takes the
+      keyboard while it is in front (X11KeyCapture: an X keyboard grab on a connection of its own,
+      after the `_XWAYLAND_MAY_GRAB_KEYBOARD` client message to the root window that makes mutter
+      stand its shortcuts down; a window property of that name is ignored), names what the
+      desktop uses the combination for (GnomeShortcuts: gsettings for the window manager, shell,
+      media keys, custom shortcuts and every active extension, found over the shell's D-Bus API
+      by metadata, schemas folder or the schema its code names, as Ubuntu's dock does), and its
+      Free it button takes the combination out of those settings. `--test-hotkey` says so too.
+      GnomeKeybindings and X11KeyDecoder are the pure parts (LinuxDesktopShortcutsTests).
+      Verified on the Fedora GNOME 48 VM with a custom Win+NumPad4 shortcut: captured with the
+      desktop's shortcut silent, freed, bound through the portal, Activated on the next press;
+      the grab follows focus and ends with the chooser. Detection verified on Fidel's Ubuntu 26.04
+      (Tiling Assistant, dock, GNOME). Not covered: KDE's own shortcuts (kglobalaccel).
+      Used there by Fidel: Win+NumPad4 and Win+NumPad1 freed from the Tiling Assistant and
+      bound by GNOME, and Win+NumPad1 switched the Acer to DVI 1.
+
 System tests after round two: 20 tests on each of the four VMs.
 
 Still open from the second review (not chosen for this round): `xrandr` should be asked
@@ -151,4 +169,6 @@ with `--current`; layouts differing from QWERTY on the evdev route; the monitor 
 keyed by position only; name-before-EDID pairing on NVIDIA under X11; the kernel `ddcci`
 driver holding the bus address; game controllers counting as activity; the I2C hint on
 Fedora; desktops without a layout source (Sway, Hyprland, COSMIC); CI; a fake bus for the
-DDC framing. And before release: DDC on real hardware.
+DDC framing. And before release: DDC on more real hardware. So far one machine, Fidel's
+Ubuntu 26.04 with Intel graphics and an Acer S240HL on HDMI (2026-11-24): its inputs were
+read and a hotkey rule switched it. AMD and NVIDIA are untried.

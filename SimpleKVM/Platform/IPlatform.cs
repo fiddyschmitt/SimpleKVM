@@ -28,6 +28,38 @@ namespace SimpleKVM.Platform
         /// there itself (Linux). Null where the installer or the OS takes care of it.
         /// </summary>
         IMenuEntry? MenuEntry => null;
+
+        /// <summary>
+        /// The desktop's own keyboard shortcuts, where the desktop acts on them before any app
+        /// sees the keys (Linux: GNOME), so a hotkey on the same keys could be neither chosen
+        /// nor used. Null where hotkeys don't have to share the keyboard with the desktop that way.
+        /// </summary>
+        IDesktopShortcuts? DesktopShortcuts => null;
+    }
+
+    public interface IDesktopShortcuts
+    {
+        /// <summary>
+        /// For the hotkey chooser: lets the window take the whole keyboard while it is in front,
+        /// so a combination the desktop would act on itself is passed to pressed instead, as a
+        /// hotkey string ("Win+NumPad4"), on another thread. Made before the window is shown.
+        /// Null when the keyboard can't be taken for this kind of window.
+        /// </summary>
+        IKeyCapture? CreateCapture(nint windowHandle, string? handleKind, Action<string> pressed);
+
+        /// <summary>What the desktop does on the hotkey itself, a phrase per shortcut for the user; empty when nothing.</summary>
+        IReadOnlyList<string> Uses(string hotkey);
+
+        /// <summary>Takes the hotkey away from the desktop's shortcuts that have it, which keep their other keys. Throws when that fails.</summary>
+        void Free(string hotkey);
+    }
+
+    /// <summary>The keyboard, taken between Start and Stop. Dispose gives it back for good.</summary>
+    public interface IKeyCapture : IDisposable
+    {
+        void Start();
+
+        void Stop();
     }
 
     public interface IDisplayPlatform

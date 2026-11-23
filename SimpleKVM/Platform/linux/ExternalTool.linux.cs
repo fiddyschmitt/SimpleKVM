@@ -22,19 +22,35 @@ namespace SimpleKVM.Platform.linux
         /// <summary>Null when the program isn't installed or couldn't be started.</summary>
         public static Result? Run(string fileName, string arguments, int timeoutMs = 5000, IReadOnlyDictionary<string, string>? environment = null)
         {
+            var startInfo = new ProcessStartInfo(fileName, arguments);
+
+            if (environment != null)
+            {
+                foreach (var (key, value) in environment) startInfo.Environment[key] = value;
+            }
+
+            return Run(startInfo, timeoutMs);
+        }
+
+        /// <summary>
+        /// The same with each argument passed as it is, unparsed: for an argument with quotes or
+        /// spaces of its own, such as a gsettings value.
+        /// </summary>
+        public static Result? Run(string fileName, IReadOnlyList<string> arguments, int timeoutMs = 5000)
+        {
+            var startInfo = new ProcessStartInfo(fileName);
+            foreach (var argument in arguments) startInfo.ArgumentList.Add(argument);
+
+            return Run(startInfo, timeoutMs);
+        }
+
+        static Result? Run(ProcessStartInfo startInfo, int timeoutMs)
+        {
             try
             {
-                var startInfo = new ProcessStartInfo(fileName, arguments)
-                {
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                };
-
-                if (environment != null)
-                {
-                    foreach (var (key, value) in environment) startInfo.Environment[key] = value;
-                }
+                startInfo.RedirectStandardOutput = true;
+                startInfo.RedirectStandardError = true;
+                startInfo.UseShellExecute = false;
 
                 using var process = Process.Start(startInfo);
                 if (process == null) return null;
