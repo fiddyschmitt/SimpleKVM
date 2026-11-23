@@ -1,6 +1,7 @@
 using SimpleKVM.Input;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SimpleKVM.Platform
 {
@@ -56,11 +57,36 @@ namespace SimpleKVM.Platform
         /// </summary>
         string? StatusMessage => null;
 
+        /// <summary>
+        /// What the app can do about StatusMessage itself once the user allows it (Linux: give the
+        /// user access to the monitors' buses), or null when there is nothing it can do. The rule
+        /// editor offers it as a Fix button next to the message.
+        /// </summary>
+        IStatusFix? StatusFix => null;
+
         /// <summary>How the screen layout was determined, where that isn't simply the OS (Linux: the compositor queried).</summary>
         string? LayoutSource => null;
     }
 
     public readonly record struct ScreenRect(int Left, int Top, int Right, int Bottom);
+
+    /// <summary>A problem the app can put right itself, given the user's permission.</summary>
+    public interface IStatusFix
+    {
+        /// <summary>What the fix does, for the user to read before choosing it.</summary>
+        string Description { get; }
+
+        /// <summary>
+        /// Puts it right, asking for an administrator's password the OS's own way first. Doesn't
+        /// throw: the result says how it went.
+        /// </summary>
+        Task<StatusFixResult> RunAsync();
+    }
+
+    public enum StatusFixOutcome { Fixed, Cancelled, Failed }
+
+    /// <summary>How a fix went, and when it failed, why, in a sentence for the user.</summary>
+    public readonly record struct StatusFixResult(StatusFixOutcome Outcome, string? Message = null);
 
     public interface IHotkeyBackend
     {

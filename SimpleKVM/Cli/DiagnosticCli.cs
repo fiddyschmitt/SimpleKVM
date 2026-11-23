@@ -124,6 +124,7 @@ namespace SimpleKVM.Cli
             var displays = PlatformServices.Current.Displays;
             if (displays.LayoutSource != null) Console.WriteLine($"Layout source: {displays.LayoutSource}");
             if (displays.StatusMessage != null) Console.WriteLine($"Note: {displays.StatusMessage.Replace("\n", "\nNote: ")}");
+            if (displays.StatusMessage != null && displays.StatusFix != null) Console.WriteLine("Note: Simple KVM can do this for you: click Fix next to this note in the rule editor.");
 
             Console.WriteLine($"{monitors.Count} monitor(s):");
 

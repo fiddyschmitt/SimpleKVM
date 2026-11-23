@@ -131,6 +131,19 @@ From the contributor's later commits on #40 (merged into this branch):
       outside: the rules' hotkeys stay registered while the editor is open and are released
       only while the chooser is.
 
+- [x] **M3** A Fix button beside "No access to /dev/i2c-*" and "No I2C buses" in the rule editor.
+      pkexec, which shows the desktop's own password dialog, runs a script as root that adds
+      ddcutil's udev rule as `/etc/udev/rules.d/60-simplekvm-i2c.rules` (display adapters' buses
+      get the uaccess tag, so the user at the computer gets access at once, without logging out),
+      loads `i2c-dev` where it isn't built in and nothing loads it yet, and applies the rule to the
+      buses that exist. Offered only where it can help: display adapter buses to open up, systemd's
+      uaccess rules, pkexec. Afterwards the buses must open, or the editor says why not;
+      `--list-monitors` mentions the button. BusAccess (the script, pkexec's exit codes;
+      LinuxBusAccessTests) and I2cAccessFix. The rule checked with `udevadm test` on real
+      hardware (Ubuntu 26.04, Intel): the Acer's bus and the GPU's others get the tag, the SMBus
+      doesn't. Clicked there by Fidel: pkexec ran the script, the rule went in, and the user
+      got access to the Acer's bus at once.
+
 System tests after round two: 20 tests on each of the four VMs.
 
 Still open from the second review (not chosen for this round): `xrandr` should be asked

@@ -37,6 +37,8 @@ namespace SimpleKVM.Platform.linux
 
         public string? StatusMessage => SimpleKVM.Displays.linux.DisplaySystem.StatusMessage;
 
+        public IStatusFix? StatusFix => SimpleKVM.Displays.linux.DisplaySystem.StatusFix;
+
         public string? LayoutSource => SimpleKVM.Displays.linux.DisplaySystem.LayoutSource;
     }
 }

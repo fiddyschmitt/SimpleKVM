@@ -13,6 +13,8 @@ Or just run it from this folder: ./simplekvm
 Remove it again with ./uninstall.sh (your rules and settings are kept).
 
 Monitors are controlled over DDC/CI through /dev/i2c-*. If Simple KVM says it has no access,
-install your distribution's ddcutil package (its udev rules grant the access) or add yourself
-to the i2c group, and make sure the i2c-dev kernel module is loaded. The project page's
-"Linux notes" have the details, including how hotkeys work on each desktop.
+click Fix next to that message in the rule editor: after an administrator's password it sets
+the access up. To do it yourself instead, install your distribution's ddcutil package (its
+udev rules grant the access) or add yourself to the i2c group, and make sure the i2c-dev
+kernel module is loaded. The project page's "Linux notes" have the details, including how
+hotkeys work on each desktop.

@@ -50,6 +50,9 @@ namespace SimpleKVM.Displays.linux
         /// <summary>Something the user should know about DDC access, or null when all is well.</summary>
         public static string? StatusMessage { get; private set; }
 
+        /// <summary>What the app can do itself about StatusMessage (I2cAccessFix), or null.</summary>
+        public static IStatusFix? StatusFix { get; private set; }
+
         public static IList<Monitor> GetMonitors()
         {
             lock (cacheLock)
@@ -312,6 +315,7 @@ namespace SimpleKVM.Displays.linux
         static List<DisplayInfo> AttachTransports(List<DisplayInfo> displays)
         {
             var notes = new List<string>();
+            bool busesOutOfReach = true;
             var buses = I2cBuses();
             if (buses.Count == 0)
             {
@@ -320,6 +324,10 @@ namespace SimpleKVM.Displays.linux
             else if (!buses.Any(DdcTransport.CanOpen))
             {
                 notes.Add("No access to /dev/i2c-*: add your user to the i2c group, or install ddcutil's udev rules (see the README's Linux notes).");
+            }
+            else
+            {
+                busesOutOfReach = false;
             }
 
             Dictionary<string, string?>? busByEdid = null;
@@ -344,6 +352,7 @@ namespace SimpleKVM.Displays.linux
                     .ToList();
 
             StatusMessage = notes.Count > 0 ? string.Join("\n", notes.Distinct()) : null;
+            StatusFix = busesOutOfReach && I2cAccessFix.CanHelp() ? I2cAccessFix.Instance : null;
             return result;
         }
 
@@ -398,33 +407,49 @@ namespace SimpleKVM.Displays.linux
                 if (scannedBusByEdid != null && scannedSignature == signature) return scannedBusByEdid;
 
                 var result = new Dictionary<string, string?>();
-                const string adapters = "/sys/bus/i2c/devices";
-                if (Directory.Exists(adapters))
+                foreach (var dev in DisplayAdapterBuses())
                 {
-                    foreach (var adapter in Directory.GetDirectories(adapters, "i2c-*"))
+                    try
                     {
-                        try
-                        {
-                            if (!BelongsToDisplayAdapter(adapter)) continue;
+                        if (!DdcTransport.CanOpen(dev)) continue;
 
-                            var dev = $"/dev/{Path.GetFileName(adapter)}";
-                            if (!DdcTransport.CanOpen(dev)) continue;
+                        var edid = new DdcTransport(dev).ReadEdid();
+                        if (edid == null) continue;
 
-                            var edid = new DdcTransport(dev).ReadEdid();
-                            if (edid == null) continue;
-
-                            var key = Edid.Key(edid);
-                            result[key] = result.ContainsKey(key) ? null : dev;    //seen twice: ambiguous
-                        }
-                        catch
-                        {
-                        }
+                        var key = Edid.Key(edid);
+                        result[key] = result.ContainsKey(key) ? null : dev;    //seen twice: ambiguous
+                    }
+                    catch
+                    {
                     }
                 }
 
                 scannedBusByEdid = result;
                 scannedSignature = signature;
                 return result;
+            }
+        }
+
+        /// <summary>
+        /// The /dev node of every display adapter's I2C bus, whether i2c-dev has made the node yet
+        /// or not. Those are the buses monitors hang off, and the ones I2cAccessFix opens up.
+        /// </summary>
+        public static List<string> DisplayAdapterBuses()
+        {
+            const string adapters = "/sys/bus/i2c/devices";
+            try
+            {
+                return Directory.Exists(adapters)
+                        ? Directory.GetDirectories(adapters, "i2c-*")
+                                   .Where(BelongsToDisplayAdapter)
+                                   .Select(adapter => $"/dev/{Path.GetFileName(adapter)}")
+                                   .OrderBy(dev => dev, StringComparer.Ordinal)
+                                   .ToList()
+                        : [];
+            }
+            catch
+            {
+                return [];
             }
         }
 
