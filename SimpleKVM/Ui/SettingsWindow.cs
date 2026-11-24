@@ -10,6 +10,7 @@ namespace SimpleKVM.Ui
     public class SettingsWindow : Window
     {
         readonly CheckBox chkRunAtStartup;
+        readonly CheckBox chkShowInMenu;
         readonly CheckBox chkForceInputChange;
         readonly CheckBox chkFollowSourceChanges;
         readonly TextBlock errorText;
@@ -30,6 +31,16 @@ namespace SimpleKVM.Ui
                 Content = "Run at startup",
                 IsVisible = startup != null,
                 IsChecked = startup?.IsEnabled() ?? false
+            };
+
+            //Linux: the app's own entry in the applications menu (elsewhere the OS or the installer sees to it)
+            var menuEntry = PlatformServices.Current.MenuEntry;
+
+            chkShowInMenu = new CheckBox
+            {
+                Content = "Show in the applications menu",
+                IsVisible = menuEntry != null,
+                IsChecked = menuEntry?.IsShown() ?? false
             };
 
             chkForceInputChange = new CheckBox
@@ -60,7 +71,7 @@ namespace SimpleKVM.Ui
             };
 
             var btnOk = new Button { Content = "OK" };
-            btnOk.Click += (s, e) => Save(startup);
+            btnOk.Click += (s, e) => Save(startup, menuEntry);
 
             var btnCancel = new Button { Content = "Cancel" };
             btnCancel.Click += (s, e) => Close(false);
@@ -79,6 +90,7 @@ namespace SimpleKVM.Ui
                 Spacing = 10
             };
             layout.Children.Add(chkRunAtStartup);
+            layout.Children.Add(chkShowInMenu);
             layout.Children.Add(chkForceInputChange);
             layout.Children.Add(chkFollowSourceChanges);
             layout.Children.Add(followHint);
@@ -88,8 +100,22 @@ namespace SimpleKVM.Ui
             Content = layout;
         }
 
-        void Save(IStartupManager? startup)
+        void Save(IStartupManager? startup, IMenuEntry? menuEntry)
         {
+            if (menuEntry != null && menuEntry.IsShown() != (chkShowInMenu.IsChecked == true))
+            {
+                try
+                {
+                    menuEntry.SetShown(chkShowInMenu.IsChecked == true);
+                }
+                catch (Exception ex)
+                {
+                    errorText.Text = $"Failed to update the applications menu: {ex.Message}";
+                    errorText.IsVisible = true;
+                    return;
+                }
+            }
+
             if (startup != null)
             {
                 try

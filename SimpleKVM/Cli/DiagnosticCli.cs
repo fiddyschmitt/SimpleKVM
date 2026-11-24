@@ -43,7 +43,11 @@ namespace SimpleKVM.Cli
                     {
                         return Displays.mac.DdcProbe.Run();
                     }
-                    Console.WriteLine("--probe-ddc is only available on macOS.");
+                    if (OperatingSystem.IsLinux())
+                    {
+                        return ListMonitors();
+                    }
+                    Console.WriteLine("--probe-ddc is only available on macOS and Linux.");
                     return 1;
 
                 case "--list-monitors":
@@ -70,13 +74,19 @@ namespace SimpleKVM.Cli
                 case "--set-startup" when args.Length >= 2:
                     return SetStartup(args[1]);
 
+                case "--set-menu-entry" when args.Length >= 2:
+                    return SetMenuEntry(args[1]);
+
+                case "--quit":
+                    return Quit();
+
                 case "--get-caps" when args.Length >= 2:
                     return GetCaps(int.Parse(args[1]));
 
                 default:
                     Console.WriteLine("""
                         SimpleKVM diagnostic commands:
-                          --probe-ddc                 macOS: test DDC/CI on the attached monitor
+                          --probe-ddc                 macOS/Linux: test DDC/CI on the attached monitor
                           --list-monitors             enumerate monitors, ids and sources
                           --get-source <n>            read monitor n's current input (1-based)
                           --set-source <n> <id>       switch monitor n to input <id> (decimal or 0xHEX)
@@ -85,7 +95,10 @@ namespace SimpleKVM.Cli
                           --test-hotkey "<gesture>"   register a hotkey (e.g. "Ctrl+Alt+F1") and wait
                           --verify-rules <file>       parse a rules.json and print its rules
                           --set-startup on|off|status control the run-at-startup registration
-                          --get-caps <n>              macOS: read and parse monitor n's capabilities string
+                          --set-menu-entry on|hidden|off|status
+                                                      Linux: the app's entry in the applications menu
+                          --quit                      ask the running SimpleKVM to exit (exit code 1: none was running)
+                          --get-caps <n>              macOS/Linux: read and parse monitor n's capabilities string
                         """);
                     return 1;
             }
@@ -107,6 +120,12 @@ namespace SimpleKVM.Cli
             }
 
             var monitors = DisplaySystem.GetMonitors();
+
+            var displays = PlatformServices.Current.Displays;
+            if (displays.LayoutSource != null) Console.WriteLine($"Layout source: {displays.LayoutSource}");
+            if (displays.StatusMessage != null) Console.WriteLine($"Note: {displays.StatusMessage.Replace("\n", "\nNote: ")}");
+            if (displays.StatusMessage != null && displays.StatusFix != null) Console.WriteLine("Note: Simple KVM can do this for you: click Fix next to this note in the rule editor.");
+
             Console.WriteLine($"{monitors.Count} monitor(s):");
 
             for (int i = 0; i < monitors.Count; i++)
@@ -117,6 +136,12 @@ namespace SimpleKVM.Cli
                 {
                     Console.WriteLine($"      source 0x{sourceId:X2} ({sourceId}) = {sourceName}");
                 }
+            }
+
+            //Where an earlier version knew a monitor by another id, rules saved under it are moved over at startup
+            foreach (var (earlier, current) in displays.EarlierMonitorIds())
+            {
+                Console.WriteLine($"Earlier id {earlier} is now {current}");
             }
 
             return 0;
@@ -171,15 +196,41 @@ namespace SimpleKVM.Cli
         static int WatchIdle()
         {
             Console.WriteLine("Printing idle time every second (Ctrl+C to stop)...");
+            bool noted = false;
+            string? source = null;
             while (true)
             {
-                Console.WriteLine($"idle: {IdleUtility.GetIdleTimeSpan().TotalSeconds:F1} s");
+                var idle = IdleUtility.GetIdleTimeSpan();
+
+                if (PlatformServices.Current.Idle.SourceName is string name && name != source)
+                {
+                    Console.WriteLine($"Idle source: {name}");
+                    source = name;
+                }
+
+                Console.WriteLine($"idle: {idle.TotalSeconds:F1} s");
+
+                if (!noted && PlatformServices.Current.Idle.StatusMessage is string note)
+                {
+                    Console.WriteLine($"Note: {note}");
+                    noted = true;
+                }
+
                 Thread.Sleep(1000);
             }
         }
 
         static int TestHotkey(string gesture)
         {
+            //Said first: when the hotkey can't be registered, the route and its note are the explanation
+            var hotkeys = PlatformServices.Current.Hotkeys;
+            if (hotkeys.BackendName != null) Console.WriteLine($"Hotkeys through: {hotkeys.BackendName}");
+            if (hotkeys.Note != null) Console.WriteLine($"Note: {hotkeys.Note}");
+
+            //A combination the desktop keeps for itself never reaches the app, whichever the route
+            if (PlatformServices.Current.DesktopShortcuts?.Uses(gesture) is { Count: > 0 } uses)
+                Console.WriteLine($"Note: your desktop uses {gesture} for {string.Join(" and ", uses)}, and acts on those keys before Simple KVM can. The hotkey chooser can free it.");
+
             using var registration = HotkeySystem.Register(gesture, () => Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} hotkey fired: {gesture}"));
             Console.WriteLine($"Registered {gesture}; press it now (Ctrl+C to stop)...");
 
@@ -228,7 +279,21 @@ namespace SimpleKVM.Cli
                     : "VCP 0x60 not found in parsed features");
                 return 0;
             }
-            Console.WriteLine("--get-caps is only available on macOS (Windows reads capabilities via Dxva2).");
+            if (OperatingSystem.IsLinux())
+            {
+                var monitors = DisplaySystem.GetMonitors();
+                if (monitors[monitorNumber - 1] is not Displays.linux.Monitor mon || mon.Transport == null)
+                {
+                    Console.WriteLine("No DDC transport for that monitor (check /dev/i2c-* permissions).");
+                    return 1;
+                }
+
+                Console.WriteLine($"Bus: {(mon.Transport as Displays.linux.DdcTransport)?.DevicePath}");
+                var caps = mon.Transport.ReadCapabilitiesString(Console.WriteLine);
+                Console.WriteLine(caps == null ? "No capabilities string." : $"Capabilities: {caps}");
+                return caps == null ? 1 : 0;
+            }
+            Console.WriteLine("--get-caps is only available on macOS and Linux (Windows reads capabilities via Dxva2).");
             return 1;
         }
 
@@ -255,10 +320,55 @@ namespace SimpleKVM.Cli
             return 0;
         }
 
+        /// <summary>
+        /// Linux: the applications-menu entry. "hidden" keeps an entry the desktop can know the
+        /// app by (name, icon, identity for the portals) without listing it; "off" removes it,
+        /// which is what an uninstall wants.
+        /// </summary>
+        static int SetMenuEntry(string mode)
+        {
+            if (!OperatingSystem.IsLinux())
+            {
+                Console.WriteLine("The applications-menu entry is only managed by the app on Linux.");
+                return 1;
+            }
+
+            switch (mode.ToLowerInvariant())
+            {
+                case "on": Platform.linux.LinuxMenuEntry.Write(shown: true); break;
+                case "hidden": Platform.linux.LinuxMenuEntry.Write(shown: false); break;
+                case "off": Platform.linux.LinuxMenuEntry.Remove(); break;
+                case "status": break;
+                default:
+                    Console.WriteLine("Expected on, hidden, off or status.");
+                    return 1;
+            }
+
+            Console.WriteLine($"Applications menu entry: {Platform.linux.LinuxMenuEntry.State.ToString().ToLowerInvariant()} ({Platform.linux.LinuxMenuEntry.DesktopFilePath})");
+            return 0;
+        }
+
+        /// <summary>
+        /// Asks the copy that is running to exit: the way out where there is neither a window
+        /// nor a tray icon to quit from. The exit code tells a script whether there was one.
+        /// </summary>
+        static int Quit()
+        {
+            bool told = SingleInstance.Send(SingleInstance.QuitRequest);
+            Console.WriteLine(told ? "Asked the running SimpleKVM to quit." : "SimpleKVM is not running.");
+            return told ? 0 : 1;
+        }
+
         static int VerifyRules(string filename)
         {
             var json = File.ReadAllText(filename);
             var rules = json.DeserializeJson<System.Collections.Generic.List<Rules.Rule>>() ?? [];
+
+            //What starting the app with this file would do to monitor ids an earlier version saved (the file isn't changed)
+            foreach (var (earlier, current) in Rules.MonitorIdMigration.Apply(rules, PlatformServices.Current.Displays.EarlierMonitorIds()))
+            {
+                Console.WriteLine($"A rule's monitor id {earlier}, from an earlier version, would become {current}");
+            }
 
             Console.WriteLine($"Parsed {rules.Count} rule(s):");
             foreach (var rule in rules)

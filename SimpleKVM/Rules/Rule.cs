@@ -31,6 +31,18 @@ namespace SimpleKVM.Rules
 
         public override void StartMonitoring()
         {
+            pausedBy.Clear();   //started outright: no pause holds the rule any more
+            Start();
+        }
+
+        public override void StopMonitoring()
+        {
+            pausedBy.Clear();   //stopped outright (deleted, disabled): the end of a pause mustn't start it again
+            Stop();
+        }
+
+        void Start()
+        {
             if (Status == EnumRuleStatus.Running) return;
 
             try
@@ -48,10 +60,82 @@ namespace SimpleKVM.Rules
             }
         }
 
-        public override void StopMonitoring()
+        void Stop()
         {
             Status = EnumRuleStatus.Stopped;
             Trigger.StopMonitoring();
+        }
+
+        //The pauses holding the rule stopped. Pausing and editing happen on the UI thread only.
+        readonly HashSet<object> pausedBy = [];
+
+        /// <summary>True while a pause holds the rule stopped.</summary>
+        [JsonIgnore]
+        public bool IsPaused => pausedBy.Count > 0;
+
+        /// <summary>
+        /// Stops the rules that are running (or failed to start) until the result is disposed.
+        /// For the steps that need them out of the way: the hotkey chooser recording keys, the
+        /// USB chooser watching for a device, the rule editor's test. Pauses can overlap; a rule
+        /// starts again when the last one holding it ends. A rule stopped, started, disabled or
+        /// deleted in the meantime is left as it is.
+        /// </summary>
+        public static IDisposable Pause(IEnumerable<Rule> rules)
+        {
+            var pause = new RulePause();
+
+            foreach (var rule in rules)
+            {
+                if (rule.pausedBy.Count == 0)
+                {
+                    if (rule.Status != EnumRuleStatus.Running && rule.Status != EnumRuleStatus.Error) continue;
+                    rule.Stop();
+                }
+
+                rule.pausedBy.Add(pause);
+                pause.Held.Add(rule);
+            }
+
+            return pause;
+        }
+
+        sealed class RulePause : IDisposable
+        {
+            public List<Rule> Held { get; } = [];
+
+            public void Dispose()
+            {
+                foreach (var rule in Held)
+                {
+                    if (rule.pausedBy.Remove(this) && rule.pausedBy.Count == 0)
+                    {
+                        rule.Start();
+                    }
+                }
+
+                Held.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Applies an edit made in the rule editor, which replaces the trigger. The rule keeps
+        /// running on its old trigger while it's edited, so that one is stopped before the change
+        /// and the new one started after it. A disabled rule stays disabled, and a paused one
+        /// starts on its new trigger when its pause ends.
+        /// </summary>
+        public void Edit(Action change)
+        {
+            bool restart = Status != EnumRuleStatus.Disabled && !IsPaused;
+            if (restart) StopMonitoring();
+
+            try
+            {
+                change();
+            }
+            finally
+            {
+                if (restart) StartMonitoring();
+            }
         }
 
         private void OnTriggered(object? sender, EventArgs e)

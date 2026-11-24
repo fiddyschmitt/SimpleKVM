@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using SimpleKVM.Rules;
 using SimpleKVM.Rules.Triggers;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimpleKVM.Ui.Controls
 {
@@ -54,7 +55,15 @@ namespace SimpleKVM.Ui.Controls
             if (TopLevel.GetTopLevel(this) is not Window owner) return;
 
             var chooser = new ChooseHotkeyWindow(hotkeyStringChosenByUser, ruleToEdit);
-            var ok = await chooser.ShowDialog<bool>(owner);
+
+            //The hotkey rules are paused while the chooser records keys: one on the same keys
+            //would fire, or take them before the chooser sees them, and the availability check
+            //would find this app's own registrations
+            bool ok;
+            using (Rule.Pause(RuleStore.Rules.Where(rule => rule.Trigger is HotkeyTrigger)))
+            {
+                ok = await chooser.ShowDialog<bool>(owner);
+            }
 
             if (ok)
             {

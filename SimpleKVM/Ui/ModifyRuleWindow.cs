@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Threading;
 using SimpleKVM.Rules;
 using SimpleKVM.Rules.Actions;
 using SimpleKVM.Rules.Triggers;
@@ -186,26 +187,38 @@ namespace SimpleKVM.Ui
             var actions = actionCreator?.GetAction();
             if (actions == null || actions.Count == 0) return;
 
+            //No rule may move the monitors while the test shows its result: a No Longer Idle rule
+            //would switch them back as soon as the mouse moved. They resume once the sources are restored.
+            var pause = Rule.Pause(RuleStore.Rules);
+
             Task.Factory.StartNew(() =>
             {
-                var originalSources = Displays.DisplaySystem
-                                        .GetMonitors()
-                                        .Select(monitor => new
-                                        {
-                                            Monitor = monitor,
-                                            OriginalSource = monitor.GetCurrentSource()
-                                        })
-                                        .Where(originalSource => originalSource.OriginalSource > 0)    //the current source can't always be determined (e.g. LG alt mode); don't restore those monitors
-                                        .ToList();
+                try
+                {
+                    var originalSources = Displays.DisplaySystem
+                                            .GetMonitors()
+                                            .Select(monitor => new
+                                            {
+                                                Monitor = monitor,
+                                                OriginalSource = monitor.GetCurrentSource()
+                                            })
+                                            .Where(originalSource => originalSource.OriginalSource > 0)    //the current source can't always be determined (e.g. LG alt mode); don't restore those monitors
+                                            .ToList();
 
-                actions.ForEach(action => action.Run());
-                Thread.Sleep(TimeSpan.FromSeconds(10));
+                    actions.ForEach(action => action.Run());
+                    Thread.Sleep(TimeSpan.FromSeconds(10));
 
-                originalSources
-                    .ForEach(originalSource =>
-                    {
-                        originalSource.Monitor.SetSource(originalSource.OriginalSource);
-                    });
+                    originalSources
+                        .ForEach(originalSource =>
+                        {
+                            originalSource.Monitor.SetSource(originalSource.OriginalSource);
+                        });
+                }
+                finally
+                {
+                    //Rules start on the UI thread: macOS registers hotkeys with its run loop
+                    Dispatcher.UIThread.Post(() => pause.Dispose());
+                }
             }, TaskCreationOptions.LongRunning);
         }
     }

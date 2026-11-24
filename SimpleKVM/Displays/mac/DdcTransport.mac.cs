@@ -1,3 +1,4 @@
+using SimpleKVM.Displays.Ddc;
 using SimpleKVM.Displays.I2C;
 using System;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace SimpleKVM.Displays.mac
     /// prepends stale bytes to I2C reads.
     /// </summary>
     [SupportedOSPlatform("macos")]
-    public class DdcTransport(IntPtr avService)
+    public class DdcTransport(IntPtr avService) : IDdcTransport
     {
         const uint ChipAddress = 0x37;          //7-bit DDC/CI slave
         const uint DataAddress = 0x51;          //standard DDC source byte, sent as the I2C register

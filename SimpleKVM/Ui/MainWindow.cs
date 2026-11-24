@@ -78,14 +78,40 @@ namespace SimpleKVM.Ui
             };
             buttonRow.Children.Add(saveErrorText);
 
+            //Closing the window leaves the app running, and a Linux desktop without tray icons
+            //(GNOME) has no other place to stop it from
+            var bottomRow = new DockPanel();
+            if (OperatingSystem.IsLinux())
+            {
+                var btnQuit = new Button { Content = "Quit", Margin = new Thickness(8) };
+                ToolTip.SetTip(btnQuit, "Stop Simple KVM. Closing the window leaves it running.");
+                btnQuit.Click += (s, e) => Quit();
+                DockPanel.SetDock(btnQuit, Dock.Right);
+                bottomRow.Children.Add(btnQuit);
+            }
+            bottomRow.Children.Add(buttonRow);
+
             var layout = new DockPanel();
-            DockPanel.SetDock(buttonRow, Dock.Bottom);
-            layout.Children.Add(buttonRow);
+            DockPanel.SetDock(bottomRow, Dock.Bottom);
+            layout.Children.Add(bottomRow);
             rulesGrid.Margin = new Thickness(8, 8, 8, 0);
             layout.Children.Add(rulesGrid);
             Content = layout;
 
             RuleStore.Load();
+
+            //Rules saved by a version that measured monitors differently (macOS before 2.5.0 used
+            //the layout in points, which follows each display's scaling) are pointed at the ids the
+            //same monitors have now, before any rule runs
+            try
+            {
+                var moved = MonitorIdMigration.Apply(RuleStore.Rules, Platform.PlatformServices.Current.Displays.EarlierMonitorIds());
+                if (moved.Count > 0) RuleStore.Save();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not check the rules' monitor ids: {ex.Message}");
+            }
 
             RuleStore.Rules.ForEach(rule =>
             {
@@ -108,20 +134,6 @@ namespace SimpleKVM.Ui
             statsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             statsTimer.Tick += (s, e) => RefreshRows();
             statsTimer.Start();
-
-            //On Windows, minimizing hides the window and the tray icon brings it back.
-            //On macOS the window must minimize to the Dock natively — hiding
-            //it mid-minimize leaves it blank when restored.
-            if (OperatingSystem.IsWindows())
-            {
-                PropertyChanged += (s, e) =>
-                {
-                    if (e.Property == WindowStateProperty && WindowState == WindowState.Minimized)
-                    {
-                        Hide();
-                    }
-                };
-            }
 
             Closing += MainWindow_Closing;
 
@@ -334,20 +346,12 @@ namespace SimpleKVM.Ui
 
         public async Task EditRule(EnumTriggerType? triggerType, EnumActionType? actionType, Rule? rule)
         {
-            //pause the rules which are currently running
-            var paused = RuleStore.Rules
-                            .Where(r => r.Status == EnumRuleStatus.Running || r.Status == EnumRuleStatus.Error)
-                            .Select(r =>
-                            {
-                                r.StopMonitoring();
-                                return r;
-                            })
-                            .ToList();
-
+            //The rules keep running while the editor is open, so an editor left open switches
+            //nothing off. The steps that need them out of the way pause them for as long as they
+            //take: recording a hotkey, picking a USB device, and the editor's test.
             await Task.Run(initMonitorList.Wait);
 
-            var creatingNewRule = rule == null;
-            var title = creatingNewRule ? "Create new rule" : "Edit rule";
+            var title = rule == null ? "Create new rule" : "Edit rule";
 
             ModifyRuleWindow editRuleWindow;
             if (rule == null)
@@ -361,45 +365,29 @@ namespace SimpleKVM.Ui
             }
 
             var saved = await editRuleWindow.ShowDialog<bool>(this);
-            var save = false;
+            if (!saved) return;
 
-            if (saved)
+            if (rule == null)
             {
-                if (creatingNewRule)
+                var newRule = editRuleWindow.GetRule();
+
+                if (newRule != null)
                 {
-                    var newRule = editRuleWindow.GetRule();
+                    ruleRows.Add(new RuleRow(newRule));
 
-                    if (newRule != null)
-                    {
-                        ruleRows.Add(new RuleRow(newRule));
+                    newRule.Triggered += Rule_Triggered;
+                    RuleStore.Rules.Add(newRule);
 
-                        newRule.Triggered += Rule_Triggered;
-                        RuleStore.Rules.Add(newRule);
-
-                        newRule.StartMonitoring();
-                    }
+                    newRule.StartMonitoring();
                 }
-                else
-                {
-                    var editedRule = editRuleWindow.GetRule();  //forces the new data to be collected into the Rule object
-
-                    if (editedRule?.Status != EnumRuleStatus.Disabled)
-                    {
-                        editedRule?.StartMonitoring();
-                    }
-                }
-
-                save = true;
+            }
+            else
+            {
+                rule.Edit(() => editRuleWindow.GetRule());  //forces the new data to be collected into the Rule object
             }
 
-            //resume the rules which were running earlier
-            paused.ForEach(r => r.StartMonitoring());
-
-            if (save)
-            {
-                RuleStore.Save();
-                RefreshRows();
-            }
+            RuleStore.Save();
+            RefreshRows();
         }
 
         async Task ShowSettings()
@@ -469,8 +457,9 @@ namespace SimpleKVM.Ui
         bool quitting;
 
         /// <summary>
-        /// Shuts the app down for real. On macOS the app is a menu-bar agent, so the window's
-        /// close button merely hides it; only the menu-bar "Quit" item comes through here.
+        /// Shuts the app down for real. The window's close button merely hides it; the tray's
+        /// "Exit" or the menu bar's "Quit" item, the window's Quit button (Linux) and a "--quit"
+        /// from another launch come through here.
         /// </summary>
         public void Quit()
         {
@@ -508,25 +497,13 @@ namespace SimpleKVM.Ui
                 return;
             }
 
-            //The user closed the window. On macOS the app keeps running as a menu-bar agent, so
-            //the close button just hides the window (Cmd+W behaviour); quitting is only via the
-            //menu-bar icon.
-            if (OperatingSystem.IsMacOS())
-            {
-                e.Cancel = true;
-                Hide();
-                return;
-            }
-
-            //On the other platforms closing the window exits the app. When the app was started
-            //minimized the lifetime runs in explicit-shutdown mode (so it survives without a main
-            //window), so the shutdown has to be requested here.
-            sourceFollowWatcher?.Stop();
-            quitting = true;
-            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                desktop.Shutdown();
-            }
+            //The user closed the window. The rules are the point of the app and should outlive
+            //its window, so the close button just hides it and the app keeps running: in the
+            //tray on Windows, as a menu-bar agent on macOS (Cmd+W behaviour), and on Linux in the
+            //tray where there is one (on GNOME the window is the only thing there is to close).
+            //The tray or menu-bar icon, or launching the app again, brings the window back.
+            e.Cancel = true;
+            Hide();
         }
     }
 

@@ -1,10 +1,14 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Shapes;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.Themes.Fluent;
 using System;
 
@@ -41,13 +45,69 @@ namespace SimpleKVM.Ui
             {
                 Setters = { new Setter(Visual.IsVisibleProperty, false) }
             });
+
+            //Linux: a thin edge around every window. Windows 11 and macOS draw one of their own,
+            //but GNOME draws none down the sides or along the bottom of the app's windows, so in
+            //dark mode a window on a dark desktop has no visible end.
+            if (OperatingSystem.IsLinux())
+            {
+                AddWindowEdge();
+            }
+        }
+
+        const string WindowEdgeBrush = "SimpleKvmWindowEdgeBrush";
+
+        void AddWindowEdge()
+        {
+            //Light grey in dark mode, dark grey in light mode; it follows the desktop's setting
+            //as that changes
+            Resources.ThemeDictionaries[ThemeVariant.Dark] = new ResourceDictionary
+            {
+                [WindowEdgeBrush] = new SolidColorBrush(Color.FromRgb(0xC0, 0xC0, 0xC0))
+            };
+            Resources.ThemeDictionaries[ThemeVariant.Light] = new ResourceDictionary
+            {
+                [WindowEdgeBrush] = new SolidColorBrush(Color.FromRgb(0x60, 0x60, 0x60))
+            };
+
+            //Drawn by the content presenter in the window's template, so each window has it
+            //without having to wrap its own content
+            Styles.Add(new Style(x => x.OfType<Window>().Template().OfType<ContentPresenter>().Name("PART_ContentPresenter"))
+            {
+                Setters =
+                {
+                    new Setter(ContentPresenter.BorderBrushProperty, new DynamicResourceExtension(WindowEdgeBrush)),
+                    new Setter(ContentPresenter.BorderThicknessProperty, new Thickness(1))
+                }
+            });
         }
 
         public override void OnFrameworkInitializationCompleted()
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
+                //Linux: the app's applications-menu entry, when it has one, is kept pointing at a
+                //program that exists. Before the rules start, which is when the desktop portal
+                //may need the entry to know the app by.
+                if (OperatingSystem.IsLinux())
+                {
+                    Platform.linux.LinuxMenuEntry.OnAppStart();
+                }
+
+                //Launching the app again while it's running: on Windows and Linux the second
+                //copy tells this one over a named pipe and exits; show the window in response.
+                //"--quit" arrives the same way. Listening starts before the window is built,
+                //because building it starts the rules, which can take a while (at login a
+                //Linux desktop's shortcut service may still be coming up), and a launch in
+                //that time must find this copy rather than become a second one. What it
+                //asks for is done once the window exists: both run on this thread, after this.
+                MainWindow? window = null;
+                SingleInstance.Listen(
+                    onShow: () => Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (window != null) RestoreMainWindow(window); }),
+                    onQuit: () => Avalonia.Threading.Dispatcher.UIThread.Post(() => window?.Quit()));
+
                 var mainWindow = new MainWindow();
+                window = mainWindow;
 
                 //Refreshes an existing run-at-startup registration to the current format
                 //(e.g. adds the start-minimized argument to a shortcut made by an older version)
@@ -83,6 +143,18 @@ namespace SimpleKVM.Ui
 
                 TrayIcon.SetIcons(this, [trayIcon]);
 
+                //On Linux the tray icon watches the StatusNotifierWatcher over D-Bus. At logout the
+                //session bus goes away first, the watch task is canceled and Avalonia rethrows the
+                //cancellation on the UI thread, which aborts the process and triggers a crash report.
+                //A canceled background task is never worth dying for, so swallow it.
+                Dispatcher.UIThread.UnhandledException += (s, e) =>
+                {
+                    if (e.Exception is OperationCanceledException)
+                    {
+                        e.Handled = true;
+                    }
+                };
+
                 //Ensure the tray icon doesn't linger until hovered after exit
                 desktop.Exit += (s, e) =>
                 {
@@ -91,15 +163,17 @@ namespace SimpleKVM.Ui
                 };
 
                 //As a menu-bar agent the app has no Dock icon and the window can't be reached
-                //once closed except through the menu-bar icon, so keep running in the background
-                if (OperatingSystem.IsMacOS())
+                //once closed except through the menu-bar icon, so keep running in the background.
+                //Linux likewise: closing the window leaves the rules running, and the window
+                //comes back through the tray icon or by launching the app again.
+                if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
                 {
                     desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 }
 
-                //Launching the app again while it's running (Finder, Spotlight, a Desktop
-                //shortcut) arrives as a "reopen" activation; show the window in response, as
-                //macOS users expect. Nothing else has to be done for the first launch.
+                //On macOS LaunchServices does the same and it arrives as a "reopen" activation
+                //(Finder, Spotlight, a Desktop shortcut); show the window in response, as macOS
+                //users expect. Nothing else has to be done for the first launch.
                 if (TryGetFeature(typeof(IActivatableLifetime)) is IActivatableLifetime activatable)
                 {
                     activatable.Activated += (s, e) =>

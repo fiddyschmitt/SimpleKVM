@@ -76,7 +76,9 @@ public class SafeSerializationBinderTests
         var asm = typeof(Rule).Assembly.GetName().Name;
         var (foreign, native) = OperatingSystem.IsWindows()
             ? ("SimpleKVM.Displays.mac.Monitor", "SimpleKVM.Displays.win.Monitor")
-            : ("SimpleKVM.Displays.win.Monitor", "SimpleKVM.Displays.mac.Monitor");
+            : OperatingSystem.IsLinux()
+                ? ("SimpleKVM.Displays.win.Monitor", "SimpleKVM.Displays.linux.Monitor")
+                : ("SimpleKVM.Displays.win.Monitor", "SimpleKVM.Displays.mac.Monitor");
 
         var bound = Binder.BindToType(asm, foreign);
 
@@ -89,7 +91,9 @@ public class SafeSerializationBinderTests
         var asm = typeof(Rule).Assembly.GetName().Name;
         var native = OperatingSystem.IsWindows()
             ? "SimpleKVM.Displays.win.Monitor"
-            : "SimpleKVM.Displays.mac.Monitor";
+            : OperatingSystem.IsLinux()
+                ? "SimpleKVM.Displays.linux.Monitor"
+                : "SimpleKVM.Displays.mac.Monitor";
 
         var bound = Binder.BindToType(asm, native);
 

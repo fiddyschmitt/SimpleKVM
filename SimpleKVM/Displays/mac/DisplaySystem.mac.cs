@@ -1,4 +1,5 @@
 using SimpleKVM.Configuration;
+using SimpleKVM.Displays.Ddc;
 using SimpleKVM.Displays.I2C;
 using System;
 using System.Collections.Generic;
@@ -84,31 +85,38 @@ namespace SimpleKVM.Displays.mac
         record DisplayInfo(uint DisplayId, int Left, int Top, int Right, int Bottom, string UniqueId, int MonitorNumber, DdcTransport? Transport);
 
         /// <summary>
-        /// The external displays as CoreGraphics lays them out, without DDC transports. Monitor
-        /// numbers count every screen, the built-in one included, so they match the numbers in
-        /// the rule editor's layout and the MonitorOverrides in config.json (as on Windows).
+        /// Every active display with its bounds in pixels as well as in points (see
+        /// <see cref="MacPixelLayout"/>): pixels are what monitor ids, monitor numbers and the rule
+        /// editor's layout use, so none of them change when a display's scaling does.
         /// </summary>
-        static List<DisplayInfo> EnumerateExternalDisplays()
+        public static List<MacScreen> Screens()
         {
-            return CoreGraphicsNative
+            return MacPixelLayout.Build(CoreGraphicsNative
                     .GetActiveDisplays()
                     .Select(id =>
                     {
                         var bounds = CoreGraphicsNative.CGDisplayBounds(id);
-                        int left = (int)Math.Round(bounds.X);
-                        int top = (int)Math.Round(bounds.Y);
-                        int right = (int)Math.Round(bounds.X + bounds.Width);
-                        int bottom = (int)Math.Round(bounds.Y + bounds.Height);
-                        bool builtin = CoreGraphicsNative.CGDisplayIsBuiltin(id);
-                        return (id, left, top, right, bottom, builtin);
+                        var (nativeWidth, nativeHeight) = CoreGraphicsNative.NativePixelSize(id);
+                        return new MacDisplay(id, CoreGraphicsNative.CGDisplayIsBuiltin(id), bounds.X, bounds.Y, bounds.Width, bounds.Height, nativeWidth, nativeHeight);
                     })
-                    .OrderBy(d => d.left)
-                    .ThenBy(d => d.top)
-                    .Select((d, index) => (Display: d, Number: index + 1))
-                    .Where(entry => !entry.Display.builtin)
+                    .ToList());
+        }
+
+        /// <summary>
+        /// The external displays, without DDC transports. Monitor numbers count every screen, the
+        /// built-in one included, so they match the numbers in the rule editor's layout and the
+        /// MonitorOverrides in config.json (as on Windows).
+        /// </summary>
+        static List<DisplayInfo> EnumerateExternalDisplays()
+        {
+            return Screens()
+                    .OrderBy(screen => screen.Pixels.Left)
+                    .ThenBy(screen => screen.Pixels.Top)
+                    .Select((screen, index) => (Screen: screen, Number: index + 1))
+                    .Where(entry => !entry.Screen.BuiltIn)
                     .Select(entry => new DisplayInfo(
-                        entry.Display.id, entry.Display.left, entry.Display.top, entry.Display.right, entry.Display.bottom,
-                        MonitorIdentity.FromBounds(entry.Display.left, entry.Display.top, entry.Display.right, entry.Display.bottom),
+                        entry.Screen.Id, entry.Screen.Pixels.Left, entry.Screen.Pixels.Top, entry.Screen.Pixels.Right, entry.Screen.Pixels.Bottom,
+                        MacPixelLayout.Id(entry.Screen.Pixels),
                         entry.Number,
                         Transport: null))
                     .ToList();
@@ -129,116 +137,13 @@ namespace SimpleKVM.Displays.mac
 
         static Monitor BuildMonitor(DisplayInfo display)
         {
-            List<(int SourceId, string SourceName)>? sources = null;
+            var probe = DdcMonitorBuilder.Run(display.MonitorNumber, edid: null, display.Transport);
 
-            //First the config file, in case the user specified a custom list of sources for this monitor
-            var monitorOverride = ConfigManager
-                        .Current?
-                        .Overrides?
-                        .MonitorOverrides?
-                        .FirstOrDefault(ovr => ovr.MonitorNumber == display.MonitorNumber);
-
-            sources = monitorOverride?
-                        .Sources
-                        .Select(src => (src.SourceId, src.SourceName))
-                        .ToList();
-
-            if (sources != null && sources.Count == 0)
-                sources = null;
-
-            bool userSpecifiedSources = sources != null;
-
-            //Second, the monitor's capabilities string (model + valid sources)
-            var model = "Unknown";
-            ushort edidManufacturer = 0;
-
-            var edid = display.Transport?.ReadEdid();
-            if (edid != null && edid.Length >= 128)
+            return new Monitor(display.UniqueId, probe.Model, probe.Sources)
             {
-                edidManufacturer = (ushort)((edid[8] << 8) | edid[9]);
-                model = EdidModelName(edid) ?? model;
-            }
-
-            Action<string>? ddcDebug = Environment.GetEnvironmentVariable("SIMPLEKVM_DDC_DEBUG") == "1"
-                                        ? msg => Console.Error.WriteLine($"[caps] {msg}")
-                                        : null;
-            var caps = display.Transport?.ReadCapabilitiesString(ddcDebug);
-            if (caps != null)
-            {
-                var parsed = CapabilitiesParser.Parse(caps);
-
-                //The EDID display name (e.g. "S240HL") is usually more specific than the
-                //capabilities model (often just the brand), so only fill a gap here
-                if (!string.IsNullOrEmpty(parsed.Model) && model == "Unknown")
-                    model = parsed.Model;
-
-                if (sources == null && parsed.VcpFeatures.TryGetValue(0x60, out var inputSources))
-                {
-                    sources = inputSources
-                                .Select(sourceId => ((int)sourceId, VcpSourceNames.SourceIdToName(sourceId)))
-                                .ToList();
-                }
-            }
-
-            if ((sources == null || sources.Count == 0) &&
-                display.Transport != null && display.Transport.GetVcp(0x60, out _))
-            {
-                sources =
-                [
-                    (0x11, "HDMI 1"),
-                    (0x12, "HDMI 2"),
-                    (0x0F, "DisplayPort 1"),
-                    (0x10, "DisplayPort 2"),
-                    (0x03, "DVI 1"),
-                    (0x01, "VGA 1"),
-                ];
-            }
-
-            //LG monitors ignore VCP 0x60 writes; use the 0xF4 sidechannel unless overridden
-            bool useLgAltMode = false;
-            if (monitorOverride?.UseLgAltMode == true)
-            {
-                useLgAltMode = true;
-            }
-            else if (monitorOverride?.UseLgAltMode == null)
-            {
-                useLgAltMode = edidManufacturer == LgInputSources.EdidManufacturerId
-                || model.Contains("LG", StringComparison.OrdinalIgnoreCase);
-            }
-
-            if (useLgAltMode && !userSpecifiedSources)
-            {
-                sources = LgInputSources.GetDefaultSources();
-            }
-
-            sources ??= [];
-
-            var newMonitor = new Monitor(display.UniqueId, model, sources)
-            {
-                UseLgAltMode = useLgAltMode,
+                UseLgAltMode = probe.UseLgAltMode,
                 Transport = display.Transport
             };
-
-            return newMonitor;
-        }
-
-        static string? EdidModelName(byte[] edid)
-        {
-            //Display name lives in an 18-byte descriptor block tagged 0xFC
-            foreach (int offset in new[] { 54, 72, 90, 108 })
-            {
-                if (offset + 18 > edid.Length) break;
-                if (edid[offset] != 0 || edid[offset + 1] != 0 || edid[offset + 3] != 0xFC) continue;
-
-                var name = Encoding.ASCII.GetString(edid, offset + 5, 13);
-                int newline = name.IndexOf('\n');
-                if (newline >= 0) name = name[..newline];
-                name = name.Trim();
-
-                return name.Length > 0 ? name : null;
-            }
-
-            return null;
         }
 
         public static Dictionary<string, int> GetCurrentSources()

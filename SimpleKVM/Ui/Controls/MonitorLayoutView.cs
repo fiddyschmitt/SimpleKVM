@@ -7,6 +7,7 @@ using SimpleKVM.Rules.Actions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using IAction = SimpleKVM.Rules.Actions.IAction;
 
 namespace SimpleKVM.Ui.Controls
@@ -23,6 +24,9 @@ namespace SimpleKVM.Ui.Controls
         readonly Canvas canvas;
         readonly Rule? ruleToEdit;
         readonly List<MonitorComboEntry> monitorCombos = [];
+        readonly TextBlock statusText;
+        readonly Button fixButton;
+        readonly TextBlock fixErrorText;
 
         public MonitorLayoutView(Rule? ruleToEdit)
         {
@@ -39,8 +43,48 @@ namespace SimpleKVM.Ui.Controls
                 Reload();
             };
 
+            //Why a monitor can't be controlled, when the platform knows (Linux: no /dev/i2c-* access),
+            //with a Fix button beside it where the app can put that right itself
+            statusText = new TextBlock
+            {
+                Foreground = Brushes.Gray,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                IsVisible = false
+            };
+
+            fixButton = new Button
+            {
+                Content = "Fix",
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                IsVisible = false
+            };
+            fixButton.Click += async (s, e) => await RunFix();
+
+            fixErrorText = new TextBlock
+            {
+                Foreground = Brushes.Red,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = InitialDrawerSize.Width + 2 * Pad,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                IsVisible = false
+            };
+
+            //The message wraps in whatever width the button leaves it
+            var statusRow = new DockPanel
+            {
+                MaxWidth = InitialDrawerSize.Width + 2 * Pad,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left
+            };
+            DockPanel.SetDock(fixButton, Dock.Right);
+            statusRow.Children.Add(fixButton);
+            statusRow.Children.Add(statusText);
+
             var layout = new StackPanel { Spacing = 4 };
             layout.Children.Add(canvas);
+            layout.Children.Add(statusRow);
+            layout.Children.Add(fixErrorText);
             layout.Children.Add(btnRefresh);
             Content = layout;
 
@@ -83,6 +127,15 @@ namespace SimpleKVM.Ui.Controls
             var scale = Math.Min(scaleX, scaleY);
 
             var monitors = Displays.DisplaySystem.GetMonitors();
+
+            var displays = PlatformServices.Current.Displays;
+            var status = displays.StatusMessage;
+            var fix = status != null ? displays.StatusFix : null;
+            statusText.Text = status;
+            statusText.IsVisible = status != null;
+            fixButton.IsVisible = fix != null;
+            ToolTip.SetTip(fixButton, fix?.Description);
+            if (fix == null) fixErrorText.IsVisible = false;
 
             //Screens are numbered in the same order the platforms use: left, then top
             var orderedScreens = screens
@@ -162,6 +215,48 @@ namespace SimpleKVM.Ui.Controls
 
             canvas.Width = maxRight + Pad;
             canvas.Height = maxBottom + Pad;
+        }
+
+        /// <summary>
+        /// Runs the platform's fix for the message. The OS asks for an administrator's password
+        /// meanwhile, and the button waits for it; once the fix has worked, every monitor is
+        /// probed again, which also takes the message away.
+        /// </summary>
+        async Task RunFix()
+        {
+            if (PlatformServices.Current.Displays.StatusFix is not IStatusFix fix) return;
+
+            fixButton.IsEnabled = false;
+            fixButton.Content = "Fixing...";
+            fixErrorText.IsVisible = false;
+
+            StatusFixResult result;
+            try
+            {
+                result = await fix.RunAsync();
+            }
+            catch (Exception ex)
+            {
+                result = new StatusFixResult(StatusFixOutcome.Failed, ex.Message);
+            }
+            finally
+            {
+                fixButton.Content = "Fix";
+                fixButton.IsEnabled = true;
+            }
+
+            switch (result.Outcome)
+            {
+                case StatusFixOutcome.Fixed:
+                    Displays.DisplaySystem.InvalidateMonitors();
+                    Reload();
+                    break;
+
+                case StatusFixOutcome.Failed:
+                    fixErrorText.Text = result.Message;
+                    fixErrorText.IsVisible = true;
+                    break;
+            }
         }
 
         static void UpdateDelayLabel(TextBlock label, MonitorComboEntry entry)
