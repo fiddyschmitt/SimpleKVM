@@ -1,8 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Shapes;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -41,6 +44,41 @@ namespace SimpleKVM.Ui
             Styles.Add(new Style(x => x.OfType<DataGridCell>().Class(":focus").Template().OfType<Grid>().Name("FocusVisual"))
             {
                 Setters = { new Setter(Visual.IsVisibleProperty, false) }
+            });
+
+            //Linux: a thin edge around every window. Windows 11 and macOS draw one of their own,
+            //but GNOME draws none down the sides or along the bottom of the app's windows, so in
+            //dark mode a window on a dark desktop has no visible end.
+            if (OperatingSystem.IsLinux())
+            {
+                AddWindowEdge();
+            }
+        }
+
+        const string WindowEdgeBrush = "SimpleKvmWindowEdgeBrush";
+
+        void AddWindowEdge()
+        {
+            //Light grey in dark mode, dark grey in light mode; it follows the desktop's setting
+            //as that changes
+            Resources.ThemeDictionaries[ThemeVariant.Dark] = new ResourceDictionary
+            {
+                [WindowEdgeBrush] = new SolidColorBrush(Color.FromRgb(0xC0, 0xC0, 0xC0))
+            };
+            Resources.ThemeDictionaries[ThemeVariant.Light] = new ResourceDictionary
+            {
+                [WindowEdgeBrush] = new SolidColorBrush(Color.FromRgb(0x60, 0x60, 0x60))
+            };
+
+            //Drawn by the content presenter in the window's template, so each window has it
+            //without having to wrap its own content
+            Styles.Add(new Style(x => x.OfType<Window>().Template().OfType<ContentPresenter>().Name("PART_ContentPresenter"))
+            {
+                Setters =
+                {
+                    new Setter(ContentPresenter.BorderBrushProperty, new DynamicResourceExtension(WindowEdgeBrush)),
+                    new Setter(ContentPresenter.BorderThicknessProperty, new Thickness(1))
+                }
             });
         }
 

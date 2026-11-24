@@ -162,6 +162,16 @@ From the contributor's later commits on #40 (merged into this branch):
       Used there by Fidel: Win+NumPad4 and Win+NumPad1 freed from the Tiling Assistant and
       bound by GNOME, and Win+NumPad1 switched the Acer to DVI 1.
 
+- [x] **M5** A 1px edge around every window on Linux: light grey (#C0C0C0) in dark mode, dark
+      grey (#606060) in light mode, following the desktop's setting as it changes. GNOME draws
+      no edge down the sides or along the bottom of the app's windows, so in dark mode a window
+      on a black desktop had no visible end (Fidel, on Ubuntu). Windows 11 and macOS draw an edge
+      of their own and are left as they were. One style in App.cs gives it to every window: the
+      content presenter in the window's template draws it. Read from the windows' own pixels on
+      Fidel's Ubuntu 26.04 (dark mode) and on the Fedora GNOME 48 VM in both modes: the main
+      window, Settings, the rule editor and the hotkey chooser, recoloured as the desktop
+      switched. On KDE Plasma 6 Breeze draws a fainter outline just outside it.
+
 System tests after round two: 20 tests on each of the four VMs.
 
 Still open from the second review (not chosen for this round): `xrandr` should be asked
