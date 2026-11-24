@@ -4,8 +4,8 @@ using SimpleKVM.Platform;
 namespace SimpleKVM.Tests;
 
 // The Linux Fix for monitors the app can't reach: the rule, the script that installs it as root,
-// and what pkexec's exit codes mean. The script itself is run for real on Linux (see
-// LINUX_PORT_TODO.md M3); here it is checked for what would break it on every machine.
+// and what pkexec's exit codes mean. The script itself has been run for real, on Ubuntu 26.04;
+// here it is checked for what would break it on every machine.
 public class LinuxBusAccessTests
 {
     [Fact]
